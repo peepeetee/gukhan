@@ -24,6 +24,9 @@ Milestone 4 adds three scan-linked 韓龍雲 items. Original-edition verificatio
 Milestone 5 has an MV3 preview with separate local data import; browser integration
 validation remains pending. The downloaded Chromium failed to start on this Windows
 installation (side-by-side configuration error); the Edge fallback exited at launch.
+The proposed browser CI workflow is retained locally at `.github/workflows/extension.yml`:
+GitHub rejected its push because the saved OAuth credential lacks `workflow` scope.
+The draft PR includes the browser test harness, but not that workflow.
 Milestone 6 font guidance is in `fonts.md`. A stable milestone 7 release is not ready
 until the browser checks and literature provenance review are complete.
 

@@ -31,9 +31,13 @@ const crypto = require('node:crypto');
     assert.equal(await page.locator('pre').textContent(),'전기 연구');
     await page.locator('[data-gukhan="word"]').first().click();
     await page.locator('[data-gukhan="panel"]').waitFor();
-    // Settings UI persists an override, causing live re-render.
-    await options.locator('#overrides').fill('전기 = 電氣'); await options.locator('#save').click();
+    await page.getByRole('button', {name: /^電氣/}).click();
     await page.waitForFunction(() => document.querySelector('#text').textContent.includes('電氣'));
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#text').textContent.includes('電氣'));
+    // Settings UI persists an override, causing live re-render.
+    await options.locator('#overrides').fill('전기 = 傳記'); await options.locator('#save').click();
+    await page.waitForFunction(() => document.querySelector('#text').textContent.includes('傳記'));
     await worker.evaluate(() => chrome.storage.local.set({enabled:false}));
     await page.waitForFunction(() => document.querySelector('#text').textContent === '전기 연구' && !document.querySelector('[data-gukhan="word"]'));
     await worker.evaluate(() => chrome.storage.local.set({enabled:true,sites:{}}));

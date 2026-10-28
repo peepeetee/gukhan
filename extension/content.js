@@ -12,7 +12,7 @@
   async function choose(event, decision) {
     event.preventDefault(); event.stopPropagation(); panel?.remove();
     panel = document.createElement('div'); panel.dataset.gukhan = 'panel';
-    const shadow = panel.attachShadow({mode: 'closed'});
+    const shadow = panel.attachShadow({mode: 'open'});
     const box = document.createElement('div');
     box.style.cssText = 'position:fixed;bottom:20px;right:20px;max-height:60vh;overflow:auto;max-width:360px;padding:20px;background:white;color:#172d2b;box-shadow:0 3px 30px #777;font:16px/1.5 sans-serif;z-index:2147483647';
     box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', decision.word);
