@@ -4,3 +4,7 @@
 # protection. Works whose author died before 1962 are in the public domain in the Republic of Korea.
 id	kind	url	start	end	basis	notes
 constitution-1948	html	https://www.ccourt.go.kr/site/history/01/10102000000002020101203.jsp	悠久한 歷史와 傳統에 빛나는	檀紀 4281年 7月 17日	저작권법 제7조 1호 (헌법)	大韓民國憲法, 헌법 제1호, 1948-07-17 (民國37年). Original mixed-script text on the Constitutional Court's 헌법 제·개정사 pages.
+constitution-1952	html	https://www.ccourt.go.kr/site/history/01/10102000000002020101203.jsp	大韓民國憲法[일부개정 1952.7.7	票數가 같은 때에는 年齡順에 依한다.	저작권법 제7조 1호 (헌법)	제1차 개정 (헌법 제2호, 1952-07-07, 民國41年), same page as 1948; only the amended articles.
+constitution-1954	html	https://www.ccourt.go.kr/site/history/01/10102000000002020101203.jsp	大韓民國憲法[일부개정 1954.11.29		저작권법 제7조 1호 (헌법)	제2차 개정 (헌법 제3호, 1954-11-29, 民國43年). END MARKER NOT YET SET: the page is longer than could be read remotely; set it to the last line of the 1954 text, then remove this note.
+declaration-1919	wikisource-api	https://ko.wikisource.org/w/api.php?action=parse&page=기미독립선언서&prop=wikitext&format=json	吾等은		공표 후 70년 경과 (1919, 民國8年); 저작자 사망 70년 경과	己未獨立宣言書 (1919-03-01). Page title on ko.wikisource may differ (3·1 독립선언서); adjust the URL if the API reports a missing page.
+provisional-charter-1919	wikisource-api	https://ko.wikisource.org/w/api.php?action=parse&page=대한민국_임시헌장&prop=wikitext&format=json	第1條		저작권법 제7조 (헌법·법령에 준함); 1919 (民國8年)	大韓民國臨時憲章 (1919-04-11). Page title may differ; adjust if missing.

@@ -61,7 +61,25 @@ def html_to_text(raw: str) -> str:
 
 def wikisource_text(raw: bytes) -> str:
     data = json.loads(raw)
-    return data["parse"]["wikitext"]["*"]
+    if "error" in data:
+        raise ValueError(data["error"].get("info", "wikisource API error"))
+    return wikitext_to_text(data["parse"]["wikitext"]["*"])
+
+
+def wikitext_to_text(wt: str) -> str:
+    """Strip the common wiki markup: templates, links, refs, emphasis, headings, tables."""
+    for _ in range(3):  # nested templates
+        wt = re.sub(r"\{\{[^{}]*\}\}", "", wt)
+    wt = re.sub(r"(?is)<ref[^>]*>.*?</ref>|<ref[^>]*/>", "", wt)
+    wt = re.sub(r"(?s)\{\|.*?\|\}", "", wt)
+    wt = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", wt)
+    wt = re.sub(r"\[https?://\S+ ([^\]]*)\]", r"\1", wt)
+    wt = re.sub(r"'{2,}", "", wt)
+    wt = re.sub(r"(?m)^=+\s*(.*?)\s*=+$", r"\1", wt)
+    wt = re.sub(r"(?m)^[*#:;]+\s*", "", wt)
+    wt = re.sub(r"<[^>]+>", "", wt)
+    wt = html.unescape(wt)
+    return "\n".join(" ".join(line.split()) for line in wt.splitlines())
 
 
 def extract(text: str, start: str, end: str) -> str:
