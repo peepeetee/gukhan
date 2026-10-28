@@ -36,9 +36,18 @@ gukhan-regress prepare build/corpus/constitution-1948.txt \
 gukhan-regress score tests/regression/*.tsv --lexicon build/lexicon
 ```
 
-`chars.tsv` comes from `gukhan-lexicon-build --unihan`. Hanja readings in the
-Hangul column follow the 頭音法則 at the start of each Hanja run; the
-original's spacing and spelling are kept as published.
+`chars.tsv` comes from `gukhan-lexicon-build --unihan`; pass `--lexicon
+build/lexicon` to `prepare` so that runs of Hanja are first cut into words the
+lexicon knows, which settles multi-reading characters and the 頭音法則 inside
+compounds (强制勞役 → 강제노역). Uncovered characters take their education-set
+reading, with the initial-sound rule at the start of each segment and not
+after a numeral (4281年 → 4281년). The original's spacing and spelling are
+kept as published, archaic jamo (ᄲᅮᆫ, ᄯᅩ) and the particle ㅣ of 1919
+prose included; only the amendment notes a law site inserts (<개정 1954.11.29>,
+[전문개정 …]) are stripped, since they were never in the text. Items from
+pre-1945 prose are a hard set: the analyser was trained on modern Korean, so
+their score says how far the tool is from that register, not how the tool
+does on today's text.
 
 ## What the score means
 
@@ -46,9 +55,17 @@ original's spacing and spelling are kept as published.
 | --- | --- |
 | words | runs of Hanja in the gold text |
 | right | converter wrote exactly that Hanja |
+| partial | part of the run is right, the rest stayed Hangul (compound known in part) |
 | flagged | converter left the word in Hangul (abstained or flagged) |
-| wrong | converter wrote different Hanja |
+| wrong | converter wrote different Hanja somewhere in the run |
 | over | converter wrote Hanja where the gold text has Hangul |
+| chars_* | the same, counted per Hanja character |
+
+Glyph variants such as 强/強 are folded before comparison. The score line
+also depends on `--min-weight` (default 0): with a cutoff, a lone lexicon
+entry below that weight is flagged rather than written. On the 1948 text a
+cutoff of 12 cut wrong from 1.4% to 0.5% and right from 48.7% to 21.7%, so it
+is off by default and the single-syllable rule carries the caution instead.
 
 `wrong` and `over` are the numbers that matter most: the tool promises never
 to guess, so they should stay near zero while `flagged` shrinks.

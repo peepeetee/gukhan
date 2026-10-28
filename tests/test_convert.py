@@ -61,8 +61,10 @@ def test_override_wins_and_keep():
 def test_pos_filter_disambiguates():
     c = conv([("약", "MAG"), ("약", "NNG"), ("을", "JKO")])
     r = c.convert("약 약을")
-    assert r.text == "約 藥을"
+    # the adverb converts via the POS filter; the one-syllable noun on a lone entry is flagged, not written
+    assert r.text == "約 약을"
     assert "POS filter" in r.decisions[0].reason
+    assert r.decisions[1].kind == Kind.FLAGGED and [e.hanja for e in r.decisions[1].candidates] == ["藥"]
 
 
 def test_identical_candidates_agree():
@@ -171,3 +173,47 @@ def test_weight_orders_candidates():
     lex = Lexicon([Entry("역사", "役事", "명사", "t", "work", 1), Entry("역사", "歷史", "명사", "t", "history", 12)])
     r = Converter(lex, None, ListAnalyser([("역사", "NNG")])).convert("역사")
     assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]
+
+
+def test_native_bound_noun_never_converted():
+    lex = Lexicon([Entry("수", "首", "의존 명사", "t"), Entry("수", "數", "명사", "t")])
+    c = Converter(lex, None, ListAnalyser([("할", "VV"), ("수", "NNB"), ("있", "VA"), ("수", "NNG")]))
+    r = c.convert("할 수 있다 수")
+    # the bound noun is skipped outright; the NNG 수 is a real 首/數 homograph and is flagged
+    assert r.text == "할 수 있다 수"
+    assert [(d.start, d.kind) for d in r.decisions] == [(7, Kind.FLAGGED)]
+
+
+def test_native_homograph_entry_flags():
+    lex = Lexicon([Entry("안", "案", "명사", "t", "plan", 12), Entry("안", "안", "명사", "t", "inside", 13)])
+    c = Converter(lex, None, ListAnalyser([("안", "NNG")]))
+    r = c.convert("안")
+    assert r.decisions[0].kind == Kind.FLAGGED
+    assert c.convert("안", mark=True).text == "안{안|案}"
+    only_native = Lexicon([Entry("안", "안", "명사", "t", "inside", 13)])
+    assert Converter(only_native, None, ListAnalyser([("안", "NNG")])).convert("안").decisions == []
+
+
+def test_min_weight_flags_rare_single_entry():
+    lex = Lexicon(
+        [Entry("계승", "階乘", "명사", "t", "factorial", 11), Entry("국민", "國民", "명사", "t", "people", 14)]
+    )
+    assert lex.weighted
+    c = Converter(lex, None, ListAnalyser([("계승", "NNG"), ("국민", "NNG")]), min_weight=12)
+    r = c.convert("계승 국민")
+    assert r.text == "계승 國民"
+    assert r.decisions[0].kind == Kind.FLAGGED and "weight below 12" in r.decisions[0].reason
+    c0 = Converter(lex, None, ListAnalyser([("계승", "NNG"), ("국민", "NNG")]))  # default: cutoff off
+    assert c0.convert("계승 국민").text == "階乘 國民"
+    unweighted = Lexicon([Entry("계승", "階乘", "명사", "t")])
+    assert Converter(unweighted, None, ListAnalyser([("계승", "NNG")])).convert("계승").text == "階乘"
+
+
+def test_single_syllable_lone_entry_is_flagged():
+    lex = Lexicon(
+        [Entry("전", "全", "명사", "t"), Entry("항", "項", "의존 명사", "t"), Entry("제", "第", "접두사", "t")]
+    )
+    c = Converter(lex, None, ListAnalyser([("전", "NNG"), ("항", "NNB"), ("제", "XPN"), ("1", "SN"), ("항", "NNB")]))
+    r = c.convert("전항 제1항")
+    assert r.text == "전項 第1項"
+    assert r.decisions[0].kind == Kind.FLAGGED and "single syllable" in r.decisions[0].reason

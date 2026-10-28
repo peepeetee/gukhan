@@ -19,6 +19,7 @@ import json
 import re
 import sys
 import unicodedata
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -43,6 +44,8 @@ def read_sources() -> list[dict[str, str]]:
 
 
 def fetch(url: str) -> bytes:
+    # sources.tsv keeps page titles readable (Hangul); percent-encode for the wire.
+    url = urllib.parse.quote(url, safe=":/?&=#%+~")
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=60) as resp:
         return resp.read()
@@ -59,9 +62,36 @@ def html_to_text(raw: str) -> str:
     return "\n".join(" ".join(line.split()) for line in text.splitlines())
 
 
-def wikisource_text(raw: bytes) -> str:
+_REDIRECT = re.compile(r"\s*#(?:REDIRECT|넘겨주기)\s*\[\[([^\]|]+)", re.IGNORECASE)
+
+
+def wikisource_text(raw: bytes, url: str = "") -> str:
     data = json.loads(raw)
-    return data["parse"]["wikitext"]["*"]
+    if "error" in data:
+        raise ValueError(data["error"].get("info", "wikisource API error"))
+    wt = data["parse"]["wikitext"]["*"]
+    m = _REDIRECT.match(wt)
+    if m and url:
+        # Follow one wiki redirect (e.g. 기미독립선언서 → 3·1독립선언서).
+        target = m.group(1).strip().replace(" ", "_")
+        return wikisource_text(fetch(re.sub(r"([?&]page=)[^&]*", lambda mm: mm.group(1) + target, url)))
+    return unicodedata.normalize("NFC", wikitext_to_text(wt))
+
+
+def wikitext_to_text(wt: str) -> str:
+    """Strip the common wiki markup: templates, links, refs, emphasis, headings, tables."""
+    for _ in range(3):  # nested templates
+        wt = re.sub(r"\{\{[^{}]*\}\}", "", wt)
+    wt = re.sub(r"(?is)<ref[^>]*>.*?</ref>|<ref[^>]*/>", "", wt)
+    wt = re.sub(r"(?s)\{\|.*?\|\}", "", wt)
+    wt = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", wt)
+    wt = re.sub(r"\[https?://\S+ ([^\]]*)\]", r"\1", wt)
+    wt = re.sub(r"'{2,}", "", wt)
+    wt = re.sub(r"(?m)^=+\s*(.*?)\s*=+$", r"\1", wt)
+    wt = re.sub(r"(?m)^[*#:;]+\s*", "", wt)
+    wt = re.sub(r"<[^>]+>", "", wt)
+    wt = html.unescape(wt)
+    return "\n".join(" ".join(line.split()) for line in wt.splitlines())
 
 
 def extract(text: str, start: str, end: str) -> str:
@@ -88,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
             raw = fetch(row["url"])
             (args.out / f"{row['id']}.raw").write_bytes(raw)
             if row["kind"] == "wikisource-api":
-                text = wikisource_text(raw)
+                text = wikisource_text(raw, row["url"])
             else:
                 text = html_to_text(raw.decode("utf-8", errors="replace"))
             text = extract(text, row.get("start", ""), row.get("end", ""))

@@ -51,12 +51,20 @@ POS_MAP = {
     "classifier": "의존 명사",
 }
 SKIP_POS = {"character", "syllable", "romanization", "punct", "symbol"}
+# Parts of speech whose native (non-Sino) words can collide with a Sino-Korean reading.
+NATIVE_POS = {"명사", "고유 명사", "부사", "관형사", "의존 명사", "수사"}
 
 
 def _open(path: Path) -> io.TextIOBase:
     if path.suffix == ".gz":
         return io.TextIOWrapper(gzip.open(path), encoding="utf-8")
     return path.open(encoding="utf-8")
+
+
+def _nonstandard(obj: dict) -> bool:
+    """Senses tagged North-Korea (력사, 녀자) are spellings the converter must never emit or expect."""
+    senses = obj.get("senses") or []
+    return bool(senses) and all("North-Korea" in (s.get("tags") or []) for s in senses)
 
 
 def _is_hangul_word(s: str) -> bool:
@@ -82,9 +90,11 @@ def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
                 yield f["form"], word, False
 
 
-# Greedy up to the closing quote so nested parentheses inside the gloss survive:
-# 「hanja form of 회의 (“(Chinese character classification) compound …”)」.
-_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)\s*$", re.IGNORECASE)
+# The quoted gloss, with nested parentheses kept: 「hanja form of 회의 (“(Chinese
+# character classification) compound …”)」; a trailing 「(North Korea)」 label is
+# outside the quotes and so dropped.
+_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:“|\"|&quot;)(.+?)(?:”|\"|&quot;)\)", re.IGNORECASE)
+_FORM_OF_BARE = re.compile(r"^hanja form of \S+\s*\((.+)\)\s*$", re.IGNORECASE)
 
 
 _ROMAN_THEN_PAREN = re.compile(r"^[A-Za-z' -]+ \((.+)\)$")
@@ -134,7 +144,7 @@ def _gloss(obj: dict) -> str:
             if not g:
                 continue
             g = g.replace("\t", " ").replace("\n", " ")
-            m = _FORM_OF.match(g)
+            m = _FORM_OF.match(g) or _FORM_OF_BARE.match(g)
             if m:
                 fallback = fallback or shorten(m.group(1), romanizations=roman)
             elif not g.lower().startswith("hanja form of"):
@@ -180,7 +190,17 @@ def parse(
             pos_raw = obj.get("pos", "")
             if pos_raw in SKIP_POS:
                 continue
+            if _nonstandard(obj):
+                continue
             pos = POS_MAP.get(pos_raw, pos_raw)
+            word = obj.get("word", "")
+            if _is_hangul_word(word) and not any("hanja" in (f.get("tags") or []) for f in obj.get("forms") or []):
+                ety = (obj.get("etymology_text") or "").lower()
+                if "sino-korean" not in ety and "hanja" not in ety and pos in NATIVE_POS:
+                    w = _weight(obj, True)
+                    if w > stats.native.get(word, ("", "", -1))[2]:
+                        stats.native[word] = (pos, _gloss(obj), w)
+                continue
             for hangul, raw, from_hangul_page in _pairs(obj):
                 stats.sino += 1
                 source = f"enwikt:{obj.get('word', '')}"

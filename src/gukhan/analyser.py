@@ -28,6 +28,14 @@ TAG_TO_POS: dict[str, frozenset[str]] = {
 }
 
 
+# Native bound nouns and forms that Kiwi tags NNB/NNG and that must never be
+# converted, whatever Sino-Korean counter or noun happens to share the sound:
+# 할 수 있다, 그럴 리가, 먹을 것.
+NATIVE_STOP = frozenset(
+    "수 것 데 바 지 줄 때 뿐 듯 양 척 체 리 터 겸 김 나위 노릇 무렵 따름 따위 적 만 만큼 대로 채 녘 즈음 쯤 들".split()
+)
+
+
 @dataclass(frozen=True)
 class Token:
     form: str
