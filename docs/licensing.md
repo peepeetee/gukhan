@@ -51,7 +51,8 @@ it from the source; the build manifest records source versions and hashes.
 ## Audit record
 
 Licences were read from each source's own page on 2026-10-28. The 우리말샘
-copyright policy page and the English Wiktionary copyright page could not be
-fetched automatically; their rows in `THIRD-PARTY-NOTICES.md` rest on
-secondary sources and should be re-checked in a browser before either source
-is used.
+policy page could not be fetched automatically and was verified from a
+browser capture the same day: CC BY-SA 2.0 KR, identical in substance to the
+표준국어대사전 policy. The English Wiktionary copyright page could not be
+fetched; its row in `THIRD-PARTY-NOTICES.md` rests on the Korean Wiktionary
+page and should be re-checked in a browser before Wiktionary is used.

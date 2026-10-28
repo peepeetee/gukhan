@@ -35,7 +35,7 @@ Not used at present, recorded for the audit trail:
 
 | Source | Licence | Reason not used |
 | --- | --- | --- |
-| 우리말샘 | CC BY-SA 2.0 KR (per secondary sources; policy page at <https://opendict.korean.go.kr/service/copyrightPolicy> was not machine-readable during the audit) | Deferred; same licence as 표준국어대사전, can be added later |
+| 우리말샘 | CC BY-SA 2.0 KR for all material not marked otherwise, including contributor-written entries; media files and source-cited 용례 excluded (policy page <https://opendict.korean.go.kr/service/copyrightPolicy>, verified from a browser capture on 2026-10-28) | Deferred; same licence as 표준국어대사전, can be added later |
 | Wiktionary (Korean, English) | CC BY-SA 3.0 or later + GFDL | Second licence version would complicate the data package |
 | UTagger | Research-only terms, no open licence | Excluded entirely; no code, dictionaries or outputs are used or compared against |
 
