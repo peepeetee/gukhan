@@ -42,7 +42,10 @@ def test_parse_with_validation():
     assert "nawn" not in reasons
     assert "align" in reasons["나쁜"]
     assert "reads" in reasons["오류"]
-    assert stats.items == 9 and stats.rejected == 2
+    assert ("가감하다", "加減하다") in forms  # full-dump style: homonym number stripped, -하다 tail kept
+    assert ("가", "加") in forms
+    assert stats.items == 11 and stats.rejected == 2
+    assert "<" not in next(e for e in entries if e.hanja == "加減하다").sense
     assert next(e for e in entries if e.hanja == "電氣").sense.startswith("물질")
 
 

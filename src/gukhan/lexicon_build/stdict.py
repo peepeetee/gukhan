@@ -78,12 +78,53 @@ def _find_text(item: ET.Element, name: str) -> str | None:
     return None
 
 
+HOMONYM_SUFFIX = re.compile(r"(\d{2})$")
+
+
+def split_homonym(word: str) -> tuple[str, str]:
+    """Split the two-digit homonym number the full dump appends to headwords.
+
+    The 2026 dump writes ``가03``, ``가계-하다01``; the open API writes ``가``
+    with a separate ``sup_no``. Returns ``(word, number)``; number is ``""``
+    when absent.
+    """
+    m = HOMONYM_SUFFIX.search(word)
+    if m:
+        return word[: m.start()], m.group(1)
+    return word, ""
+
+
 def clean_headword(word: str) -> str:
+    word, _ = split_homonym(word)
     return word.replace("^", " ").replace("-", "").strip()
 
 
 def clean_hanja(raw: str) -> str:
     return re.sub(r"[▽▼\s()（）]", "", raw).replace("ː", "")
+
+
+# Hangul tails the full dump leaves out of the original-language field:
+# 가감-하다 → 加減, 가각-히 → 苛刻. Longest first so 스럽다 wins over 다.
+HANGUL_SUFFIXES = ("스럽다", "시키다", "하다", "되다", "롭다", "답다", "히", "이", "적", "들", "껏", "째")
+
+
+def align_with_suffix(hangul: str, hanja: str) -> str | None:
+    """``align`` that also accepts a headword ending in a derivational tail.
+
+    The tail stays Hangul in the mixed form (加減하다, 苛刻히), which is what
+    the converter must output. Only the suffixes in ``HANGUL_SUFFIXES`` are
+    tried, so arbitrary misalignments are still rejected.
+    """
+    mixed = align(hangul, hanja)
+    if mixed is not None:
+        return mixed
+    for suf in HANGUL_SUFFIXES:
+        stem = hangul[: -len(suf)]
+        if hangul.endswith(suf) and stem and stem.replace(" ", ""):
+            head = align(stem, hanja)
+            if head is not None:
+                return head + suf
+    return None
 
 
 def align(hangul: str, hanja: str) -> str | None:
@@ -174,10 +215,10 @@ def parse(
             continue
         stats.sino += 1
         code = _find_text(item, "target_code") or ""
-        sup = _find_text(item, "sup_no") or ""
+        sup = _find_text(item, "sup_no") or split_homonym(word)[1]
         source = f"stdict:{code}" if code else f"stdict:{word}{sup}"
         hangul = clean_headword(word)
-        mixed = align(hangul, clean_hanja(raw_hanja))
+        mixed = align_with_suffix(hangul, clean_hanja(raw_hanja))
         if mixed is None:
             rejects.append(Reject(hangul, raw_hanja, source, "hanja does not align with headword"))
             stats.rejected += 1
@@ -189,7 +230,8 @@ def parse(
                 stats.rejected += 1
                 continue
         pos = _find_text(item, "pos") or ""
-        sense = (_find_text(item, "definition") or "").replace("\t", " ").replace("\n", " ")[:80]
+        sense = re.sub(r"<[^>]+>", "", _find_text(item, "definition") or "")
+        sense = sense.replace("\t", " ").replace("\n", " ")[:80]
         entries.append(Entry(hangul, mixed, pos, source, sense))
         stats.entries += 1
     return entries, rejects, stats

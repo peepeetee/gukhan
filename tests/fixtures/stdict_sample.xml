@@ -82,4 +82,22 @@
       <pos_info><pos>명사</pos></pos_info>
     </word_info>
   </item>
+  <item>
+    <target_code>1010</target_code>
+    <word_info>
+      <word><![CDATA[가감-하다01]]></word>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[加減]]></original_language></original_language_info>
+      <pos_info><pos>동사</pos><comm_pattern_info><sense_info><definition><![CDATA[더하거나 ‘<each_sense_no>1</each_sense_no>빼다’]]></definition></sense_info></comm_pattern_info></pos_info>
+    </word_info>
+  </item>
+  <item>
+    <target_code>1011</target_code>
+    <word_info>
+      <word><![CDATA[가03]]></word>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[加]]></original_language></original_language_info>
+      <pos_info><pos>명사</pos></pos_info>
+    </word_info>
+  </item>
 </channel>

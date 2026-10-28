@@ -14,3 +14,5 @@ U+4F5C	kHangul	작:0E
 U+6230	kHangul	전:0E
 U+8A08	kHangul	계:0E
 U+5283	kHangul	획:0E
+U+52A0	kHangul	가:0E
+U+6E1B	kHangul	감:0E
