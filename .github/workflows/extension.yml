@@ -1,0 +1,26 @@
+name: extension
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "extension/**"
+      - ".github/workflows/extension.yml"
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Engine unit tests
+        run: node --test extension/engine.test.mjs
+      - name: Install Playwright (Apache-2.0) and Chromium
+        run: |
+          npm install --no-save --prefix build/browser-check playwright@1.64.1
+          npx --prefix build/browser-check playwright install --with-deps chromium
+      - name: Browser smoke test (real extension in headless Chromium)
+        run: node extension/browser-smoke.cjs

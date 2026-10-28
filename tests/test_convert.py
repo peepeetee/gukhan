@@ -217,3 +217,27 @@ def test_single_syllable_lone_entry_is_flagged():
     r = c.convert("전항 제1항")
     assert r.text == "전項 第1項"
     assert r.decisions[0].kind == Kind.FLAGGED and "single syllable" in r.decisions[0].reason
+
+
+def test_kiwi_analyser_selects_cong_explicitly(monkeypatch):
+    """Reproducibility: the Kiwi language model is named, never Kiwi's "fastest available" default."""
+    import sys
+    import types
+
+    from gukhan.analyser import KIWI_MODEL_TYPE, KiwiAnalyser
+
+    calls = {}
+
+    class FakeKiwi:
+        def __init__(self, model_type=None):
+            calls["model_type"] = model_type
+            self.model_type = model_type
+
+        def tokenize(self, text):
+            return []
+
+    monkeypatch.setitem(sys.modules, "kiwipiepy", types.SimpleNamespace(Kiwi=FakeKiwi, __version__="0.0.0-test"))
+    analyser = KiwiAnalyser()
+    assert analyser.tokenize("연구") == []
+    assert calls["model_type"] == KIWI_MODEL_TYPE == "cong"
+    assert analyser.describe() == "kiwipiepy 0.0.0-test, model cong"

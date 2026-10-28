@@ -43,8 +43,13 @@ gukhan-lexicon-build --stdict stdict_dump.zip --wiktextract kaikki.org-dictionar
 text → morphological analysis (Kiwi) → longest-match lookup in a Sino-Korean
 lexicon → choose Hanja (user override list, then rule, then flag) → splice
 Hanja into the original text, endings untouched. Unresolved homographs are
-flagged, never guessed. Runs on a laptop CPU with no neural model. The Chrome extension processes text locally and sends
-nothing anywhere.
+flagged, never guessed. Runs on a laptop CPU. gukhan trains no model of its
+own and has no Hanja-selection network; Hanja choice is dictionary lookup,
+overrides and rules. The morphological analysis step is Kiwi, which loads
+its own pretrained language model: in kiwipiepy 0.24.1 that is the CoNg
+(Contextual N-gram embedding) neural model, which gukhan selects explicitly
+(`model_type="cong"`) so results are reproducible across runs. The Chrome
+extension processes text locally and sends nothing anywhere.
 
 ## Regression set and accuracy
 
