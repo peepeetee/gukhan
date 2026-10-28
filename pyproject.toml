@@ -12,7 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "the gukhan contributors" }]
 dependencies = [
-    "kiwipiepy>=0.20",
+    "kiwipiepy>=0.24",
 ]
 
 [project.optional-dependencies]

@@ -1,6 +1,9 @@
 # gukhan 計劃 / Plan
 
-Written 2026-10-28 (民國115年). Covers milestones 2 and 3 of the project brief
+Current implementation and remaining release gates / 현재 구현과 남은 검증:
+see [STATUS.md](STATUS.md). The sections below retain the original design rationale.
+
+Written 2026-10-28. Covers milestones 2 and 3 of the project brief
 and what is deferred to the Chrome extension. Short by design; the code and
 tests are the detailed record.
 

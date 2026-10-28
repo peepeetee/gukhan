@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "gukhan 國漢混用",
+  "version": "0.1.0",
+  "description": "Local Korean mixed-script reader / 로컬 國漢混用 읽기",
+  "permissions": ["storage", "unlimitedStorage", "activeTab"],
+  "background": {"service_worker": "worker.js", "type": "module"},
+  "action": {"default_popup": "popup.html"},
+  "options_page": "options.html",
+  "content_scripts": [{"matches": ["http://*/*", "https://*/*"], "js": ["content.js"]}],
+  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'"}
+}

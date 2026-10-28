@@ -121,7 +121,17 @@ _POS_RANK = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두�
 
 def rank(entries: list[Entry]) -> list[Entry]:
     """Likely readings first: builder weight, then glossed entries, common nouns before proper nouns."""
-    return sorted(entries, key=lambda e: (-e.weight, not e.sense, _POS_RANK.get(e.pos, 1), e.hanja))
+    return sorted(
+        entries,
+        key=lambda e: (
+            -e.weight,
+            -e.level,
+            e.learner_rank or float("inf"),
+            not e.sense,
+            _POS_RANK.get(e.pos, 1),
+            e.hanja,
+        ),
+    )
 
 
 class Converter:

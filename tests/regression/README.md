@@ -69,3 +69,29 @@ is off by default and the single-syllable rule carries the caution instead.
 
 `wrong` and `over` are the numbers that matter most: the tool promises never
 to guess, so they should stay near zero while `flagged` shrinks.
+
+## Combined dictionary measurement / 통합 사전 측정
+
+2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.
+Each row comes from `gukhan-regress score tests/regression/<id>.tsv --lexicon build/lexicon`.
+
+| id | words | right | partial | flagged | wrong | over |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| constitution-1948 | 1897 | 848 | 79 | 957 | 13 | 1 |
+| constitution-1952 | 2149 | 913 | 97 | 1125 | 14 | 2 |
+| constitution-1954 | 2244 | 957 | 90 | 1182 | 15 | 3 |
+| provisional-charter-1919 | 133 | 43 | 9 | 77 | 4 | 0 |
+| declaration-1919 | 497 | 136 | 19 | 329 | 13 | 2 |
+| nim-preface-1926 | 12 | 2 | 0 | 10 | 0 | 3 |
+
+The three Han Yong-un items preserve the 1926 scan transcription, including old jamo.
+한국어: 韓龍雲의 1926년 원문 3개 항목은 옛 자모와 띄어쓰기를 보존했습니다.
+Other requested authors (李光洙, 玄鎭健, 蔡萬植) still need original-edition verification:
+the inspected default pages use modernized spelling or parenthetical Hanja and were not
+admitted as historical gold. 해당 작가의 현대화된 전사는 원문 정답 자료에 넣지 않았습니다.
+
+한국어: `--min-weight`는 기본값 0입니다. 표준국어대사전 단독 항목은 가중치 0이므로
+양수 기준을 적용하면 많은 정상 후보도 보류됩니다. 옛말과 옛 자모는 자동 교정하지 않습니다.
+English: stdict-only entries have weight zero; a positive cutoff abstains on many valid
+entries. Vocabulary levels and learner ranks only break candidate-order ties and do
+not affect this cutoff. Archaic spelling is preserved and requires review.

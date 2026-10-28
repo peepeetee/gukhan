@@ -59,6 +59,7 @@ def write_manifest(
     licence: str,
     counts: dict[str, int],
     outputs: dict[str, Path],
+    ranking_sources: dict[str, Path] | None = None,
 ) -> Path:
     manifest = {
         "format": "gukhan-lexicon-manifest/1",
@@ -98,6 +99,11 @@ def write_manifest(
             name: {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256_of(p)} for name, p in outputs.items()
         },
     }
+    for name, source in (ranking_sources or {}).items():
+        licence_id = "CC-BY-SA-2.0-KR" if name == "krdict" else "KOGL-Type-1"
+        manifest["sources"][name] = {"licence": licence_id, **describe_input(source)}
+        title = "한국어기초사전" if name == "krdict" else "한국어 학습용 어휘 목록 (2003)"
+        manifest["notice"] += f" 國立國語院 {title} ({licence_id}); 후보 정렬용 가공 / adapted for candidate ranking."
     path = out_dir / "manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path

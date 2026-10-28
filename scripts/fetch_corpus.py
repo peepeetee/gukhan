@@ -83,7 +83,10 @@ def wikitext_to_text(wt: str) -> str:
     for _ in range(3):  # nested templates
         wt = re.sub(r"\{\{[^{}]*\}\}", "", wt)
     wt = re.sub(r"(?is)<ref[^>]*>.*?</ref>|<ref[^>]*/>", "", wt)
-    wt = re.sub(r"(?s)\{\|.*?\|\}", "", wt)
+    # Scan transcriptions sometimes wrap the work itself in a layout table.
+    # Discard table syntax, not its text.
+    wt = re.sub(r"(?m)^\{\|[^\n]*$|^\|[}-][^\n]*$", "", wt)
+    wt = re.sub(r"(?m)^\|\s*$", "", wt)
     wt = re.sub(r"\[\[(?:[^\]|]*\|)?([^\]]*)\]\]", r"\1", wt)
     wt = re.sub(r"\[https?://\S+ ([^\]]*)\]", r"\1", wt)
     wt = re.sub(r"'{2,}", "", wt)
