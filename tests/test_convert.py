@@ -171,3 +171,37 @@ def test_weight_orders_candidates():
     lex = Lexicon([Entry("역사", "役事", "명사", "t", "work", 1), Entry("역사", "歷史", "명사", "t", "history", 12)])
     r = Converter(lex, None, ListAnalyser([("역사", "NNG")])).convert("역사")
     assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]
+
+
+def test_native_bound_noun_never_converted():
+    lex = Lexicon([Entry("수", "首", "의존 명사", "t"), Entry("수", "數", "명사", "t")])
+    c = Converter(lex, None, ListAnalyser([("할", "VV"), ("수", "NNB"), ("있", "VA"), ("수", "NNG")]))
+    r = c.convert("할 수 있다 수")
+    # the bound noun is skipped outright; the NNG 수 is a real 首/數 homograph and is flagged
+    assert r.text == "할 수 있다 수"
+    assert [(d.start, d.kind) for d in r.decisions] == [(7, Kind.FLAGGED)]
+
+
+def test_native_homograph_entry_flags():
+    lex = Lexicon([Entry("안", "案", "명사", "t", "plan", 12), Entry("안", "안", "명사", "t", "inside", 13)])
+    c = Converter(lex, None, ListAnalyser([("안", "NNG")]))
+    r = c.convert("안")
+    assert r.decisions[0].kind == Kind.FLAGGED
+    assert c.convert("안", mark=True).text == "안{안|案}"
+    only_native = Lexicon([Entry("안", "안", "명사", "t", "inside", 13)])
+    assert Converter(only_native, None, ListAnalyser([("안", "NNG")])).convert("안").decisions == []
+
+
+def test_min_weight_flags_rare_single_entry():
+    lex = Lexicon(
+        [Entry("계승", "階乘", "명사", "t", "factorial", 11), Entry("국민", "國民", "명사", "t", "people", 14)]
+    )
+    assert lex.weighted
+    c = Converter(lex, None, ListAnalyser([("계승", "NNG"), ("국민", "NNG")]))
+    r = c.convert("계승 국민")
+    assert r.text == "계승 國民"
+    assert r.decisions[0].kind == Kind.FLAGGED and "weight below 12" in r.decisions[0].reason
+    c0 = Converter(lex, None, ListAnalyser([("계승", "NNG"), ("국민", "NNG")]), min_weight=0)
+    assert c0.convert("계승 국민").text == "階乘 國民"
+    unweighted = Lexicon([Entry("계승", "階乘", "명사", "t")])
+    assert Converter(unweighted, None, ListAnalyser([("계승", "NNG")])).convert("계승").text == "階乘"

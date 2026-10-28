@@ -51,6 +51,8 @@ POS_MAP = {
     "classifier": "의존 명사",
 }
 SKIP_POS = {"character", "syllable", "romanization", "punct", "symbol"}
+# Parts of speech whose native (non-Sino) words can collide with a Sino-Korean reading.
+NATIVE_POS = {"명사", "고유 명사", "부사", "관형사", "의존 명사", "수사"}
 
 
 def _open(path: Path) -> io.TextIOBase:
@@ -181,6 +183,14 @@ def parse(
             if pos_raw in SKIP_POS:
                 continue
             pos = POS_MAP.get(pos_raw, pos_raw)
+            word = obj.get("word", "")
+            if _is_hangul_word(word) and not any("hanja" in (f.get("tags") or []) for f in obj.get("forms") or []):
+                ety = (obj.get("etymology_text") or "").lower()
+                if "sino-korean" not in ety and "hanja" not in ety and pos in NATIVE_POS:
+                    w = _weight(obj, True)
+                    if w > stats.native.get(word, ("", "", -1))[2]:
+                        stats.native[word] = (pos, _gloss(obj), w)
+                continue
             for hangul, raw, from_hangul_page in _pairs(obj):
                 stats.sino += 1
                 source = f"enwikt:{obj.get('word', '')}"

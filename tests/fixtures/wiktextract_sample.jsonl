@@ -7,3 +7,6 @@
 {"word": "사과", "lang_code": "ko", "lang": "Korean", "pos": "noun", "senses": [{"glosses": ["apple"]}]}
 {"word": "電気", "lang_code": "ja", "lang": "Japanese", "pos": "noun", "forms": [{"form": "でんき", "tags": ["hiragana"]}], "senses": [{"glosses": ["electricity"]}]}
 {"word": "오류", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "電氣", "tags": ["hanja"]}], "senses": [{"glosses": ["bad reading"]}]}
+{"word": "안", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "案", "tags": ["hanja"]}], "senses": [{"glosses": ["plan, proposal"]}, {"glosses": ["bill"]}]}
+{"word": "안", "lang_code": "ko", "lang": "Korean", "pos": "noun", "etymology_text": "From Middle Korean 안ㅎ.", "senses": [{"glosses": ["inside, interior"]}, {"glosses": ["within"]}]}
+{"word": "배", "lang_code": "ko", "lang": "Korean", "pos": "noun", "senses": [{"glosses": ["boat"]}]}

@@ -72,10 +72,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Unihan 파일을 찾을 수 없습니다 / Unihan input not found: {args.unihan}", file=sys.stderr)
             return 2
         readings, unihan_version = unihan_mod.read_khangul(args.unihan)
+        tagged, _ = unihan_mod.read_khangul(args.unihan, with_tags=True)
         print(f"Unihan kHangul: {len(readings)} characters, version {unihan_version or 'unknown'}")
 
     entries, rejects = [], []
     counts: dict[str, int] = {}
+    native: dict[str, tuple[str, str, int]] = {}
     if args.stdict:
         e, r, stats = stdict_mod.parse(args.stdict, readings)
         print(f"stdict: items={stats.items} sino={stats.sino} entries={stats.entries} rejected={stats.rejected}")
@@ -104,12 +106,23 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         entries += e
         rejects += r
+        native.update(stats.native)
         counts["wiktextract_lines"] = counts.get("wiktextract_lines", 0) + stats.items
         counts["wiktextract_entries"] = counts.get("wiktextract_entries", 0) + stats.entries
     licence = "CC-BY-SA-2.0-KR" if not args.wiktextract else "CC-BY-SA-4.0"
 
     args.out.mkdir(parents=True, exist_ok=True)
     merged = merge_entries(entries)
+    # A native word with the same sound as a Sino-Korean entry becomes a candidate whose Hanja
+    # column repeats the Hangul, so the converter flags 안 (案 or inside?) instead of guessing.
+    sino_words = {e.hangul for e in merged}
+    natives = [
+        stdict_mod.Entry(w, w, pos, f"enwikt:{w}", gloss, weight)
+        for w, (pos, gloss, weight) in sorted(native.items())
+        if w in sino_words
+    ]
+    merged = sorted(merged + natives, key=lambda e: (e.hangul, e.hanja))
+    counts["native_homographs"] = len(natives)
     lex_path = args.out / "lexicon.tsv"
     with lex_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(HEADER.format(licence=licence))
@@ -131,9 +144,9 @@ def main(argv: list[str] | None = None) -> int:
     if readings:
         chars_path = args.out / "chars.tsv"
         with chars_path.open("w", encoding="utf-8", newline="\n") as fh:
-            fh.write("# hanja\treadings\n")
+            fh.write("# hanja\treadings (reading:tag, Unihan order; E = education-set reading)\n")
             for ch in sorted(readings):
-                fh.write(f"{ch}\t{' '.join(readings[ch])}\n")
+                fh.write(f"{ch}\t{' '.join(tagged[ch])}\n")
         outputs["chars"] = chars_path
 
     write_manifest(

@@ -6,12 +6,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from .analyser import CANDIDATE_TAGS, TAG_TO_POS, Analyser, KiwiAnalyser, Token
+from .analyser import CANDIDATE_TAGS, NATIVE_STOP, TAG_TO_POS, Analyser, KiwiAnalyser, Token
 from .lexicon import Entry, Lexicon
 from .overrides import Overrides
 from .segments import segment
 
 MAX_PHRASE_TOKENS = 6
+DEFAULT_MIN_WEIGHT = 12
 # Tags that may take part in a multi-token phrase match. Determiners, adverbs
 # and dependent nouns are excluded so that 「세 시」 never becomes 세시.
 PHRASE_TAGS = frozenset({"NNG", "NNP", "NR", "XR", "XPN", "XSN"})
@@ -70,13 +71,25 @@ def _apply_spacing(original: str, hanja_compact: str) -> str:
     return "".join(out)
 
 
+def is_native_entry(e: Entry) -> bool:
+    """An entry whose Hanja column repeats the Hangul marks a native word of the same sound (안 = inside)."""
+    return e.hanja.replace(" ", "") == e.hangul.replace(" ", "")
+
+
 def decide(
     hangul: str,
     tag: str,
     candidates: list[Entry],
     override: tuple[bool, Entry | None] = (False, None),
+    *,
+    min_weight: int = 0,
 ) -> Decision:
-    """Override → rule → flag, for one matched span. Offsets are filled by the caller."""
+    """Override → rule → flag, for one matched span. Offsets are filled by the caller.
+
+    ``min_weight`` > 0 means a lone candidate is written only when its weight
+    reaches it; a rarer single entry is flagged instead, because one entry in
+    a crowd-sourced lexicon is no proof that no other reading exists.
+    """
     has, entry = override
     if has:
         if entry is None:
@@ -84,13 +97,15 @@ def decide(
         return Decision(0, 0, hangul, Kind.CONVERTED, entry.hanja, (entry,), "override", tag)
     allowed = TAG_TO_POS.get(tag)
     pool = [c for c in candidates if allowed is None or c.pos in allowed]
-    if not pool:
+    if not pool or all(is_native_entry(c) for c in pool):
         return Decision(0, 0, hangul, Kind.NONE, reason=f"no entry fits tag {tag}", tag=tag)
     forms = sorted({c.hanja.replace(" ", "") for c in pool})
     if len(forms) == 1:
         why = "single entry" if len(pool) == 1 else "all candidates agree"
         if len(pool) < len(candidates):
             why += f" after POS filter ({tag})"
+        if min_weight and max(c.weight for c in pool) < min_weight:
+            return Decision(0, 0, hangul, Kind.FLAGGED, None, tuple(pool), f"{why}, weight below {min_weight}", tag)
         return Decision(0, 0, hangul, Kind.CONVERTED, forms[0], tuple(pool), why, tag)
     return Decision(0, 0, hangul, Kind.FLAGGED, None, tuple(rank(pool)), f"{len(forms)} readings", tag)
 
@@ -111,11 +126,17 @@ class Converter:
         analyser: Analyser | None = None,
         *,
         review_all: bool = False,
+        min_weight: int | None = None,
     ) -> None:
         self.lexicon = lexicon if lexicon is not None else Lexicon.sample()
         self.overrides = overrides
         self.analyser = analyser if analyser is not None else KiwiAnalyser()
         self.review_all = review_all
+        # Default: on a weighted (Wiktionary-built) lexicon, a lone entry needs weight 12
+        # (listed on the Hangul page with more than one sense or a derived term).
+        if min_weight is None:
+            min_weight = DEFAULT_MIN_WEIGHT if self.lexicon.weighted else 0
+        self.min_weight = min_weight
 
     # -- lookup helpers -------------------------------------------------
     def _max_key_len(self) -> int:
@@ -132,7 +153,14 @@ class Converter:
         return has_ov, ov, cands
 
     def _candidate_tokens(self, text: str, tokens: list[Token]) -> list[Token]:
-        return [t for t in tokens if t.tag in CANDIDATE_TAGS and text[t.start : t.end] == t.form and _is_hangul(t.form)]
+        return [
+            t
+            for t in tokens
+            if t.tag in CANDIDATE_TAGS
+            and text[t.start : t.end] == t.form
+            and _is_hangul(t.form)
+            and not (t.tag == "NNB" and t.form in NATIVE_STOP)
+        ]
 
     # -- main pipeline --------------------------------------------------
     def convert_span(self, text: str, base: int = 0) -> list[Decision]:
@@ -159,7 +187,7 @@ class Converter:
                 has_ov, ov, lex_cands = self._lookup(span)
                 if not has_ov and not lex_cands:
                     continue
-                d = decide(span, first.tag, lex_cands, (has_ov, ov))
+                d = decide(span, first.tag, lex_cands, (has_ov, ov), min_weight=self.min_weight)
                 if d.kind == Kind.NONE:
                     continue
                 hanja = _apply_spacing(span, d.hanja) if d.hanja else None

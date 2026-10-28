@@ -85,15 +85,49 @@ class Prepared:
     unknown: list[str] = field(default_factory=list)
 
 
-def load_chars(path: Path) -> dict[str, list[str]]:
-    """Read chars.tsv (``hanja<TAB>reading reading …``)."""
-    out: dict[str, list[str]] = {}
+@dataclass
+class Chars:
+    """Per-character readings in Unihan order with education-set readings first, and how many
+    readings carried the E tag (0 when chars.tsv has no tags)."""
+
+    readings: dict[str, list[str]] = field(default_factory=dict)
+    edu: dict[str, int] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, d: dict[str, list[str]]) -> Chars:
+        return cls(dict(d), {})
+
+    def get(self, ch: str, default: list[str] | None = None) -> list[str] | None:
+        return self.readings.get(ch, default)
+
+
+def load_chars(path: Path) -> Chars:
+    """Read chars.tsv: ``hanja<TAB>reading:tag …`` (tags optional, Unihan order)."""
+    out = Chars()
     with path.open(encoding="utf-8") as fh:
         for line in fh:
             if line.startswith("#") or not line.strip():
                 continue
-            ch, _, readings = line.rstrip("\n").partition("\t")
-            out[ch] = readings.split()
+            ch, _, field_ = line.rstrip("\n").partition("\t")
+            items = [v.split(":", 1) for v in field_.split()]
+            edu = [r for r, *t in items if t and "E" in t[0]]
+            rest = [r for r, *t in items if not (t and "E" in t[0])]
+            out.readings[ch] = list(dict.fromkeys(edu + rest))
+            out.edu[ch] = len(dict.fromkeys(edu))
+    return out
+
+
+def load_lexicon_hanja(path: Path) -> dict[str, str]:
+    """``{compact hanja: compact hangul}`` from a lexicon.tsv, for word segmentation."""
+    from gukhan.lexicon import Lexicon
+
+    lex = Lexicon.load(path)
+    out: dict[str, str] = {}
+    for entries in lex._by_key.values():
+        for e in entries:
+            hj, hg = e.hanja.replace(" ", ""), e.hangul.replace(" ", "")
+            if all(is_cjk(c) for c in hj) and len(hj) == len(hg):
+                out.setdefault(hj, hg)
     return out
 
 
@@ -114,11 +148,13 @@ def _apply_initial_rule(syllable: str) -> str:
     return compose(_INITIALS.index(new), vow, fin)
 
 
-def _pick(char: str, readings: list[str], next_char: str | None, chars: dict[str, list[str]]) -> tuple[str, bool]:
+def _pick(char: str, readings: list[str], next_char: str | None, chars: Chars) -> tuple[str, bool]:
     """Choose a reading; second value says whether it was a guess worth checking."""
     if len(readings) == 1:
         return readings[0], False
     pref = PREFER.get(char)
+    if pref is None and chars.edu.get(char) == 1:
+        return readings[0], False  # exactly one education-set reading: the usual one
     if pref:
         default, by_next = pref
         if next_char and by_next:
@@ -133,30 +169,61 @@ def _pick(char: str, readings: list[str], next_char: str | None, chars: dict[str
     return readings[0], True
 
 
-def prepare(mixed: str, chars: dict[str, list[str]]) -> Prepared:
+MAX_WORD = 8
+
+
+def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, str] | None = None) -> Prepared:
+    """Hangul for ``mixed``.
+
+    Each run of Hanja is first segmented by longest match against ``words``
+    (Hanja → Hangul from a lexicon), which settles multi-reading characters
+    and the 頭音法則 inside compounds (强制勞役 → 강제노역). Characters not
+    covered by a word get their per-character reading, with the initial-sound
+    rule at the start of each segment.
+    """
     out: list[str] = []
     flags: list[Flag] = []
     unknown: list[str] = []
-    run_start = True
-    for i, ch in enumerate(mixed):
+    if isinstance(chars, dict):
+        chars = Chars.from_dict(chars)
+    words = words or {}
+    i = 0
+    seg_start = True
+    while i < len(mixed):
+        ch = mixed[i]
         if not is_cjk(ch):
             out.append(ch)
-            run_start = True
+            # a counter after a numeral keeps its dictionary reading: 4281年 → 4281년, 3里 → 3리
+            seg_start = not ch.isdigit()
+            i += 1
+            continue
+        matched = False
+        for n in range(MAX_WORD, 1, -1):
+            cand = mixed[i : i + n]
+            if len(cand) == n and all(is_cjk(c) for c in cand) and cand in words:
+                out.append(words[cand])
+                i += n
+                seg_start = True
+                matched = True
+                break
+        if matched:
             continue
         readings = chars.get(ch)
         if not readings:
             unknown.append(ch)
             out.append(ch)
-            run_start = True
+            seg_start = True
+            i += 1
             continue
         nxt = mixed[i + 1] if i + 1 < len(mixed) else None
         chosen, guessed = _pick(ch, readings, nxt if nxt and is_cjk(nxt) else None, chars)
-        if run_start:
+        if seg_start:
             chosen = _apply_initial_rule(chosen)
         if guessed:
             flags.append(Flag(i, ch, chosen, readings))
         out.append(chosen)
-        run_start = False
+        seg_start = False
+        i += 1
     return Prepared("".join(out), flags, unknown)
 
 

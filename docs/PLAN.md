@@ -149,9 +149,14 @@ Override file (plain text, one decision per line, shareable):
 ```
 
 Decision order for each matched span: override (longest phrase first) → rule
-→ flag. Rules: exactly one lexicon candidate → use it; several candidates with
-identical Hanja → use it; otherwise flag. Proper nouns (NNP) with no lexicon
-entry go to the review list; nothing is guessed.
+→ flag. Rules: exactly one lexicon candidate → use it, unless the lexicon is
+weighted and the entry's weight is below `--min-weight` (default 12), in
+which case it is flagged; several candidates with identical Hanja → use it;
+otherwise flag. An entry whose Hanja column repeats the Hangul marks a native
+word of the same sound (안 = inside), so 안 is flagged between 案 and the
+native word rather than written. Native bound nouns (할 수 있다, 그럴 리가)
+are never looked up. Proper nouns (NNP) with no lexicon entry go to the
+review list; nothing is guessed.
 
 ## 5. CLI (milestone 3)
 

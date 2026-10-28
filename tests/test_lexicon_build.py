@@ -58,7 +58,7 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     assert m["licence"] == "CC-BY-SA-2.0-KR"
     assert m["sources"]["stdict"]["sha256"] == m["sources"]["stdict"]["sha256"]
     assert m["sources"]["unihan"]["version"] == "16.0.0"
-    assert m["counts"]["entries"] == 6
+    assert m["counts"]["entries"] == 6 and m["counts"].get("native_homographs", 0) == 0
     assert m["outputs"]["lexicon"]["sha256"]
     text = (out1 / "lexicon.tsv").read_text(encoding="utf-8")
     assert text.startswith("# gukhan lexicon")
@@ -84,8 +84,10 @@ def test_wiktextract_fixture():
     assert ("공부하다", "工夫하다", "동사") not in forms  # 工/夫 not in fixture
     assert not any(e.hangul == "전" for e in entries)  # character pages skipped
     assert not any(e.hangul == "사과" for e in entries)  # no hanja form
-    assert stats.items == 9
+    assert stats.items == 12
     assert any(r.hangul == "오류" and "reads" in r.reason for r in rejects)
+    assert stats.native["안"][0] == "명사" and stats.native["안"][1] == "inside, interior"
+    assert "배" in stats.native  # native with no Sino entry; the CLI only keeps those with one
     # without Unihan validation everything aligned is kept
     entries2, _, _ = wiktextract.parse(FIX / "wiktextract_sample.jsonl")
     forms2 = {(e.hangul, e.hanja) for e in entries2}
@@ -146,6 +148,11 @@ def test_cli_wiktextract_only_sets_licence(tmp_path):
     m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert m["licence"] == "CC-BY-SA-4.0"
     assert m["sources"]["stdict"] is None and len(m["sources"]["wiktextract"]) == 1
+    tsv = (out / "lexicon.tsv").read_text(encoding="utf-8")
+    assert "안\t案\t명사\tenwikt:안\tplan, proposal\t12" in tsv
+    assert "안\t안\t명사\tenwikt:안\tinside, interior\t12" in tsv  # native homograph, same-sound marker
+    assert "배\t배" not in tsv
+    assert m["counts"]["native_homographs"] == 1
     assert "Wiktionary" in m["notice"] and "標準國語大辭典" not in m["notice"]
     assert (out / "lexicon.tsv").read_text(encoding="utf-8").startswith("# gukhan lexicon\tlicence=CC-BY-SA-4.0")
     rc = main(

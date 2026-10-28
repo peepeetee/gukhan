@@ -33,8 +33,13 @@ def _open_readings(path: Path) -> tuple[io.TextIOBase, str | None]:
     return path.open(encoding="utf-8"), None
 
 
-def read_khangul(path: Path) -> tuple[dict[str, list[str]], str | None]:
-    """Return ``{hanja_char: [readings...]}`` and the Unihan version if stated."""
+def read_khangul(path: Path, *, with_tags: bool = False) -> tuple[dict[str, list[str]], str | None]:
+    """Return ``{hanja_char: [readings...]}`` in Unihan order, and the Unihan version if stated.
+
+    With ``with_tags`` each reading keeps its source tag (``책:0E``): ``0``/``1``
+    say which KS X standard lists it, ``E`` marks the reading taught in the
+    standard education set, which is the usual one.
+    """
     readings: dict[str, list[str]] = {}
     version: str | None = None
     fh, _ = _open_readings(path)
@@ -54,6 +59,6 @@ def read_khangul(path: Path) -> tuple[dict[str, list[str]], str | None]:
             if not m:
                 continue
             ch = chr(int(m.group(1), 16))
-            values = [v.split(":", 1)[0] for v in m.group(2).split()]
-            readings[ch] = sorted(set(values))
+            values = [v if with_tags else v.split(":", 1)[0] for v in m.group(2).split()]
+            readings[ch] = list(dict.fromkeys(values))
     return readings, version

@@ -31,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--report", type=Path, help="write flagged words and review list (.tsv or .md by extension)")
     ap.add_argument("--mark", action="store_true", help="show flagged words inline as 전기{電氣|傳記}")
     ap.add_argument("--review-all", action="store_true", help="also list every common noun with no entry")
+    ap.add_argument(
+        "--min-weight",
+        type=int,
+        default=None,
+        help="flag a lone candidate whose weight is below this (default 12 on a weighted lexicon, 0 otherwise)",
+    )
     ap.add_argument("--version", action="version", version=f"gukhan {__version__}")
     return ap
 
@@ -63,7 +69,9 @@ def main(argv: list[str] | None = None) -> int:
             "Note: using the bundled sample lexicon; pass --lexicon for real use.",
             file=sys.stderr,
         )
-    conv = Converter(lexicon, overrides if args.overrides else None, review_all=args.review_all)
+    conv = Converter(
+        lexicon, overrides if args.overrides else None, review_all=args.review_all, min_weight=args.min_weight
+    )
     result = conv.convert(text, mark=args.mark)
 
     if args.output:

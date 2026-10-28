@@ -36,9 +36,13 @@ gukhan-regress prepare build/corpus/constitution-1948.txt \
 gukhan-regress score tests/regression/*.tsv --lexicon build/lexicon
 ```
 
-`chars.tsv` comes from `gukhan-lexicon-build --unihan`. Hanja readings in the
-Hangul column follow the 頭音法則 at the start of each Hanja run; the
-original's spacing and spelling are kept as published.
+`chars.tsv` comes from `gukhan-lexicon-build --unihan`; pass `--lexicon
+build/lexicon` to `prepare` so that runs of Hanja are first cut into words the
+lexicon knows, which settles multi-reading characters and the 頭音法則 inside
+compounds (强制勞役 → 강제노역). Uncovered characters take their education-set
+reading, with the initial-sound rule at the start of each segment and not
+after a numeral (4281年 → 4281년). The original's spacing and spelling are
+kept as published.
 
 ## What the score means
 
@@ -46,9 +50,16 @@ original's spacing and spelling are kept as published.
 | --- | --- |
 | words | runs of Hanja in the gold text |
 | right | converter wrote exactly that Hanja |
+| partial | part of the run is right, the rest stayed Hangul (compound known in part) |
 | flagged | converter left the word in Hangul (abstained or flagged) |
-| wrong | converter wrote different Hanja |
+| wrong | converter wrote different Hanja somewhere in the run |
 | over | converter wrote Hanja where the gold text has Hangul |
+| chars_* | the same, counted per Hanja character |
+
+Glyph variants such as 强/強 are folded before comparison. The score line
+also depends on `--min-weight` (default 12 on a Wiktionary-built lexicon): a
+lone lexicon entry below that weight is flagged rather than written, because
+one entry in a crowd-sourced lexicon is no proof that no other reading exists.
 
 `wrong` and `over` are the numbers that matter most: the tool promises never
 to guess, so they should stay near zero while `flagged` shrinks.

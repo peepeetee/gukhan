@@ -18,6 +18,7 @@ from . import score as sc
 
 def cmd_prepare(args: argparse.Namespace) -> int:
     chars = prep.load_chars(args.chars)
+    words = prep.load_lexicon_hanja(args.lexicon) if args.lexicon else None
     text = args.text.read_text(encoding="utf-8")
     sentences = prep.split_sentences(text)
     flagged_total = 0
@@ -27,7 +28,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
         for n, sent in enumerate(sentences, 1):
             if not any(prep.is_cjk(c) for c in sent):
                 continue
-            p = prep.prepare(sent, chars)
+            p = prep.prepare(sent, chars, words)
             unknown.update(p.unknown)
             flagged_total += len(p.flags)
             note = ""
@@ -47,7 +48,7 @@ def cmd_score(args: argparse.Namespace) -> int:
         overrides = Overrides()
         for p in args.overrides:
             overrides.update(Overrides.load(p))
-    conv = Converter(lexicon, overrides)
+    conv = Converter(lexicon, overrides, min_weight=args.min_weight)
     items = []
     for p in args.items:
         for it in sc.read_items(p):
@@ -59,10 +60,18 @@ def cmd_score(args: argparse.Namespace) -> int:
     else:
         print(
             f"items={result['items']} words={result['words']} right={result['right']} ({result['right_pct']}%) "
-            f"flagged={result['flagged']} wrong={result['wrong']} ({result['wrong_pct']}%) over={result['over']} "
-            f"misaligned={result['misaligned_items']}"
+            f"partial={result['partial']} flagged={result['flagged']} wrong={result['wrong']} "
+            f"({result['wrong_pct']}%) over={result['over']} misaligned={result['misaligned_items']}"
         )
-        for kind, ex in (("wrong", tally.examples_wrong), ("over", tally.examples_over)):
+        print(
+            f"chars={result['chars']} right={result['chars_right']} ({result['chars_right_pct']}%) "
+            f"flagged={result['chars_flagged']} wrong={result['chars_wrong']} ({result['chars_wrong_pct']}%)"
+        )
+        for kind, ex in (
+            ("wrong", tally.examples_wrong),
+            ("over", tally.examples_over),
+            ("partial", tally.examples_partial),
+        ):
             for item_id, gold, got in ex:
                 print(f"  {kind}\t{item_id}\t{gold}\t→\t{got}")
     return 0
@@ -75,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("text", type=Path, help="UTF-8 text file in 國漢文混用")
     p.add_argument("--chars", type=Path, required=True, help="chars.tsv from gukhan-lexicon-build --unihan")
     p.add_argument("--source", required=True, help="short source id, e.g. constitution-1948")
+    p.add_argument("--lexicon", type=Path, help="lexicon.tsv: segments Hanja runs into known words first")
     p.add_argument("-o", "--out", type=Path, required=True)
     p.set_defaults(func=cmd_prepare)
     s = sub.add_parser("score", help="run the converter on items and report")
@@ -82,6 +92,9 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--lexicon", type=Path)
     s.add_argument("--overrides", type=Path, action="append", default=[])
     s.add_argument("--json", action="store_true")
+    s.add_argument(
+        "--min-weight", type=int, default=None, help="passed to the converter (default 12 on a weighted lexicon)"
+    )
     s.set_defaults(func=cmd_score)
     args = ap.parse_args(argv)
     for attr in ("text", "chars"):

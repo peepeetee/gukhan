@@ -80,10 +80,21 @@ def test_score_counts():
     ]
     conv = Converter(LEX, None, ListAnalyser(tokens))
     t = sc.score(items, conv)
-    assert (t.right, t.flagged, t.wrong, t.over, t.misaligned) == (3, 1, 0, 1, 0)
+    assert (t.right, t.partial, t.flagged, t.wrong, t.over, t.misaligned) == (3, 0, 1, 0, 1, 0)
     # 民主共和國 is one gold run but two lexicon words: still counted as one right word
     d = t.as_dict()
     assert d["words"] == 4 and d["right_pct"] == 75.0
+    assert (d["chars"], d["chars_right"], d["chars_flagged"]) == (13, 11, 2)
+
+
+def test_score_partial_and_variants():
+    t = sc.Tally()
+    sc.score_item(sc.Item("a", "t", "대한국민", "大韓國民"), "대한國民", t)
+    assert (t.right, t.partial, t.flagged, t.wrong) == (0, 1, 0, 0) and t.chars_right == 2
+    sc.score_item(sc.Item("b", "t", "강제", "强制"), "強制", t)
+    assert t.right == 1
+    sc.score_item(sc.Item("c", "t", "계승", "繼承"), "階乘", t)
+    assert t.wrong == 1 and t.chars_wrong == 2
 
 
 def test_cli_prepare_and_score(tmp_path):
@@ -100,3 +111,20 @@ def test_cli_prepare_and_score(tmp_path):
     assert "불법" in lines[1]
     assert main(["score", str(out)]) == 0
     assert main(["prepare", str(tmp_path / "nope.txt"), "--chars", str(chars), "--source", "t", "-o", str(out)]) == 2
+
+
+def test_prepare_with_lexicon_words_and_edu_tags(tmp_path):
+    chars_file = tmp_path / "chars.tsv"
+    chars_file.write_text(
+        "# hanja\treadings\n責\t책:0E 채:1N\n任\t임:0E\n年\t년:0E 연:1N\n强\t강:0E\n制\t제:0E\n勞\t로:0E\n役\t역:0E\n"
+        "行\t행:0E 항:0N\n歷\t력:0E\n史\t사:0E\n",
+        encoding="utf-8",
+    )
+    chars = prep.load_chars(chars_file)
+    assert chars.readings["責"] == ["책", "채"] and chars.edu["責"] == 1
+    p = prep.prepare("責任 4281年 行", chars)
+    assert p.hangul == "책임 4281년 행" and p.flags == []
+    # compound: without words 勞 stays 로 mid-run; with the lexicon word 勞役 it starts a segment
+    assert prep.prepare("强制勞役", chars).hangul == "강제로역"
+    words = {"强制": "강제", "勞役": "노역", "歷史": "역사"}
+    assert prep.prepare("强制勞役 歷史", chars, words).hangul == "강제노역 역사"

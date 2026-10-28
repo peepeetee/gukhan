@@ -31,6 +31,7 @@ class Lexicon:
     def __init__(self, entries: Iterable[Entry] = ()) -> None:
         self._by_key: dict[str, list[Entry]] = {}
         self.max_key_len = 0
+        self.weighted = False  # any entry carries a weight (Wiktionary-built lexicons do)
         self.path: Path | None = None
         for e in entries:
             self.add(e)
@@ -41,6 +42,8 @@ class Lexicon:
         if entry not in bucket:
             bucket.append(entry)
         self.max_key_len = max(self.max_key_len, len(key))
+        if entry.weight:
+            self.weighted = True
 
     def candidates(self, hangul: str) -> list[Entry]:
         return list(self._by_key.get(_strip_spaces(hangul), ()))

@@ -65,6 +65,8 @@ class ParseStats:
     entries: int = 0
     rejected: int = 0
     tags_seen: set[str] = field(default_factory=set)
+    # Hangul headwords that also exist as native words (no Hanja form): word → (pos, gloss, weight)
+    native: dict[str, tuple[str, str, int]] = field(default_factory=dict)
 
 
 def _local(tag: str) -> str:
