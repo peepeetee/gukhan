@@ -42,7 +42,12 @@ lexicon knows, which settles multi-reading characters and the 頭音法則 insid
 compounds (强制勞役 → 강제노역). Uncovered characters take their education-set
 reading, with the initial-sound rule at the start of each segment and not
 after a numeral (4281年 → 4281년). The original's spacing and spelling are
-kept as published.
+kept as published, archaic jamo (ᄲᅮᆫ, ᄯᅩ) and the particle ㅣ of 1919
+prose included; only the amendment notes a law site inserts (<개정 1954.11.29>,
+[전문개정 …]) are stripped, since they were never in the text. Items from
+pre-1945 prose are a hard set: the analyser was trained on modern Korean, so
+their score says how far the tool is from that register, not how the tool
+does on today's text.
 
 ## What the score means
 

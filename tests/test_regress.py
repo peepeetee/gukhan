@@ -139,3 +139,17 @@ def test_prepare_with_lexicon_words_and_edu_tags(tmp_path):
     assert prep.prepare("强制勞役", chars).hangul == "강제로역"
     words = {"强制": "강제", "勞役": "노역", "歷史": "역사"}
     assert prep.prepare("强制勞役 歷史", chars, words).hangul == "강제노역 역사"
+
+
+def test_strip_annotations_and_split():
+    text = "②參議院議員의 任期는 六年으로 한다.<개정 1954.11.29> 다음 條.[전문개정 1962.12.26]"
+    assert prep.strip_annotations(text) == "②參議院議員의 任期는 六年으로 한다. 다음 條."
+    assert prep.split_sentences(text) == ["②參議院議員의 任期는 六年으로 한다.", "다음 條."]
+
+
+def test_variant_glyph_takes_standard_reading():
+    chars = {"亡": ["망"], "共": ["공"]}
+    p = prep.prepare("共兦", chars)
+    assert p.hangul == "공망"
+    assert p.unknown == []
+    assert sc.fold_variants("共兦") == sc.fold_variants("共亡")

@@ -187,6 +187,8 @@ def _pick(char: str, readings: list[str], next_char: str | None, chars: Chars) -
 
 
 MAX_WORD = 8
+# Glyph variants that Unihan lists without a Korean reading: read them as the standard form.
+READING_VARIANTS = {"兦": "亡", "產": "産", "强": "強", "內": "内", "靑": "青", "淸": "清"}
 
 
 def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, str] | None = None) -> Prepared:
@@ -225,7 +227,7 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
                 break
         if matched:
             continue
-        readings = chars.get(ch)
+        readings = chars.get(ch) or chars.get(READING_VARIANTS.get(ch, ch))
         if not readings:
             unknown.append(ch)
             out.append(ch)
@@ -245,10 +247,19 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
 
 
 _SENTENCE_END = re.compile(r"(?<=[.。!?])\s+")
+# Editorial notes that law.go.kr / ccourt add after amended clauses: 「<개정 1954.11.29>」,
+# 「<신설 1954.11.29>」, 「[전문개정 1962.12.26]」. They are not part of the text.
+_ANNOTATION = re.compile(r"\s*(?:<(?:개정|신설|삭제|본조신설)[^<>]*>|\[(?:전문개정|본조신설|제목개정|개정)[^\[\]]*\])")
+
+
+def strip_annotations(text: str) -> str:
+    """Remove amendment notes such as 「<개정 1954.11.29>」 that the source site inserts."""
+    return _ANNOTATION.sub("", text)
 
 
 def split_sentences(text: str) -> list[str]:
     """Split on blank lines and sentence-final punctuation; keeps articles as units."""
+    text = strip_annotations(text)
     items: list[str] = []
     for para in re.split(r"\n\s*\n|\n", text):
         para = " ".join(para.split())
