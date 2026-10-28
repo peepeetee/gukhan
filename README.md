@@ -51,7 +51,20 @@ nothing anywhere.
 `tests/regression/` holds public sentences from pre-1970 mixed-script texts
 (first: 大韓民國憲法 1948) with their Hangul form. `gukhan-regress score
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
-accuracy figure. No figure is quoted yet.
+accuracy figure.
+
+First score, 2026-10-28 (民國115年), 1948 constitution, lexicon built from
+Wiktionary (kaikki.org) + Unihan 18.0.0, default settings:
+
+| items | words | right | partial | flagged | wrong | over |
+| --- | --- | --- | --- | --- | --- | --- |
+| 321 | 1897 | 919 (48.4%) | 121 | 835 | 22 (1.2%) | 0 |
+
+Per Hanja character: 60.7% right, 0.8% wrong. Every one of the 22 wrong words
+is a homograph the Wiktionary lexicon lacks (繼承 written as 階乘, 移轉 as
+以前, 前項 as 全항); a 표준국어대사전 build is expected to close most of them.
+The large `flagged` share is by design: the tool abstains where it cannot be
+sure, and a user override file turns repeated flags into conversions.
 
 ## Licence
 
