@@ -1,6 +1,6 @@
 # Licensing
 
-Decided 2026-10-28 (民國115年). Goal: widest possible adoption.
+Decided 2026-10-28. Goal: widest possible adoption.
 
 ## Summary
 
@@ -37,7 +37,7 @@ homographs. Hence the lexicon is built from 표준국어대사전 and shipped
 separately under its own licence. The builder in this repo lets anyone rebuild
 it from the source; the build manifest records source versions and hashes.
 
-## Second source: Wiktionary (added 2026-10-28, 民國115年)
+## Second source: Wiktionary (added 2026-10-28)
 
 The 표준국어대사전 dump turned out to require a 국립국어원 account with
 Korean identity verification (본인인증), which many users cannot pass. The

@@ -11,8 +11,12 @@ from . import stdict as stdict_mod
 from . import unihan as unihan_mod
 from . import wiktextract as wikt_mod
 from .manifest import write_manifest
+from .ranking import krdict_levels, learner_ranks
 
-HEADER = "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n# hangul\thanja\tpos\tsource\tsense\tweight\n"
+HEADER = (
+    "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n"
+    "# hangul\thanja\tpos\tsource\tsense\tweight\tlevel\tlearner_rank\n"
+)
 
 
 POS_PREFERENCE = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두사": 1, "접미사": 1, "고유 명사": 3}
@@ -73,12 +77,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     ap.add_argument("--unihan", type=Path, help="Unihan.zip or directory with Unihan_Readings.txt (validates readings)")
     ap.add_argument("-o", "--out", required=True, type=Path, help="output directory")
+    ap.add_argument("--krdict", type=Path, help="한국어기초사전 XML vocabulary levels / candidate tie-breaker")
+    ap.add_argument("--learner-list", type=Path, help="국립국어원 learner vocabulary text / candidate tie-breaker")
     args = ap.parse_args(argv)
 
     if not args.stdict and not args.wiktextract:
         print("辭典 source가 없습니다 / give --stdict and/or --wiktextract", file=sys.stderr)
         return 2
-    for p in ([args.stdict] if args.stdict else []) + args.wiktextract:
+    for p in [p for p in (args.stdict, args.krdict, args.learner_list) if p] + args.wiktextract:
         if not p.exists():
             print(f"入力 file을 찾을 수 없습니다 / input not found: {p}", file=sys.stderr)
             return 2
@@ -141,10 +147,15 @@ def main(argv: list[str] | None = None) -> int:
     merged = sorted(merged + natives, key=lambda e: (e.hangul, e.hanja))
     counts["native_homographs"] = len(natives)
     lex_path = args.out / "lexicon.tsv"
+    levels = krdict_levels(args.krdict) if args.krdict else {}
+    ranks = learner_ranks(args.learner_list) if args.learner_list else {}
+    counts["level_matches"] = sum((e.hangul, e.hanja) in levels for e in merged)
+    counts["learner_matches"] = sum((e.hangul, e.hanja) in ranks for e in merged)
     with lex_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(HEADER.format(licence=licence))
         for e in merged:
-            fh.write(e.tsv() + "\n")
+            key = e.hangul, e.hanja
+            fh.write(e.tsv() + f"\t{levels.get(key, 0)}\t{ranks.get(key, 0)}\n")
     outputs = {"lexicon": lex_path}
     seen = merged
 
@@ -175,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         licence=licence,
         counts={**counts, "entries": len(seen), "rejected": len(rejects)},
         outputs=outputs,
+        ranking_sources={k: p for k, p in {"krdict": args.krdict, "learner_list": args.learner_list}.items() if p},
     )
     print(f"wrote {args.out / 'lexicon.tsv'} ({len(seen)} entries) and manifest.json")
     return 0

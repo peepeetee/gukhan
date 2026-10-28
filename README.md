@@ -53,22 +53,23 @@ nothing anywhere.
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
-First scores, 2026-10-28 (民國115年), lexicon built from Wiktionary
-(kaikki.org) + Unihan 18.0.0, default settings:
+Scores, 2026-10-28, lexicon built from 標準國語大辭典 + Wiktionary
+(kaikki.org) + Unihan 18.0.0, Kiwi 0.24.1, default settings:
 
 | source | items | words | right | wrong | over |
 | --- | --- | --- | --- | --- | --- |
-| 大韓民國憲法 1948 | 321 | 1897 | 48.4% | 22 (1.2%) | 0 |
-| 憲法 1952 amendment | 352 | 2149 | 46.2% | 28 (1.3%) | 0 |
-| 憲法 1954 amendment | 360 | 2244 | 46.2% | 32 (1.4%) | 0 |
-| 大韓民國臨時憲章 1919 | 22 | 133 | 48.1% | 3 (2.3%) | 0 |
-| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 22.9% | 31 (6.2%) | 9 |
+| 大韓民國憲法 1948 | 321 | 1897 | 44.7% | 13 (0.7%) | 1 |
+| 憲法 1952 amendment | 352 | 2149 | 42.5% | 14 (0.7%) | 2 |
+| 憲法 1954 amendment | 360 | 2244 | 42.6% | 15 (0.7%) | 3 |
+| 大韓民國臨時憲章 1919 | 22 | 133 | 32.3% | 4 (3.0%) | 0 |
+| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 27.4% | 13 (2.6%) | 2 |
 
-Per Hanja character on the 1948 text: 60.7% right, 0.8% wrong. Nearly every
-wrong word on the constitutions is a homograph the Wiktionary lexicon lacks
-(繼承 written as 階乘, 移轉 as 以前, 前項 as 全항); a 표준국어대사전 build
-is expected to close most of them. The 1919 declaration is pre-modern prose
-(吾人 → 誤認, archaic 하야 → 下野) that the analyser was never trained on.
+Per Hanja character on the 1948 text: 48.7% right, 0.4% wrong. The larger
+dictionary removes the reported 繼承→階乘, 移轉→以前 and 前項→全항 errors,
+but increases abstentions. Errors remain, including 大法院→帶법원 and
+archaic 안이→安易. These historical texts do not establish modern-text accuracy.
+한국어: 사전 확대로 일부 오변환은 줄었지만 보류는 늘었습니다. 1919년 옛말,
+하야·안이·옛 자모와 인명은 현대 형태소 분석기의 한계로 수동 검토가 필요합니다.
 The large `flagged` share is by design: the tool abstains where it cannot be
 sure, and a user override file turns repeated flags into conversions.
 

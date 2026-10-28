@@ -11,7 +11,14 @@ a row for data that is still shipped.
 
 ## Code dependencies
 
-Runtime: `kiwipiepy` (Apache-2.0, with its bundled model). Dev only: pytest, ruff, pip-licenses.
+Runtime: `kiwipiepy>=0.24` (Apache-2.0, with its bundled model). Earlier
+versions are not covered by this Apache-2.0 selection. Dev only: pytest, ruff, pip-licenses.
+
+한국어: Apache-2.0 적용 버전인 `kiwipiepy>=0.24`만 사용합니다.
+
+Browser tests only: Playwright 1.64.1 (Apache-2.0), downloaded by CI; not bundled
+in the extension. Source: <https://github.com/microsoft/playwright/blob/main/LICENSE>.
+Optional font: Noto Serif CJK KR (SIL OFL 1.1), not bundled; see `docs/fonts.md`.
 
 Analysers considered (Kiwi chosen; see docs/PLAN.md §2):
 
@@ -41,6 +48,19 @@ Not used at present, recorded for the audit trail:
 | UTagger | Research-only terms, no open licence | Excluded entirely; no code, dictionaries or outputs are used or compared against |
 
 ## Attribution text for the lexicon package
+
+### Ranking sources / 후보 순서 자료
+
+| Source | Licence | Use |
+| --- | --- | --- |
+| 國立國語院 한국어기초사전 | CC BY-SA 2.0 KR | 초급/중급/고급 vocabulary levels, matched by headword and Hanja; [mirror](https://github.com/spellcheck-ko/korean-dict-nikl), [policy](https://krdict.korean.go.kr/kor/copyRightPolicy) |
+| 國立國語院 한국어 학습용 어휘 목록 (2003) | KOGL Type 1 | Frequency rank for exact headword/Hanja matches; attribution: National Institute of Korean Language, 2003 learner vocabulary list, adapted for candidate ordering; [source and licence](https://www.korean.go.kr/front_eng/down/down_02V.do?etc_seq=70) |
+
+한국어: 國立國語院 자료를 후보 정렬용으로 가공했습니다. 용례·음성·번역은 배포하지 않습니다.
+English: only ranking metadata is extracted; examples, audio and translations are not distributed.
+The stdict (87 XML chunks, dump date 2026-06-05) and krdict (11 XML chunks,
+creation date 2026-06-19) downloads use mirror commit
+`42c0d01889f34536e9cf94fe57f62bd2055b1bde`. Input hashes are in the build manifest.
 
 The `gukhan-lexicon` package and the Chrome extension must display:
 
