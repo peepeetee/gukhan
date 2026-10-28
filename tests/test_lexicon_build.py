@@ -102,9 +102,22 @@ def test_shorten_gloss_keeps_parentheses_balanced():
     out = shorten(g, 60)
     assert out.count("(") == out.count(")") and out.endswith("…") and len(out) <= 61
     assert shorten("short", 60) == "short"
-    assert shorten("yeoksa (service under successive kings)") == "service under successive kings"
+    assert (
+        shorten("yeoksa (service under successive kings)", romanizations={"yeoksa"}) == "service under successive kings"
+    )
+    assert shorten("operation (of a machine)", romanizations={"gadong"}) == "operation (of a machine)"
     assert shorten("(Chinese character classification) a compound ideograph") == "a compound ideograph"
     assert shorten("(only a label)") == "only a label"
+
+
+def test_form_of_gloss_keeps_nested_parentheses():
+    from gukhan.lexicon_build.wiktextract import _gloss
+
+    raw = "hanja form of 회의 (“(Chinese character classification) compound indicatives, one of six 六書”)"
+    g = _gloss({"senses": [{"glosses": [raw], "tags": ["form-of"]}]})
+    assert g.startswith("compound indicatives") and g.count("(") == g.count(")")
+    g = _gloss({"senses": [{"glosses": ["hanja form of 가동 (“operation (of a machine)”)"], "tags": ["form-of"]}]})
+    assert g == "operation (of a machine)"
 
 
 def test_weight_counts_derived_terms():

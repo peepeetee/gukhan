@@ -82,23 +82,26 @@ def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
                 yield f["form"], word, False
 
 
-_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)", re.IGNORECASE)
+# Greedy up to the closing quote so nested parentheses inside the gloss survive:
+# 「hanja form of 회의 (“(Chinese character classification) compound …”)」.
+_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)\s*$", re.IGNORECASE)
 
 
 _ROMAN_THEN_PAREN = re.compile(r"^[A-Za-z' -]+ \((.+)\)$")
 _LEADING_LABEL = re.compile(r"^\(([^()]*(?:\([^()]*\)[^()]*)*)\)\s*")
 
 
-def tidy_gloss(text: str) -> str:
+def tidy_gloss(text: str, romanizations: frozenset[str] | set[str] = frozenset()) -> str:
     """Make a Wiktionary gloss useful on one line.
 
-    「yeoksa (a practice in the Joseon Dynasty …)」 → the parenthetical, since the
-    romanised headword says nothing; 「(Chinese character classification) a
-    character …」 → drop the leading label unless nothing else is left.
+    「yeoksa (a practice in the Joseon Dynasty …)」 → the parenthetical, when the
+    leading word is the headword's own romanisation and so says nothing;
+    「(Chinese character classification) a character …」 → drop the leading
+    label unless nothing else is left.
     """
     text = " ".join(text.split())
     m = _ROMAN_THEN_PAREN.match(text)
-    if m:
+    if m and text[: m.start(1) - 2].strip() in romanizations:
         text = m.group(1)
     m = _LEADING_LABEL.match(text)
     if m and text[m.end() :].strip():
@@ -108,9 +111,9 @@ def tidy_gloss(text: str) -> str:
     return text
 
 
-def shorten(text: str, limit: int = 80) -> str:
+def shorten(text: str, limit: int = 80, romanizations: frozenset[str] | set[str] = frozenset()) -> str:
     """Tidy, then cut at a word boundary without leaving an unbalanced parenthesis."""
-    text = tidy_gloss(text)
+    text = tidy_gloss(text, romanizations)
     if len(text) <= limit:
         return text
     cut = text[:limit].rsplit(" ", 1)[0]
@@ -125,6 +128,7 @@ def shorten(text: str, limit: int = 80) -> str:
 def _gloss(obj: dict) -> str:
     """First gloss; for 「hanja form of 역사 (“history”)」 pages, the quoted gloss."""
     fallback = ""
+    roman = {f.get("form", "") for f in obj.get("forms") or [] if "romanization" in (f.get("tags") or [])}
     for sense in obj.get("senses") or []:
         for g in sense.get("glosses") or []:
             if not g:
@@ -132,9 +136,9 @@ def _gloss(obj: dict) -> str:
             g = g.replace("\t", " ").replace("\n", " ")
             m = _FORM_OF.match(g)
             if m:
-                fallback = fallback or shorten(m.group(1))
+                fallback = fallback or shorten(m.group(1), romanizations=roman)
             elif not g.lower().startswith("hanja form of"):
-                return shorten(g)
+                return shorten(g, romanizations=roman)
     return fallback
 
 
