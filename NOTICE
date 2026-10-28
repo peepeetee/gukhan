@@ -1,0 +1,13 @@
+gukhan (國漢混用) — Hangul to Hanja mixed-script converter
+Copyright 2026 (民國115年) the gukhan contributors
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This NOTICE file must be kept with any redistribution of this software,
+in whole or in part, as required by Section 4(d) of the Apache License.
+
+Lexicon data is NOT part of this software and is NOT licensed under the
+Apache License. The prebuilt lexicon is distributed separately as the
+`gukhan-lexicon` package under Creative Commons Attribution-ShareAlike
+2.0 Korea (CC BY-SA 2.0 KR), with attribution to its sources. See
+THIRD-PARTY-NOTICES.md and docs/licensing.md for details.
