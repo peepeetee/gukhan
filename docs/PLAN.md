@@ -150,9 +150,14 @@ Override file (plain text, one decision per line, shareable):
 
 Decision order for each matched span: override (longest phrase first) → rule
 → flag. Rules: exactly one lexicon candidate → use it, unless the lexicon is
-weighted and the entry's weight is below `--min-weight` (default 12), in
-which case it is flagged; several candidates with identical Hanja → use it;
-otherwise flag. An entry whose Hanja column repeats the Hangul marks a native
+weighted and the entry's weight is below `--min-weight` (default 0, off:
+on the 1948 constitution a cutoff of 12 cut wrong from 1.4% to 0.5% but
+right from 48.7% to 21.7%), in which case it is flagged; several candidates with identical Hanja → use it;
+otherwise flag. A one-syllable common noun with a lone entry is flagged too,
+because almost every Sino-Korean syllable has many Hanja and one entry means
+a lexicon gap (前項 → 全항 came from that); closed classes (counters,
+prefixes, suffixes, adverbs, determiners) are exempt, and an override such as
+`약 = 藥` settles the frequent ones. An entry whose Hanja column repeats the Hangul marks a native
 word of the same sound (안 = inside), so 안 is flagged between 案 and the
 native word rather than written. Native bound nouns (할 수 있다, 그럴 리가)
 are never looked up. Proper nouns (NNP) with no lexicon entry go to the

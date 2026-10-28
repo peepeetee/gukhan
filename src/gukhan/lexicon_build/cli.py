@@ -34,7 +34,24 @@ def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
         if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), cur.source):
             best[key] = e
     out = [stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k]) for k, e in best.items()]
-    return sorted(out, key=lambda e: (e.hangul, e.hanja))
+    return sorted(drop_nonstandard_spellings(out), key=lambda e: (e.hangul, e.hanja))
+
+
+def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
+    """Drop 력사/령토/녀자-type spellings when the same Hanja also has the 頭音法則 form (역사)."""
+    from .hangul import initial_sound_variants
+
+    by_hanja: dict[str, set[str]] = {}
+    for e in entries:
+        by_hanja.setdefault(e.hanja, set()).add(e.hangul)
+    kept = []
+    for e in entries:
+        first = e.hangul[0]
+        standard = initial_sound_variants(first) - {first}
+        if standard and any(first_alt + e.hangul[1:] in by_hanja[e.hanja] for first_alt in standard):
+            continue
+        kept.append(e)
+    return kept
 
 
 def main(argv: list[str] | None = None) -> int:

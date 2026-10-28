@@ -173,6 +173,41 @@ def test_cli_wiktextract_only_sets_licence(tmp_path):
     assert main(["-o", str(out)]) == 2
 
 
+def test_drop_nonstandard_spellings():
+    from gukhan.lexicon_build.cli import drop_nonstandard_spellings
+
+    E = stdict.Entry
+    kept = drop_nonstandard_spellings(
+        [
+            E("력사", "歷史", "명사", "t"),
+            E("역사", "歷史", "명사", "t"),
+            E("녀자", "女子", "명사", "t"),
+            E("리론", "理論", "명사", "t"),
+        ]
+    )
+    assert [(e.hangul, e.hanja) for e in kept] == [("역사", "歷史"), ("녀자", "女子"), ("리론", "理論")]
+
+
+def test_north_korea_senses_skipped_and_label_dropped():
+    from gukhan.lexicon_build import wiktextract
+
+    lines = [
+        '{"word": "력사", "lang_code": "ko", "pos": "noun", "forms": [{"form": "歷史", "tags": ["hanja"]}],'
+        ' "senses": [{"glosses": ["history"], "tags": ["North-Korea"]}]}',
+        '{"word": "歷史", "lang_code": "ko", "pos": "noun", "forms": [{"form": "력사", "tags": ["hangeul"]}],'
+        ' "senses": [{"glosses": ["hanja form of 력사 (“history”) (North Korea)"], "tags": ["form-of"]}]}',
+        '{"word": "歷史", "lang_code": "ko", "pos": "noun", "forms": [{"form": "역사", "tags": ["hangeul"]}],'
+        ' "senses": [{"glosses": ["hanja form of 역사 (“history”) (South Korea)"], "tags": ["form-of"]}]}',
+    ]
+    f = FIX.parent / "_tmp_nk.jsonl"
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        entries, _, _ = wiktextract.parse(f)
+    finally:
+        f.unlink()
+    assert [(e.hangul, e.sense) for e in entries] == [("력사", "history"), ("역사", "history")]
+
+
 def test_merge_entries_prefers_gloss_and_common_noun():
     from gukhan.lexicon_build.cli import merge_entries
 

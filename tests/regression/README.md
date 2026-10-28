@@ -57,9 +57,10 @@ kept as published.
 | chars_* | the same, counted per Hanja character |
 
 Glyph variants such as 强/強 are folded before comparison. The score line
-also depends on `--min-weight` (default 12 on a Wiktionary-built lexicon): a
-lone lexicon entry below that weight is flagged rather than written, because
-one entry in a crowd-sourced lexicon is no proof that no other reading exists.
+also depends on `--min-weight` (default 0): with a cutoff, a lone lexicon
+entry below that weight is flagged rather than written. On the 1948 text a
+cutoff of 12 cut wrong from 1.4% to 0.5% and right from 48.7% to 21.7%, so it
+is off by default and the single-syllable rule carries the caution instead.
 
 `wrong` and `over` are the numbers that matter most: the tool promises never
 to guess, so they should stay near zero while `flagged` shrinks.

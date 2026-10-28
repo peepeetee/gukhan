@@ -122,13 +122,30 @@ def load_lexicon_hanja(path: Path) -> dict[str, str]:
     from gukhan.lexicon import Lexicon
 
     lex = Lexicon.load(path)
-    out: dict[str, str] = {}
+    best: dict[str, tuple[int, int, str]] = {}  # hanja → (weight, standard_rank, hangul)
     for entries in lex._by_key.values():
         for e in entries:
             hj, hg = e.hanja.replace(" ", ""), e.hangul.replace(" ", "")
-            if all(is_cjk(c) for c in hj) and len(hj) == len(hg):
-                out.setdefault(hj, hg)
-    return out
+            if not (all(is_cjk(c) for c in hj) and len(hj) == len(hg)):
+                continue
+            # several Hangul spellings for one Hanja word: keep the heaviest, ties → the one
+            # that obeys the 頭音法則 (역사 over 력사), then the alphabetically first
+            cand = (e.weight, _standard_rank(hg), hg)
+            cur = best.get(hj)
+            if (
+                cur is None
+                or (cand[0], cand[1]) > (cur[0], cur[1])
+                or ((cand[0], cand[1]) == (cur[0], cur[1]) and hg < cur[2])
+            ):
+                best[hj] = cand
+    return {hj: hg for hj, (_, _, hg) in best.items()}
+
+
+def _standard_rank(hangul: str) -> int:
+    """1 when the first syllable could not be a 頭音法則 violation, 0 when it starts with ㄹ or ㄴ+y."""
+    ini, vow, _ = decompose(hangul[0]) if is_syllable(hangul[0]) else (0, 0, 0)
+    initial, vowel = _INITIALS[ini], _VOWELS[vow]
+    return 0 if initial == "ㄹ" or (initial == "ㄴ" and vowel in _Y_OR_I) else 1
 
 
 _Y_OR_I = frozenset("ㅣㅑㅒㅕㅖㅛㅠ")

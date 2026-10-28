@@ -113,6 +113,17 @@ def test_cli_prepare_and_score(tmp_path):
     assert main(["prepare", str(tmp_path / "nope.txt"), "--chars", str(chars), "--source", "t", "-o", str(out)]) == 2
 
 
+def test_lexicon_words_prefer_standard_spelling(tmp_path):
+    lex = tmp_path / "lexicon.tsv"
+    lex.write_text(
+        "력사\t歷史\t명사\tt\thistory\t11\n역사\t歷史\t명사\tt\thistory\t18\n"
+        "령토\t領土\t명사\tt\t\t11\n영토\t領土\t명사\tt\t\t11\n규률\t規律\t명사\tt\t\t11\n규율\t規律\t명사\tt\t\t12\n",
+        encoding="utf-8",
+    )
+    words = prep.load_lexicon_hanja(lex)
+    assert words == {"歷史": "역사", "領土": "영토", "規律": "규율"}
+
+
 def test_prepare_with_lexicon_words_and_edu_tags(tmp_path):
     chars_file = tmp_path / "chars.tsv"
     chars_file.write_text(

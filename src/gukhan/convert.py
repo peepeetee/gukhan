@@ -12,7 +12,9 @@ from .overrides import Overrides
 from .segments import segment
 
 MAX_PHRASE_TOKENS = 6
-DEFAULT_MIN_WEIGHT = 12
+# Measured on the 1948 constitution: a cutoff of 12 cut wrong from 1.4% to 0.5% but right
+# from 48.7% to 21.7%, so the default is off; pass --min-weight to trade coverage for caution.
+DEFAULT_MIN_WEIGHT = 0
 # Tags that may take part in a multi-token phrase match. Determiners, adverbs
 # and dependent nouns are excluded so that 「세 시」 never becomes 세시.
 PHRASE_TAGS = frozenset({"NNG", "NNP", "NR", "XR", "XPN", "XSN"})
@@ -104,6 +106,10 @@ def decide(
         why = "single entry" if len(pool) == 1 else "all candidates agree"
         if len(pool) < len(candidates):
             why += f" after POS filter ({tag})"
+        if len(hangul.replace(" ", "")) == 1 and tag in ("NNG", "NNP", "NR", "XR"):
+            # one syllable, one entry: almost every Sino-Korean syllable has many Hanja, so a
+            # lone entry is a lexicon gap, not evidence (前項 → 全항 came from this)
+            return Decision(0, 0, hangul, Kind.FLAGGED, None, tuple(pool), f"{why}, single syllable", tag)
         if min_weight and max(c.weight for c in pool) < min_weight:
             return Decision(0, 0, hangul, Kind.FLAGGED, None, tuple(pool), f"{why}, weight below {min_weight}", tag)
         return Decision(0, 0, hangul, Kind.CONVERTED, forms[0], tuple(pool), why, tag)
@@ -132,8 +138,6 @@ class Converter:
         self.overrides = overrides
         self.analyser = analyser if analyser is not None else KiwiAnalyser()
         self.review_all = review_all
-        # Default: on a weighted (Wiktionary-built) lexicon, a lone entry needs weight 12
-        # (listed on the Hangul page with more than one sense or a derived term).
         if min_weight is None:
             min_weight = DEFAULT_MIN_WEIGHT if self.lexicon.weighted else 0
         self.min_weight = min_weight

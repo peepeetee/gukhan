@@ -61,6 +61,12 @@ def _open(path: Path) -> io.TextIOBase:
     return path.open(encoding="utf-8")
 
 
+def _nonstandard(obj: dict) -> bool:
+    """Senses tagged North-Korea (력사, 녀자) are spellings the converter must never emit or expect."""
+    senses = obj.get("senses") or []
+    return bool(senses) and all("North-Korea" in (s.get("tags") or []) for s in senses)
+
+
 def _is_hangul_word(s: str) -> bool:
     return bool(s) and all(is_syllable(c) or c == " " for c in s) and not s.isspace()
 
@@ -84,9 +90,11 @@ def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
                 yield f["form"], word, False
 
 
-# Greedy up to the closing quote so nested parentheses inside the gloss survive:
-# 「hanja form of 회의 (“(Chinese character classification) compound …”)」.
-_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)\s*$", re.IGNORECASE)
+# The quoted gloss, with nested parentheses kept: 「hanja form of 회의 (“(Chinese
+# character classification) compound …”)」; a trailing 「(North Korea)」 label is
+# outside the quotes and so dropped.
+_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:“|\"|&quot;)(.+?)(?:”|\"|&quot;)\)", re.IGNORECASE)
+_FORM_OF_BARE = re.compile(r"^hanja form of \S+\s*\((.+)\)\s*$", re.IGNORECASE)
 
 
 _ROMAN_THEN_PAREN = re.compile(r"^[A-Za-z' -]+ \((.+)\)$")
@@ -136,7 +144,7 @@ def _gloss(obj: dict) -> str:
             if not g:
                 continue
             g = g.replace("\t", " ").replace("\n", " ")
-            m = _FORM_OF.match(g)
+            m = _FORM_OF.match(g) or _FORM_OF_BARE.match(g)
             if m:
                 fallback = fallback or shorten(m.group(1), romanizations=roman)
             elif not g.lower().startswith("hanja form of"):
@@ -181,6 +189,8 @@ def parse(
                 continue
             pos_raw = obj.get("pos", "")
             if pos_raw in SKIP_POS:
+                continue
+            if _nonstandard(obj):
                 continue
             pos = POS_MAP.get(pos_raw, pos_raw)
             word = obj.get("word", "")
