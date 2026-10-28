@@ -85,14 +85,40 @@ def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
 _FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)", re.IGNORECASE)
 
 
-def shorten(text: str, limit: int = 80) -> str:
-    """Cut at a word boundary and drop an unbalanced trailing parenthesis group."""
+_ROMAN_THEN_PAREN = re.compile(r"^[A-Za-z' -]+ \((.+)\)$")
+_LEADING_LABEL = re.compile(r"^\(([^()]*(?:\([^()]*\)[^()]*)*)\)\s*")
+
+
+def tidy_gloss(text: str) -> str:
+    """Make a Wiktionary gloss useful on one line.
+
+    「yeoksa (a practice in the Joseon Dynasty …)」 → the parenthetical, since the
+    romanised headword says nothing; 「(Chinese character classification) a
+    character …」 → drop the leading label unless nothing else is left.
+    """
     text = " ".join(text.split())
+    m = _ROMAN_THEN_PAREN.match(text)
+    if m:
+        text = m.group(1)
+    m = _LEADING_LABEL.match(text)
+    if m and text[m.end() :].strip():
+        text = text[m.end() :].strip()
+    elif m:
+        text = m.group(1)
+    return text
+
+
+def shorten(text: str, limit: int = 80) -> str:
+    """Tidy, then cut at a word boundary without leaving an unbalanced parenthesis."""
+    text = tidy_gloss(text)
     if len(text) <= limit:
         return text
     cut = text[:limit].rsplit(" ", 1)[0]
-    while cut.count("(") > cut.count(")"):
-        cut = cut[: cut.rfind("(")].rstrip(" ,;")
+    while cut.count("(") > cut.count(")") and "(" in cut:
+        shorter = cut[: cut.rfind("(")].rstrip(" ,;")
+        if not shorter:
+            break
+        cut = shorter
     return cut + "…"
 
 
@@ -113,9 +139,16 @@ def _gloss(obj: dict) -> str:
 
 
 def _weight(obj: dict, from_hangul_page: bool) -> int:
-    """Crude likelihood: Hangul-page entries outrank Hanja-page ones; more senses, more common."""
+    """Crude likelihood, higher = more likely reading.
+
+    10 for a reading listed on the Hangul page, plus one per sense (max 9),
+    plus one per derived, related or compound term listed (max 9): common
+    words such as 電氣 have derived terms, rare ones such as 轉機 do not.
+    """
     senses = [s for s in obj.get("senses") or [] if "form-of" not in (s.get("tags") or [])]
-    return (10 if from_hangul_page else 0) + min(len(senses), 9)
+    links = sum(len(obj.get(k) or []) for k in ("derived", "related", "compounds"))
+    links += sum(len(s.get("derived") or []) + len(s.get("related") or []) for s in obj.get("senses") or [])
+    return (10 if from_hangul_page else 0) + min(len(senses), 9) + min(links, 9)
 
 
 def parse(

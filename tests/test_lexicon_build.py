@@ -102,6 +102,28 @@ def test_shorten_gloss_keeps_parentheses_balanced():
     out = shorten(g, 60)
     assert out.count("(") == out.count(")") and out.endswith("…") and len(out) <= 61
     assert shorten("short", 60) == "short"
+    assert shorten("yeoksa (service under successive kings)") == "service under successive kings"
+    assert shorten("(Chinese character classification) a compound ideograph") == "a compound ideograph"
+    assert shorten("(only a label)") == "only a label"
+
+
+def test_weight_counts_derived_terms():
+    from gukhan.lexicon_build import wiktextract
+
+    lines = [
+        '{"word": "전기", "lang_code": "ko", "pos": "noun", "forms": [{"form": "電氣", "tags": ["hanja"]}],'
+        ' "senses": [{"glosses": ["electricity"]}], "derived": [{"word": "전기 공학"}, {"word": "전기차"}]}',
+        '{"word": "전기", "lang_code": "ko", "pos": "noun", "forms": [{"form": "轉機", "tags": ["hanja"]}],'
+        ' "senses": [{"glosses": ["turning point"]}]}',
+    ]
+    f = FIX.parent / "_tmp_weight.jsonl"
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        entries, _, _ = wiktextract.parse(f)
+    finally:
+        f.unlink()
+    w = {e.hanja: e.weight for e in entries}
+    assert w == {"電氣": 13, "轉機": 11}
 
 
 def test_cli_wiktextract_only_sets_licence(tmp_path):

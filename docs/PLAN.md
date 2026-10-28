@@ -134,8 +134,9 @@ Lexicon TSV (UTF-8, `#` comments, tab separated):
 
 The optional sixth column `weight` orders candidates in flag lists (higher
 first). It is a crude likelihood, not a frequency: the Wiktionary builder
-gives 10 to readings listed on the Hangul page plus one per sense. A real
-frequency signal is future work and would need a licence-clean corpus.
+gives 10 to readings listed on the Hangul page, plus one per sense and one
+per derived or related term (each capped at 9). A real frequency signal is
+future work and would need a licence-clean corpus.
 
 Override file (plain text, one decision per line, shareable):
 
