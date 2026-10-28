@@ -11,7 +11,9 @@ requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "the gukhan contributors" }]
-dependencies = []
+dependencies = [
+    "kiwipiepy>=0.20",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -20,5 +22,22 @@ dev = [
     "ruff>=0.6",
 ]
 
+[project.scripts]
+gukhan = "gukhan.cli:main"
+gukhan-lexicon-build = "gukhan.lexicon_build.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+gukhan = ["data/*.tsv"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
