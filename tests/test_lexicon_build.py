@@ -90,7 +90,7 @@ def test_wiktextract_fixture():
     entries2, _, _ = wiktextract.parse(FIX / "wiktextract_sample.jsonl")
     forms2 = {(e.hangul, e.hanja) for e in entries2}
     assert {("핵산", "核酸"), ("제정", "制定"), ("공부하다", "工夫하다"), ("오류", "電氣")} <= forms2
-    assert next(e for e in entries2 if e.hanja == "制定").sense == ""  # "hanja form of" gloss dropped
+    assert next(e for e in entries2 if e.hanja == "制定").sense == "enactment"  # quoted gloss of "hanja form of"
 
 
 def test_cli_wiktextract_only_sets_licence(tmp_path):
@@ -118,3 +118,26 @@ def test_cli_wiktextract_only_sets_licence(tmp_path):
     m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 6
     assert main(["-o", str(out)]) == 2
+
+
+def test_merge_entries_prefers_gloss_and_common_noun():
+    from gukhan.lexicon_build.cli import merge_entries
+
+    E = stdict.Entry
+    merged = merge_entries(
+        [
+            E("역사", "繹史", "고유 명사", "enwikt:역사", "a book"),
+            E("역사", "繹史", "명사", "enwikt:繹史", ""),
+            E("역사", "歷史", "명사", "enwikt:繹史", ""),
+            E("역사", "歷史", "명사", "enwikt:역사", "history"),
+        ]
+    )
+    assert [(e.hanja, e.pos, e.sense) for e in merged] == [("歷史", "명사", "history"), ("繹史", "고유 명사", "a book")]
+
+
+def test_unihan_version_from_date_or_header(tmp_path):
+    f = tmp_path / "Unihan_Readings.txt"
+    f.write_text("#\n#\tUnihan_Readings.txt\n#\tDate: 2025-09-01 [MS]\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
+    assert unihan.read_khangul(f)[1] == "dated 2025-09-01"
+    f.write_text("# Unihan_Readings-17.0.0.txt\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
+    assert unihan.read_khangul(f)[1] == "17.0.0"

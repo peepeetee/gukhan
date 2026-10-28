@@ -15,6 +15,25 @@ from .manifest import write_manifest
 HEADER = "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n# hangul\thanja\tpos\tsource\tsense\n"
 
 
+POS_PREFERENCE = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두사": 1, "접미사": 1, "고유 명사": 3}
+
+
+def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
+    """One line per (hangul, hanja): prefer the entry with a gloss, then a common noun over a proper noun.
+
+    The same pair often comes from a Hangul page and a Hanja page, or as 명사 and
+    고유 명사; keeping both would make every flag list twice as long.
+    """
+    best: dict[tuple[str, str], stdict_mod.Entry] = {}
+    for e in entries:
+        key = (e.hangul, e.hanja)
+        rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), e.source)
+        cur = best.get(key)
+        if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), cur.source):
+            best[key] = e
+    return sorted(best.values(), key=lambda e: (e.hangul, e.hanja))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="gukhan-lexicon-build",
@@ -87,23 +106,22 @@ def main(argv: list[str] | None = None) -> int:
     licence = "CC-BY-SA-2.0-KR" if not args.wiktextract else "CC-BY-SA-4.0"
 
     args.out.mkdir(parents=True, exist_ok=True)
-    entries.sort(key=lambda e: (e.hangul, e.hanja, e.pos, e.source))
-    seen = set()
+    merged = merge_entries(entries)
     lex_path = args.out / "lexicon.tsv"
     with lex_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(HEADER.format(licence=licence))
-        for e in entries:
-            key = (e.hangul, e.hanja, e.pos)
-            if key in seen:
-                continue
-            seen.add(key)
+        for e in merged:
             fh.write(e.tsv() + "\n")
     outputs = {"lexicon": lex_path}
+    seen = merged
 
+    rejects = sorted(
+        {(r.hangul, r.raw_hanja, r.reason): r for r in rejects}.values(), key=lambda r: (r.hangul, r.source)
+    )
     rej_path = args.out / "rejects.tsv"
     with rej_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# hangul\traw_hanja\tsource\treason\n")
-        for r in sorted(rejects, key=lambda r: (r.hangul, r.source)):
+        for r in rejects:
             fh.write(r.tsv() + "\n")
     outputs["rejects"] = rej_path
 

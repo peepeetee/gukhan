@@ -26,6 +26,7 @@ from __future__ import annotations
 import gzip
 import io
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -81,12 +82,23 @@ def _pairs(obj: dict) -> Iterator[tuple[str, str]]:
                 yield f["form"], word
 
 
+_FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)", re.IGNORECASE)
+
+
 def _gloss(obj: dict) -> str:
+    """First gloss; for 「hanja form of 역사 (“history”)」 pages, the quoted gloss."""
+    fallback = ""
     for sense in obj.get("senses") or []:
         for g in sense.get("glosses") or []:
-            if g and not g.lower().startswith("hanja form of"):
-                return g.replace("\t", " ").replace("\n", " ")[:80]
-    return ""
+            if not g:
+                continue
+            g = g.replace("\t", " ").replace("\n", " ")
+            m = _FORM_OF.match(g)
+            if m:
+                fallback = fallback or m.group(1)[:80]
+            elif not g.lower().startswith("hanja form of"):
+                return g[:80]
+    return fallback
 
 
 def parse(
@@ -119,6 +131,8 @@ def parse(
                 stats.sino += 1
                 source = f"enwikt:{obj.get('word', '')}"
                 mixed = align(hangul, clean_hanja(raw))
+                if mixed is not None and pos == "구" and any(is_syllable(c) for c in mixed):
+                    continue  # phrases with particles (甲과 乙) can never be matched; skip quietly
                 if mixed is None:
                     rejects.append(Reject(hangul, raw, source, "hanja does not align with headword"))
                     stats.rejected += 1
