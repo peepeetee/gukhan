@@ -61,7 +61,7 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     assert m["licence"] == "CC-BY-SA-2.0-KR"
     assert m["sources"]["stdict"]["sha256"] == m["sources"]["stdict"]["sha256"]
     assert m["sources"]["unihan"]["version"] == "16.0.0"
-    assert m["counts"]["entries"] == 6
+    assert m["counts"]["entries"] == 8
     assert m["outputs"]["lexicon"]["sha256"]
     text = (out1 / "lexicon.tsv").read_text(encoding="utf-8")
     assert text.startswith("# gukhan lexicon")
@@ -165,7 +165,7 @@ def test_cli_wiktextract_only_sets_licence(tmp_path):
     )
     assert rc == 0
     m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
-    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 6
+    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 8
     assert main(["-o", str(out)]) == 2
 
 
