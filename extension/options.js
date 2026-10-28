@@ -24,9 +24,11 @@ document.querySelector('#import').onclick = async () => {
 document.querySelector('#save').onclick = async () => {
   try {
     const overrides = {};
-    for (const line of document.querySelector('#overrides').value.split('\n')) {
-      if (!line.trim() || line.trim().startsWith('#')) continue;
-      const m = line.match(/^\s*([가-힣]+)\s*=\s*([^=\s]+)\s*$/u);
+    // Same syntax as the CLI override file: "word = 漢字", "#" starts a comment, a tab may replace "=".
+    for (const raw of document.querySelector('#overrides').value.split('\n')) {
+      const line = raw.split('#', 1)[0].trim();
+      if (!line) continue;
+      const m = line.match(/^([가-힣]+)\s*(?:=|\t)\s*([^=\s]+)$/u);
       if (!m || (m[2] !== '-' && (!/^[가-힣\p{Script=Han}]+$/u.test(m[2]) || m[1].length !== m[2].length))) throw new Error('Invalid override / 선택 형식 오류');
       overrides[m[1]] = m[2];
     }

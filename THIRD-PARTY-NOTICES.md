@@ -11,13 +11,16 @@ a row for data that is still shipped.
 
 ## Code dependencies
 
-Runtime: `kiwipiepy>=0.24` (Apache-2.0, with its bundled model). Earlier
+Runtime: `kiwipiepy>=0.24` (Apache-2.0) with its model package
+`kiwipiepy_model` (Apache-2.0; contains the pretrained CoNg language model
+`cong.mdl` and dictionaries, selected as `model_type="cong"`). Earlier
 versions are not covered by this Apache-2.0 selection. Dev only: pytest, ruff, pip-licenses.
 
 한국어: Apache-2.0 적용 버전인 `kiwipiepy>=0.24`만 사용합니다.
 
-Browser tests only: Playwright 1.64.1 (Apache-2.0), downloaded by CI; not bundled
-in the extension. Source: <https://github.com/microsoft/playwright/blob/main/LICENSE>.
+Browser tests only: Playwright (Apache-2.0; 1.64.1 pinned in
+`.github/workflows/extension.yml`, 1.63.0 used for the first passing run),
+installed by CI or the developer; not bundled in the extension. Source: <https://github.com/microsoft/playwright/blob/main/LICENSE>.
 Optional font: Noto Serif CJK KR (SIL OFL 1.1), not bundled; see `docs/fonts.md`.
 
 Analysers considered (Kiwi chosen; see docs/PLAN.md §2):

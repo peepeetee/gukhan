@@ -29,6 +29,15 @@ unless both switches are enabled. The imported manifest's attribution is shown i
 한국어: 네트워크 전송·분석·동기화가 없습니다. 사전과 설정은 기기에 저장됩니다.
 별도 사전의 저작권 표시는 설정에 표시됩니다. 코드와 사전은 별도 패키지입니다.
 
-Validation: `node --test extension/engine.test.mjs`. Browser smoke testing is still
-required before a public stable release: import, toggle restore, per-site isolation,
-candidate click, saved override, protected fields, and dynamic-page behavior.
+Validation: `node --test extension/engine.test.mjs` for the matching engine, and
+`node extension/browser-smoke.cjs` for a real Chromium run through Playwright
+(dictionary import with manifest check, candidate panel, saved override, protected
+`<pre>`/`<input>` text, toggle restore, per-site switch). CI runs both in
+`.github/workflows/extension.yml`. The smoke test first passed on 2026-10-28 in
+headless Chromium on Linux (Playwright 1.63.0); Windows and a headed browser are
+still unverified. Install Playwright with `npm install --prefix build/browser-check
+playwright && npx --prefix build/browser-check playwright install chromium` if it
+is not on the system.
+
+한국어: 엔진 단위 시험과 Playwright 실제 브라우저 시험을 CI에서 실행합니다.
+Linux 헤드리스 Chromium에서는 통과했고 Windows와 일반 창 모드는 아직 확인하지 않았습니다.
