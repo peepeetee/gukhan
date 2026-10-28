@@ -42,7 +42,10 @@ def test_parse_with_validation():
     assert "nawn" not in reasons
     assert "align" in reasons["나쁜"]
     assert "reads" in reasons["오류"]
-    assert stats.items == 9 and stats.rejected == 2
+    assert ("가감하다", "加減하다") in forms  # full-dump style: homonym number stripped, -하다 tail kept
+    assert ("가", "加") in forms
+    assert stats.items == 11 and stats.rejected == 2
+    assert "<" not in next(e for e in entries if e.hanja == "加減하다").sense
     assert next(e for e in entries if e.hanja == "電氣").sense.startswith("물질")
 
 
@@ -58,7 +61,7 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     assert m["licence"] == "CC-BY-SA-2.0-KR"
     assert m["sources"]["stdict"]["sha256"] == m["sources"]["stdict"]["sha256"]
     assert m["sources"]["unihan"]["version"] == "16.0.0"
-    assert m["counts"]["entries"] == 6 and m["counts"].get("native_homographs", 0) == 0
+    assert m["counts"]["entries"] == 8 and m["counts"].get("native_homographs", 0) == 0
     assert m["outputs"]["lexicon"]["sha256"]
     text = (out1 / "lexicon.tsv").read_text(encoding="utf-8")
     assert text.startswith("# gukhan lexicon")
@@ -169,7 +172,7 @@ def test_cli_wiktextract_only_sets_licence(tmp_path):
     )
     assert rc == 0
     m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
-    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 6
+    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 8
     assert main(["-o", str(out)]) == 2
 
 
