@@ -129,7 +129,7 @@ def validate_readings(hangul: str, mixed: str, readings: dict[str, list[str]]) -
 
 def iter_items(path: Path) -> Iterator[ET.Element]:
     """Yield every ``<item>`` element from a zip, a directory of XML, or one file."""
-    for name, fh in _open_all(path):
+    for _name, fh in _open_all(path):
         for _, el in ET.iterparse(fh, events=("end",)):
             if _local(el.tag) == "item":
                 yield el

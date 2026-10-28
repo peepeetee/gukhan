@@ -15,12 +15,7 @@ def is_syllable(ch: str) -> bool:
 
 def is_cjk(ch: str) -> bool:
     cp = ord(ch)
-    return (
-        0x4E00 <= cp <= 0x9FFF
-        or 0x3400 <= cp <= 0x4DBF
-        or 0xF900 <= cp <= 0xFAFF
-        or 0x20000 <= cp <= 0x3134F
-    )
+    return 0x4E00 <= cp <= 0x9FFF or 0x3400 <= cp <= 0x4DBF or 0xF900 <= cp <= 0xFAFF or 0x20000 <= cp <= 0x3134F
 
 
 def decompose(ch: str) -> tuple[int, int, int]:

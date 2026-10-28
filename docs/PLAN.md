@@ -97,7 +97,7 @@ Hanja). Entries whose Hanja field contains `▽` (variant marks), `-`, or
 parentheses are normalised by stripping those marks. Usage examples are never
 read, which keeps the source-cited 용례 exclusion trivially satisfied.
 
-Sample data for development and tests: `data/sample/lexicon.tsv` is a small
+Sample data for development and tests: `src/gukhan/data/sample_lexicon.tsv` is a small
 hand-written list (about 80 common words including homograph traps such as
 전기, 사과, 의사, 부정). It is not derived from any dictionary and exists
 only so the converter and tests run without the dump. The real lexicon ships

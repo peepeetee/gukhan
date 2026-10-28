@@ -11,13 +11,13 @@ a row for data that is still shipped.
 
 ## Code dependencies
 
-None yet. The project has no runtime dependencies at this stage.
+Runtime: `kiwipiepy` (Apache-2.0, with its bundled model). Dev only: pytest, ruff, pip-licenses.
 
-Candidate analysers under evaluation (not yet depended on):
+Analysers considered (Kiwi chosen; see docs/PLAN.md §2):
 
 | Component | Licence | Notes | Source |
 | --- | --- | --- | --- |
-| Kiwi / kiwipiepy | Apache-2.0 (code and trained model files) | Bundles Eigen under MPL-2.0 (file-level copyleft, acceptable) and MIT/BSD parts | <https://github.com/bab2min/Kiwi/blob/main/LICENSE>, <https://github.com/bab2min/Kiwi/blob/main/NOTICE> |
+| Kiwi / kiwipiepy (runtime dependency) | Apache-2.0 (code and trained model files) | Bundles Eigen under MPL-2.0 (file-level copyleft, acceptable) and MIT/BSD parts | <https://github.com/bab2min/Kiwi/blob/main/LICENSE>, <https://github.com/bab2min/Kiwi/blob/main/NOTICE> |
 | mecab-ko | GPL, LGPL or BSD at the user's choice | Use under the BSD option only | <https://bitbucket.org/eunjeon/mecab-ko/raw/master/COPYING> |
 | mecab-ko-dic | Apache-2.0 | Trained on the 21세기 세종계획 corpus; the corpus itself is not redistributed | <https://bitbucket.org/eunjeon/mecab-ko-dic/raw/master/README.md> |
 

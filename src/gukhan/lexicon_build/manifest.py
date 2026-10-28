@@ -32,7 +32,9 @@ def describe_input(path: Path) -> dict[str, Any]:
         return {
             "path": str(path),
             "kind": "directory",
-            "files": [{"name": str(p.relative_to(path)), "bytes": p.stat().st_size, "sha256": sha256_of(p)} for p in files],
+            "files": [
+                {"name": str(p.relative_to(path)), "bytes": p.stat().st_size, "sha256": sha256_of(p)} for p in files
+            ],
         }
     return {"path": str(path), "kind": "file", "bytes": path.stat().st_size, "sha256": sha256_of(path)}
 
@@ -55,13 +57,20 @@ def write_manifest(
         "sources": {
             "stdict": {"name": "표준국어대사전 XML dump", "licence": "CC-BY-SA-2.0-KR", **describe_input(stdict)},
             "unihan": (
-                {"name": "Unicode Unihan database", "licence": "Unicode-3.0", "version": unihan_version, **describe_input(unihan)}
+                {
+                    "name": "Unicode Unihan database",
+                    "licence": "Unicode-3.0",
+                    "version": unihan_version,
+                    **describe_input(unihan),
+                }
                 if unihan
                 else None
             ),
         },
         "counts": counts,
-        "outputs": {name: {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256_of(p)} for name, p in outputs.items()},
+        "outputs": {
+            name: {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256_of(p)} for name, p in outputs.items()
+        },
     }
     path = out_dir / "manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

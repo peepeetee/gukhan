@@ -49,7 +49,9 @@ def test_parse_with_validation():
 def test_cli_builds_deterministic_outputs(tmp_path):
     out1, out2 = tmp_path / "a", tmp_path / "b"
     for out in (out1, out2):
-        rc = main(["--stdict", str(FIX / "stdict_sample.xml"), "--unihan", str(FIX / "Unihan_Readings.txt"), "-o", str(out)])
+        rc = main(
+            ["--stdict", str(FIX / "stdict_sample.xml"), "--unihan", str(FIX / "Unihan_Readings.txt"), "-o", str(out)]
+        )
         assert rc == 0
     assert (out1 / "lexicon.tsv").read_bytes() == (out2 / "lexicon.tsv").read_bytes()
     m = json.loads((out1 / "manifest.json").read_text(encoding="utf-8"))
