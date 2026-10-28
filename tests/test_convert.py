@@ -41,7 +41,7 @@ def test_homograph_is_flagged_not_guessed():
     assert r.text == "전기를"
     assert r.decisions[0].kind == Kind.FLAGGED
     assert {e.hanja for e in r.decisions[0].candidates} == {"電氣", "傳記"}
-    assert c.convert("전기를", mark=True).text == "전기{電氣|傳記}를"
+    assert c.convert("전기를", mark=True).text == "전기{傳記|電氣}를"
 
 
 def test_longest_match_phrase_resolves_homograph():
@@ -116,3 +116,58 @@ def test_real_kiwi_end_to_end():
     r = convert("국군은 작전 계획을 수립하였다. 그는 전기를 읽고 전기 공학을 공부했다.")
     assert r.text == "國軍은 作戰 計劃을 樹立하였다. 그는 전기를 읽고 電氣 工學을 工夫했다."
     assert [d.hangul for d in r.of(Kind.FLAGGED)] == ["전기"]
+
+
+def test_no_phrase_match_across_space_for_determiner():
+    lex = Lexicon(
+        [Entry("세시", "歲時", "명사", "t"), Entry("세시", "細視", "명사", "t"), Entry("시", "時", "의존 명사", "t")]
+    )
+    c = Converter(lex, None, ListAnalyser([("오후", "NNG"), ("세", "MM"), ("시", "NNB")]))
+    r = c.convert("오후 세 시")
+    assert r.text == "오후 세 時"
+    assert [d.hangul for d in r.decisions] == ["시"]
+
+
+def test_spaced_span_needs_spaced_entry():
+    lex = Lexicon([Entry("세시", "歲時", "명사", "t"), Entry("작전 계획", "作戰 計劃", "명사", "t")])
+    c = Converter(lex, None, ListAnalyser([("세", "NNG"), ("시", "NNG"), ("작전", "NNG"), ("계획", "NNG")]))
+    assert c.convert("세 시 작전 계획").text == "세 시 作戰 計劃"
+    assert c.convert("세시 작전계획").text == "歲時 作戰計劃"
+
+
+def test_flag_candidates_are_ranked():
+    lex = Lexicon(
+        [
+            Entry("역사", "繹史", "고유 명사", "t", "a Qing history book"),
+            Entry("역사", "歷史", "명사", "t", "history"),
+            Entry("역사", "役事", "명사", "t"),
+        ]
+    )
+    r = Converter(lex, None, ListAnalyser([("역사", "NNG")])).convert("역사")
+    # the proper noun is dropped by the POS filter for an NNG token; glossed entry first
+    assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]
+    r = Converter(lex, None, ListAnalyser([("역사", "NNP")])).convert("역사")
+    assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "繹史", "役事"]
+
+
+def test_native_numeral_and_counter_not_flagged():
+    lex = Lexicon(
+        [
+            Entry("세", "世", "명사", "t"),
+            Entry("세", "歲", "명사", "t"),
+            Entry("시", "市", "명사", "t"),
+            Entry("시", "時", "명사", "t"),
+            Entry("각", "各", "관형사", "t"),
+        ]
+    )
+    c = Converter(lex, None, ListAnalyser([("오후", "NNG"), ("세", "MM"), ("시", "NNB"), ("각", "MM"), ("시", "NNG")]))
+    r = c.convert("오후 세 시 각 시")
+    # noun readings do not fit MM/NNB, so the numeral and counter are left alone, not flagged
+    assert r.text == "오후 세 시 各 시"
+    assert [(d.hangul, d.kind) for d in r.decisions] == [("각", Kind.CONVERTED), ("시", Kind.FLAGGED)]
+
+
+def test_weight_orders_candidates():
+    lex = Lexicon([Entry("역사", "役事", "명사", "t", "work", 1), Entry("역사", "歷史", "명사", "t", "history", 12)])
+    r = Converter(lex, None, ListAnalyser([("역사", "NNG")])).convert("역사")
+    assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]

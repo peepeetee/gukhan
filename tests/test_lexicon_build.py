@@ -70,3 +70,126 @@ def test_cli_rejects_wrong_schema(tmp_path):
     bad = tmp_path / "bad.xml"
     bad.write_text("<root><thing>x</thing></root>", encoding="utf-8")
     assert main(["--stdict", str(bad), "-o", str(tmp_path / "o")]) == 2
+
+
+def test_wiktextract_fixture():
+    from gukhan.lexicon_build import wiktextract
+
+    readings, _ = unihan.read_khangul(FIX / "Unihan_Readings.txt")
+    entries, rejects, stats = wiktextract.parse(FIX / "wiktextract_sample.jsonl", readings)
+    forms = {(e.hangul, e.hanja, e.pos) for e in entries}
+    assert ("핵산", "核酸", "명사") not in forms  # 核/酸 not in the tiny Unihan fixture → rejected, not guessed
+    assert ("제정", "制定", "명사") not in forms  # same
+    assert ("전기", "電氣", "명사") in forms and ("전기", "傳記", "명사") in forms
+    assert ("공부하다", "工夫하다", "동사") not in forms  # 工/夫 not in fixture
+    assert not any(e.hangul == "전" for e in entries)  # character pages skipped
+    assert not any(e.hangul == "사과" for e in entries)  # no hanja form
+    assert stats.items == 9
+    assert any(r.hangul == "오류" and "reads" in r.reason for r in rejects)
+    # without Unihan validation everything aligned is kept
+    entries2, _, _ = wiktextract.parse(FIX / "wiktextract_sample.jsonl")
+    forms2 = {(e.hangul, e.hanja) for e in entries2}
+    assert {("핵산", "核酸"), ("제정", "制定"), ("공부하다", "工夫하다"), ("오류", "電氣")} <= forms2
+    assert next(e for e in entries2 if e.hanja == "制定").sense == "enactment"  # quoted gloss of "hanja form of"
+    assert next(e for e in entries2 if e.hanja == "制定").weight == 0  # Hanja page, no own senses
+    assert next(e for e in entries2 if e.hanja == "核酸").weight == 11  # Hangul page + 1 sense
+
+
+def test_shorten_gloss_keeps_parentheses_balanced():
+    from gukhan.lexicon_build.wiktextract import shorten
+
+    g = "yeoksa (a practice in the Joseon Dynasty whereby a newly appointed official was made to wait for a long time)"
+    out = shorten(g, 60)
+    assert out.count("(") == out.count(")") and out.endswith("…") and len(out) <= 61
+    assert shorten("short", 60) == "short"
+    assert (
+        shorten("yeoksa (service under successive kings)", romanizations={"yeoksa"}) == "service under successive kings"
+    )
+    assert shorten("operation (of a machine)", romanizations={"gadong"}) == "operation (of a machine)"
+    assert shorten("(Chinese character classification) a compound ideograph") == "a compound ideograph"
+    assert shorten("(only a label)") == "only a label"
+
+
+def test_form_of_gloss_keeps_nested_parentheses():
+    from gukhan.lexicon_build.wiktextract import _gloss
+
+    raw = "hanja form of 회의 (“(Chinese character classification) compound indicatives, one of six 六書”)"
+    g = _gloss({"senses": [{"glosses": [raw], "tags": ["form-of"]}]})
+    assert g.startswith("compound indicatives") and g.count("(") == g.count(")")
+    g = _gloss({"senses": [{"glosses": ["hanja form of 가동 (“operation (of a machine)”)"], "tags": ["form-of"]}]})
+    assert g == "operation (of a machine)"
+
+
+def test_weight_counts_derived_terms():
+    from gukhan.lexicon_build import wiktextract
+
+    lines = [
+        '{"word": "전기", "lang_code": "ko", "pos": "noun", "forms": [{"form": "電氣", "tags": ["hanja"]}],'
+        ' "senses": [{"glosses": ["electricity"]}], "derived": [{"word": "전기 공학"}, {"word": "전기차"}]}',
+        '{"word": "전기", "lang_code": "ko", "pos": "noun", "forms": [{"form": "轉機", "tags": ["hanja"]}],'
+        ' "senses": [{"glosses": ["turning point"]}]}',
+    ]
+    f = FIX.parent / "_tmp_weight.jsonl"
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        entries, _, _ = wiktextract.parse(f)
+    finally:
+        f.unlink()
+    w = {e.hanja: e.weight for e in entries}
+    assert w == {"電氣": 13, "轉機": 11}
+
+
+def test_cli_wiktextract_only_sets_licence(tmp_path):
+    out = tmp_path / "w"
+    rc = main(["--wiktextract", str(FIX / "wiktextract_sample.jsonl"), "-o", str(out)])
+    assert rc == 0
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-4.0"
+    assert m["sources"]["stdict"] is None and len(m["sources"]["wiktextract"]) == 1
+    assert "Wiktionary" in m["notice"] and "標準國語大辭典" not in m["notice"]
+    assert (out / "lexicon.tsv").read_text(encoding="utf-8").startswith("# gukhan lexicon\tlicence=CC-BY-SA-4.0")
+    rc = main(
+        [
+            "--stdict",
+            str(FIX / "stdict_sample.xml"),
+            "--wiktextract",
+            str(FIX / "wiktextract_sample.jsonl"),
+            "--unihan",
+            str(FIX / "Unihan_Readings.txt"),
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 6
+    assert main(["-o", str(out)]) == 2
+
+
+def test_merge_entries_prefers_gloss_and_common_noun():
+    from gukhan.lexicon_build.cli import merge_entries
+
+    E = stdict.Entry
+    merged = merge_entries(
+        [
+            E("역사", "繹史", "고유 명사", "enwikt:역사", "a book"),
+            E("역사", "繹史", "명사", "enwikt:繹史", ""),
+            E("역사", "歷史", "명사", "enwikt:繹史", ""),
+            E("역사", "歷史", "명사", "enwikt:역사", "history"),
+        ]
+    )
+    assert [(e.hanja, e.pos, e.sense) for e in merged] == [("歷史", "명사", "history"), ("繹史", "고유 명사", "a book")]
+
+
+def test_unihan_version_from_date_or_header(tmp_path):
+    f = tmp_path / "Unihan_Readings.txt"
+    f.write_text("#\n#\tUnihan_Readings.txt\n#\tDate: 2025-09-01 [MS]\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
+    assert unihan.read_khangul(f)[1] == "dated 2025-09-01"
+    f.write_text(
+        "# Unihan_Readings.txt\n# Date: 2026-07-31 00:00:00 GMT [KL]\n# Unicode Version 18.0.0\n#\n"
+        "U+4E00\tkHangul\t일:0E\n",
+        encoding="utf-8",
+    )
+    assert unihan.read_khangul(f)[1] == "18.0.0"
+    f.write_text("# Unihan_Readings-17.0.0.txt\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
+    assert unihan.read_khangul(f)[1] == "17.0.0"

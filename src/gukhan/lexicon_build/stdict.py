@@ -41,9 +41,10 @@ class Entry:
     pos: str
     source: str
     sense: str = ""
+    weight: int = 0
 
     def tsv(self) -> str:
-        return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense))
+        return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense, str(self.weight)))
 
 
 @dataclass
@@ -82,7 +83,7 @@ def clean_headword(word: str) -> str:
 
 
 def clean_hanja(raw: str) -> str:
-    return re.sub(r"[▽▼\s()（）]", "", raw)
+    return re.sub(r"[▽▼\s()（）]", "", raw).replace("ː", "")
 
 
 def align(hangul: str, hanja: str) -> str | None:
@@ -102,7 +103,7 @@ def align(hangul: str, hanja: str) -> str | None:
             continue
         h = hanja[i]
         i += 1
-        if h == "-":
+        if h == "-" or h == ch:  # no Hanja for this syllable (mixed word)
             out.append(ch)
         elif is_cjk(h):
             out.append(h)

@@ -14,7 +14,8 @@ import zipfile
 from pathlib import Path
 
 _LINE = re.compile(r"^U\+([0-9A-F]{4,6})\tkHangul\t(.+)$")
-_VERSION = re.compile(r"Unihan_Readings-(\d+\.\d+\.\d+)\.txt")
+_VERSION = re.compile(r"Unihan(?:_Readings)?[-_ ](\d+\.\d+\.\d+)|Unicode (?:version )?(\d+\.\d+\.\d+)", re.IGNORECASE)
+_DATE = re.compile(r"Date:\s*(\d{4}-\d{2}-\d{2})")
 
 
 def _open_readings(path: Path) -> tuple[io.TextIOBase, str | None]:
@@ -39,10 +40,15 @@ def read_khangul(path: Path) -> tuple[dict[str, list[str]], str | None]:
     fh, _ = _open_readings(path)
     with fh:
         for line in fh:
-            if version is None and line.startswith("#"):
-                m = _VERSION.search(line)
-                if m:
-                    version = m.group(1)
+            if line.startswith("#"):
+                if version is None or version.startswith("dated "):
+                    m = _VERSION.search(line)
+                    if m:
+                        version = m.group(1) or m.group(2)
+                    elif version is None:
+                        d = _DATE.search(line)
+                        if d:
+                            version = "dated " + d.group(1)
                 continue
             m = _LINE.match(line.rstrip("\n"))
             if not m:

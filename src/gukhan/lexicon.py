@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
-COLUMNS = ("hangul", "hanja", "pos", "source", "sense")
+COLUMNS = ("hangul", "hanja", "pos", "source", "sense", "weight")
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,7 @@ class Entry:
     pos: str = ""
     source: str = ""
     sense: str = ""
+    weight: int = 0  # higher = more likely reading; from the builder, see docs/PLAN.md §4
 
 
 def _strip_spaces(s: str) -> str:
@@ -63,10 +64,16 @@ class Lexicon:
                     f"line {n}: expected at least 2 tab-separated columns / 탭 區分 열이 2個 以上이어야 합니다"
                 )
             parts += [""] * (len(COLUMNS) - len(parts))
-            hangul, hanja, pos, source, sense = (p.strip() for p in parts[:5])
+            hangul, hanja, pos, source, sense, weight = (p.strip() for p in parts[:6])
             if len(_strip_spaces(hangul)) != len(_strip_spaces(hanja)):
                 raise ValueError(f"line {n}: {hangul!r} and {hanja!r} differ in length / 길이가 다릅니다")
-            lex.add(Entry(hangul, hanja, pos, source, sense))
+            try:
+                w = int(weight) if weight else 0
+            except ValueError:
+                raise ValueError(
+                    f"line {n}: weight must be an integer / weight는 整數여야 합니다: {weight!r}"
+                ) from None
+            lex.add(Entry(hangul, hanja, pos, source, sense, w))
         return lex
 
     @classmethod

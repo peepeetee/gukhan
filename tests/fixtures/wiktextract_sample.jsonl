@@ -1,0 +1,9 @@
+{"word": "핵산", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "haeksan", "tags": ["romanization"]}, {"form": "核酸", "tags": ["hanja"]}], "senses": [{"glosses": ["nucleic acid"]}]}
+{"word": "制定", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "jejeong", "tags": ["romanization"]}, {"form": "제정", "tags": ["hangeul"]}], "senses": [{"glosses": ["hanja form of 제정 (“enactment”)"], "tags": ["form-of", "hanja"]}]}
+{"word": "전기", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "電氣", "tags": ["hanja"]}], "senses": [{"glosses": ["electricity"]}]}
+{"word": "전기", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "傳記", "tags": ["hanja"]}], "senses": [{"glosses": ["biography"]}]}
+{"word": "공부하다", "lang_code": "ko", "lang": "Korean", "pos": "verb", "forms": [{"form": "工夫하다", "tags": ["hanja"]}], "senses": [{"glosses": ["to study"]}]}
+{"word": "電", "lang_code": "ko", "lang": "Korean", "pos": "character", "forms": [{"form": "전", "tags": ["hangeul"]}], "senses": [{"glosses": ["electricity"]}]}
+{"word": "사과", "lang_code": "ko", "lang": "Korean", "pos": "noun", "senses": [{"glosses": ["apple"]}]}
+{"word": "電気", "lang_code": "ja", "lang": "Japanese", "pos": "noun", "forms": [{"form": "でんき", "tags": ["hiragana"]}], "senses": [{"glosses": ["electricity"]}]}
+{"word": "오류", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "電氣", "tags": ["hanja"]}], "senses": [{"glosses": ["bad reading"]}]}
