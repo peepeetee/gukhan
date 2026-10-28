@@ -18,6 +18,7 @@ import html
 import json
 import re
 import sys
+import unicodedata
 import urllib.request
 from pathlib import Path
 
@@ -49,9 +50,12 @@ def fetch(url: str) -> bytes:
 
 def html_to_text(raw: str) -> str:
     raw = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", "", raw)
-    raw = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</li>|</tr>|</h\d>", "\n", raw)
+    raw = re.sub(r"(?i)<br\s*/?>|</p>|</div>|</li>|</tr>|</h\d>|</dt>|</dd>|</dl>", "\n", raw)
     raw = re.sub(r"<[^>]+>", "", raw)
     text = html.unescape(raw)
+    # The Constitutional Court pages encode many Hanja as CJK compatibility
+    # ideographs (歷 U+F98C for U+6B77); NFC folds them to the unified forms.
+    text = unicodedata.normalize("NFC", text)
     return "\n".join(" ".join(line.split()) for line in text.splitlines())
 
 
