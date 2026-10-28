@@ -31,6 +31,7 @@ class Kind(str, Enum):
     FLAGGED = "flagged"  # several candidates, left in Hangul, needs a human
     REVIEW = "review"  # proper noun or unknown word with no entry
     KEPT = "kept"  # override said keep Hangul
+    NONE = "none"  # internal: entries exist but none fits the token's tag; not recorded
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,9 @@ def decide(
             return Decision(0, 0, hangul, Kind.KEPT, reason="override: keep Hangul", tag=tag)
         return Decision(0, 0, hangul, Kind.CONVERTED, entry.hanja, (entry,), "override", tag)
     allowed = TAG_TO_POS.get(tag)
-    pool = [c for c in candidates if allowed is None or c.pos in allowed] or candidates
+    pool = [c for c in candidates if allowed is None or c.pos in allowed]
+    if not pool:
+        return Decision(0, 0, hangul, Kind.NONE, reason=f"no entry fits tag {tag}", tag=tag)
     forms = sorted({c.hanja.replace(" ", "") for c in pool})
     if len(forms) == 1:
         why = "single entry" if len(pool) == 1 else "all candidates agree"
@@ -96,8 +99,8 @@ _POS_RANK = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두�
 
 
 def rank(entries: list[Entry]) -> list[Entry]:
-    """Likely readings first: entries with a gloss, then common nouns, then proper nouns."""
-    return sorted(entries, key=lambda e: (not e.sense, _POS_RANK.get(e.pos, 1), e.hanja))
+    """Likely readings first: builder weight, then glossed entries, common nouns before proper nouns."""
+    return sorted(entries, key=lambda e: (-e.weight, not e.sense, _POS_RANK.get(e.pos, 1), e.hanja))
 
 
 class Converter:
@@ -157,6 +160,8 @@ class Converter:
                 if not has_ov and not lex_cands:
                     continue
                 d = decide(span, first.tag, lex_cands, (has_ov, ov))
+                if d.kind == Kind.NONE:
+                    continue
                 hanja = _apply_spacing(span, d.hanja) if d.hanja else None
                 decisions.append(
                     Decision(base + first.start, base + last.end, span, d.kind, hanja, d.candidates, d.reason, d.tag)

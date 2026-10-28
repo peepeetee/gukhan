@@ -10,18 +10,21 @@ from typing import Protocol
 # Sejong-style tags whose tokens may carry a Sino-Korean lexicon entry.
 CANDIDATE_TAGS = frozenset({"NNG", "NNP", "NNB", "NR", "XR", "XPN", "XSN", "MAG", "MM"})
 
-# Lexicon part-of-speech labels compatible with each analyser tag. A tag not
-# listed here accepts any entry.
+# Lexicon part-of-speech labels compatible with each analyser tag. An entry
+# whose pos is not listed for the token's tag is not a candidate at all, so a
+# native numeral 세 (MM) is never flagged with 世/歲 and the counter 시 (NNB)
+# only matches an explicit 의존 명사 entry. Empty pos (override files, hand
+# lists) is accepted for the open noun classes only.
 TAG_TO_POS: dict[str, frozenset[str]] = {
     "NNG": frozenset({"명사", "의존 명사", "어근", ""}),
     "NNP": frozenset({"명사", "고유 명사", ""}),
-    "NNB": frozenset({"의존 명사", "명사", ""}),
+    "NNB": frozenset({"의존 명사"}),
     "NR": frozenset({"수사", "명사", ""}),
     "XR": frozenset({"어근", "명사", ""}),
-    "XPN": frozenset({"접두사", "접사", ""}),
-    "XSN": frozenset({"접미사", "접사", ""}),
-    "MAG": frozenset({"부사", ""}),
-    "MM": frozenset({"관형사", ""}),
+    "XPN": frozenset({"접두사", "접사"}),
+    "XSN": frozenset({"접미사", "접사"}),
+    "MAG": frozenset({"부사"}),
+    "MM": frozenset({"관형사"}),
 }
 
 

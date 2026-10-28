@@ -91,6 +91,17 @@ def test_wiktextract_fixture():
     forms2 = {(e.hangul, e.hanja) for e in entries2}
     assert {("핵산", "核酸"), ("제정", "制定"), ("공부하다", "工夫하다"), ("오류", "電氣")} <= forms2
     assert next(e for e in entries2 if e.hanja == "制定").sense == "enactment"  # quoted gloss of "hanja form of"
+    assert next(e for e in entries2 if e.hanja == "制定").weight == 0  # Hanja page, no own senses
+    assert next(e for e in entries2 if e.hanja == "核酸").weight == 11  # Hangul page + 1 sense
+
+
+def test_shorten_gloss_keeps_parentheses_balanced():
+    from gukhan.lexicon_build.wiktextract import shorten
+
+    g = "yeoksa (a practice in the Joseon Dynasty whereby a newly appointed official was made to wait for a long time)"
+    out = shorten(g, 60)
+    assert out.count("(") == out.count(")") and out.endswith("…") and len(out) <= 61
+    assert shorten("short", 60) == "short"
 
 
 def test_cli_wiktextract_only_sets_licence(tmp_path):
@@ -139,5 +150,11 @@ def test_unihan_version_from_date_or_header(tmp_path):
     f = tmp_path / "Unihan_Readings.txt"
     f.write_text("#\n#\tUnihan_Readings.txt\n#\tDate: 2025-09-01 [MS]\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
     assert unihan.read_khangul(f)[1] == "dated 2025-09-01"
+    f.write_text(
+        "# Unihan_Readings.txt\n# Date: 2026-07-31 00:00:00 GMT [KL]\n# Unicode Version 18.0.0\n#\n"
+        "U+4E00\tkHangul\t일:0E\n",
+        encoding="utf-8",
+    )
+    assert unihan.read_khangul(f)[1] == "18.0.0"
     f.write_text("# Unihan_Readings-17.0.0.txt\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
     assert unihan.read_khangul(f)[1] == "17.0.0"

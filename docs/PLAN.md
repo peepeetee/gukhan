@@ -57,7 +57,10 @@ lexicon, so analyser errors can only cause a missed or wrong *segmentation*,
 not an invented Hanja form.
 
 Only tokens tagged NNG, NNP, NR, XR, XPN, XSN, MAG (Sino-Korean adverbs such as
-及, 卽) and NNB (dependent nouns such as 條, 項) are candidates for lookup.
+卽, 約), MM (관형사 such as 各, 每) and NNB (dependent nouns such as 條, 項)
+are candidates for lookup, and each tag accepts only matching lexicon parts of
+speech: an MM token matches 관형사 entries only, an NNB token 의존 명사 only,
+so native numerals and counters (세 시) are never flagged with noun readings.
 Verb/adjective stems are reached through their noun root (`研究하다` is
 `연구/NNG + 하/XSV`), so `-하다`, `-되다`, `-적` words convert naturally.
 
@@ -124,10 +127,15 @@ Lexicon TSV (UTF-8, `#` comments, tab separated):
 
 ```
 # gukhan lexicon  licence=CC-BY-SA-2.0-KR  manifest=manifest.json
-전기	電氣	명사	stdict:12345	electricity
-전기	傳記	명사	stdict:12346	biography
-대한민국	大韓民國	명사	stdict:...	
+전기	電氣	명사	stdict:12345	electricity	12
+전기	傳記	명사	stdict:12346	biography	11
+대한민국	大韓民國	명사	stdict:...		10
 ```
+
+The optional sixth column `weight` orders candidates in flag lists (higher
+first). It is a crude likelihood, not a frequency: the Wiktionary builder
+gives 10 to readings listed on the Hangul page plus one per sense. A real
+frequency signal is future work and would need a licence-clean corpus.
 
 Override file (plain text, one decision per line, shareable):
 

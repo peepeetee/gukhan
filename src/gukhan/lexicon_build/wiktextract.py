@@ -68,21 +68,32 @@ def _is_hanja_word(s: str) -> bool:
     return bool(s) and all(is_cjk(c) or is_syllable(c) or c == " " for c in s) and any(is_cjk(c) for c in s)
 
 
-def _pairs(obj: dict) -> Iterator[tuple[str, str]]:
-    """Yield (hangul, raw_hanja) pairs found in one JSON object."""
+def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
+    """Yield (hangul, raw_hanja, from_hangul_page) found in one JSON object."""
     word = obj.get("word", "")
     forms = obj.get("forms") or []
     if _is_hangul_word(word):
         for f in forms:
             if "hanja" in (f.get("tags") or []) and _is_hanja_word(f.get("form", "")):
-                yield word, f["form"]
+                yield word, f["form"], True
     elif _is_hanja_word(word):
         for f in forms:
             if "hangeul" in (f.get("tags") or []) and _is_hangul_word(f.get("form", "")):
-                yield f["form"], word
+                yield f["form"], word, False
 
 
 _FORM_OF = re.compile(r"^hanja form of \S+\s*\((?:[“\"]|&quot;)?(.+?)(?:[”\"]|&quot;)?\)", re.IGNORECASE)
+
+
+def shorten(text: str, limit: int = 80) -> str:
+    """Cut at a word boundary and drop an unbalanced trailing parenthesis group."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0]
+    while cut.count("(") > cut.count(")"):
+        cut = cut[: cut.rfind("(")].rstrip(" ,;")
+    return cut + "…"
 
 
 def _gloss(obj: dict) -> str:
@@ -95,10 +106,16 @@ def _gloss(obj: dict) -> str:
             g = g.replace("\t", " ").replace("\n", " ")
             m = _FORM_OF.match(g)
             if m:
-                fallback = fallback or m.group(1)[:80]
+                fallback = fallback or shorten(m.group(1))
             elif not g.lower().startswith("hanja form of"):
-                return g[:80]
+                return shorten(g)
     return fallback
+
+
+def _weight(obj: dict, from_hangul_page: bool) -> int:
+    """Crude likelihood: Hangul-page entries outrank Hanja-page ones; more senses, more common."""
+    senses = [s for s in obj.get("senses") or [] if "form-of" not in (s.get("tags") or [])]
+    return (10 if from_hangul_page else 0) + min(len(senses), 9)
 
 
 def parse(
@@ -127,7 +144,7 @@ def parse(
             if pos_raw in SKIP_POS:
                 continue
             pos = POS_MAP.get(pos_raw, pos_raw)
-            for hangul, raw in _pairs(obj):
+            for hangul, raw, from_hangul_page in _pairs(obj):
                 stats.sino += 1
                 source = f"enwikt:{obj.get('word', '')}"
                 mixed = align(hangul, clean_hanja(raw))
@@ -143,6 +160,6 @@ def parse(
                         rejects.append(Reject(hangul, raw, source, why))
                         stats.rejected += 1
                         continue
-                entries.append(Entry(hangul, mixed, pos, source, _gloss(obj)))
+                entries.append(Entry(hangul, mixed, pos, source, _gloss(obj), _weight(obj, from_hangul_page)))
                 stats.entries += 1
     return entries, rejects, stats

@@ -12,7 +12,7 @@ from . import unihan as unihan_mod
 from . import wiktextract as wikt_mod
 from .manifest import write_manifest
 
-HEADER = "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n# hangul\thanja\tpos\tsource\tsense\n"
+HEADER = "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n# hangul\thanja\tpos\tsource\tsense\tweight\n"
 
 
 POS_PREFERENCE = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두사": 1, "접미사": 1, "고유 명사": 3}
@@ -25,13 +25,16 @@ def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
     고유 명사; keeping both would make every flag list twice as long.
     """
     best: dict[tuple[str, str], stdict_mod.Entry] = {}
+    weight: dict[tuple[str, str], int] = {}
     for e in entries:
         key = (e.hangul, e.hanja)
+        weight[key] = max(weight.get(key, 0), e.weight)
         rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), e.source)
         cur = best.get(key)
         if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), cur.source):
             best[key] = e
-    return sorted(best.values(), key=lambda e: (e.hangul, e.hanja))
+    out = [stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k]) for k, e in best.items()]
+    return sorted(out, key=lambda e: (e.hangul, e.hanja))
 
 
 def main(argv: list[str] | None = None) -> int:

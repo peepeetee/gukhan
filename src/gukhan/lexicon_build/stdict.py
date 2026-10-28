@@ -41,9 +41,10 @@ class Entry:
     pos: str
     source: str
     sense: str = ""
+    weight: int = 0
 
     def tsv(self) -> str:
-        return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense))
+        return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense, str(self.weight)))
 
 
 @dataclass

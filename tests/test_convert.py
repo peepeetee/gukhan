@@ -148,3 +148,26 @@ def test_flag_candidates_are_ranked():
     assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]
     r = Converter(lex, None, ListAnalyser([("역사", "NNP")])).convert("역사")
     assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "繹史", "役事"]
+
+
+def test_native_numeral_and_counter_not_flagged():
+    lex = Lexicon(
+        [
+            Entry("세", "世", "명사", "t"),
+            Entry("세", "歲", "명사", "t"),
+            Entry("시", "市", "명사", "t"),
+            Entry("시", "時", "명사", "t"),
+            Entry("각", "各", "관형사", "t"),
+        ]
+    )
+    c = Converter(lex, None, ListAnalyser([("오후", "NNG"), ("세", "MM"), ("시", "NNB"), ("각", "MM"), ("시", "NNG")]))
+    r = c.convert("오후 세 시 각 시")
+    # noun readings do not fit MM/NNB, so the numeral and counter are left alone, not flagged
+    assert r.text == "오후 세 시 各 시"
+    assert [(d.hangul, d.kind) for d in r.decisions] == [("각", Kind.CONVERTED), ("시", Kind.FLAGGED)]
+
+
+def test_weight_orders_candidates():
+    lex = Lexicon([Entry("역사", "役事", "명사", "t", "work", 1), Entry("역사", "歷史", "명사", "t", "history", 12)])
+    r = Converter(lex, None, ListAnalyser([("역사", "NNG")])).convert("역사")
+    assert [e.hanja for e in r.decisions[0].candidates] == ["歷史", "役事"]
