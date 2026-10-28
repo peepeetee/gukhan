@@ -25,6 +25,7 @@ dev = [
 [project.scripts]
 gukhan = "gukhan.cli:main"
 gukhan-lexicon-build = "gukhan.lexicon_build.cli:main"
+gukhan-regress = "gukhan.regress.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

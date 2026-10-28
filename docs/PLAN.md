@@ -187,6 +187,19 @@ review list (names and unknown words) follows with the same columns and
 - CI: `pytest`, `ruff`, and the existing licence check, on pull requests and
   main.
 
+## 6a. Regression set (milestone 4)
+
+Sentences come from pre-1970 texts first published in 國漢文混用, so the
+Hanja choice is the author's: statutes and constitutions (no copyright,
+저작권법 제7조), literature by authors who died before 1962, anonymous
+ephemera before 1956. First set: 大韓民國憲法 1948 from the Constitutional
+Court's history pages. `scripts/fetch_corpus.py` downloads the texts listed
+in `tests/regression/sources.tsv`; `gukhan-regress prepare` derives the
+Hangul input from the gold text with Unihan readings (頭音法則 at the start of
+each Hanja run, a preference table for 不/金/樂…, everything else guessed is
+marked CHECK for a person); `gukhan-regress score` reports right / flagged /
+wrong / over per Hanja run. See tests/regression/README.md.
+
 ## 7. Deferred to the Chrome extension (milestone 5)
 
 - A JavaScript runtime: Kiwi is C++. Options to evaluate then: WebAssembly

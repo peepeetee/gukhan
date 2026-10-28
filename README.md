@@ -46,6 +46,13 @@ Hanja into the original text, endings untouched. Unresolved homographs are
 flagged, never guessed. Runs on a laptop CPU with no neural model. The Chrome extension processes text locally and sends
 nothing anywhere.
 
+## Regression set and accuracy
+
+`tests/regression/` holds public sentences from pre-1970 mixed-script texts
+(first: 大韓民國憲法 1948) with their Hangul form. `gukhan-regress score
+tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
+accuracy figure. No figure is quoted yet.
+
 ## Licence
 
 - Code: [Apache-2.0](LICENSE). Keep the [NOTICE](NOTICE) file with any copy.
