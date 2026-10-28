@@ -27,9 +27,7 @@ VERIFIED_OVERRIDES: dict[str, str] = {}
 
 
 def tracked_files() -> list[Path]:
-    out = subprocess.run(
-        ["git", "ls-files"], check=True, capture_output=True, text=True
-    ).stdout
+    out = subprocess.run(["git", "ls-files"], check=True, capture_output=True, text=True).stdout
     return [Path(p) for p in out.splitlines()]
 
 
@@ -57,9 +55,7 @@ def check_dependency_licences() -> list[str]:
         if name.lower() in VERIFIED_OVERRIDES:
             continue
         lowered = licence.lower()
-        if any(f in lowered for f in FORBIDDEN) and not any(
-            a in lowered for a in ALLOWED_EXCEPTIONS
-        ):
+        if any(f in lowered for f in FORBIDDEN) and not any(a in lowered for a in ALLOWED_EXCEPTIONS):
             problems.append(f"forbidden licence: {name} ({licence})")
         if lowered in ("unknown", ""):
             problems.append(f"unknown licence, verify and record: {name}")

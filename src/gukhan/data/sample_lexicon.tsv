@@ -1,0 +1,246 @@
+# gukhan sample lexicon — hand-written for development and tests; not derived from any dictionary.
+# hangul	hanja	pos	source	sense
+가족	家族	명사	sample	
+감사	感謝	명사	sample	thanks
+감사	監査	명사	sample	audit
+개	個	의존 명사	sample	
+건강	健康	명사	sample	
+검사	檢事	명사	sample	prosecutor
+검사	檢査	명사	sample	inspection
+검토	檢討	명사	sample	
+결국	結局	명사	sample	
+결국	結局	부사	sample	
+결혼	結婚	명사	sample	
+경기	京畿	명사	sample	Gyeonggi
+경기	景氣	명사	sample	economy
+경기	競技	명사	sample	match
+경제	經濟	명사	sample	
+계획	計劃	명사	sample	
+고대	古代	명사	sample	
+공부	工夫	명사	sample	
+공사	公使	명사	sample	envoy
+공사	公社	명사	sample	public corporation
+공사	工事	명사	sample	construction
+공업	工業	명사	sample	
+공학	工學	명사	sample	
+공항	空港	명사	sample	
+공화국	共和國	명사	sample	
+과정	課程	명사	sample	curriculum
+과정	過程	명사	sample	process
+과학	科學	명사	sample	
+교육	敎育	명사	sample	
+구	舊	접두사	sample	
+국가	國家	명사	sample	
+국가 안보	國家 安保	명사	sample	
+국군	國軍	명사	sample	
+국민	國民	명사	sample	
+국방	國防	명사	sample	
+국어	國語	명사	sample	
+국적	國籍	명사	sample	
+국한문	國漢文	명사	sample	
+국회	國會	명사	sample	
+군대	軍隊	명사	sample	
+군사	軍事	명사	sample	
+권리	權利	명사	sample	
+규정	規定	명사	sample	
+근대	近代	명사	sample	
+기계	機械	명사	sample	
+기사	技士	명사	sample	engineer
+기사	記事	명사	sample	article
+기사	騎士	명사	sample	knight
+기술	技術	명사	sample	
+남자	男子	명사	sample	
+남한	南韓	명사	sample	
+년	年	의존 명사	sample	
+농업	農業	명사	sample	
+농촌	農村	명사	sample	
+단어	單語	명사	sample	
+당	黨	명사	sample	
+대	大	접두사	sample	
+대개	大槪	명사	sample	
+대개	大槪	부사	sample	
+대대	大隊	명사	sample	
+대만	臺灣	명사	sample	
+대상	大賞	명사	sample	grand prize
+대상	對象	명사	sample	target
+대통령	大統領	명사	sample	
+대한민국	大韓民國	명사	sample	
+도구	道具	명사	sample	
+도로	道路	명사	sample	
+도서	圖書	명사	sample	
+도시	都市	명사	sample	
+독립	獨立	명사	sample	
+동양	東洋	명사	sample	
+만주	滿洲	명사	sample	
+명	名	의존 명사	sample	
+명령	命令	명사	sample	
+목록	目錄	명사	sample	
+무역	貿易	명사	sample	
+문자	文字	명사	sample	
+문장	文章	명사	sample	
+문제	問題	명사	sample	
+문화	文化	명사	sample	
+물론	勿論	부사	sample	
+미국	美國	명사	sample	
+민국	民國	명사	sample	
+민주	民主	명사	sample	
+방송	放送	명사	sample	
+법	法	명사	sample	
+법률	法律	명사	sample	
+법원	法院	명사	sample	
+변환	變換	명사	sample	
+병력	兵力	명사	sample	
+병원	病院	명사	sample	
+보고	報告	명사	sample	
+보고서	報告書	명사	sample	
+봉천	奉天	명사	sample	
+부대	部隊	명사	sample	
+부모	父母	명사	sample	
+부정	不正	명사	sample	wrongdoing
+부정	不貞	명사	sample	infidelity
+부정	否定	명사	sample	negation
+북한	北韓	명사	sample	
+비행기	飛行機	명사	sample	
+사과	沙果	명사	sample	apple
+사과	謝過	명사	sample	apology
+사단	師團	명사	sample	
+사병	士兵	명사	sample	
+사용	使用	명사	sample	
+사용자	使用者	명사	sample	
+사전	辭典	명사	sample	
+사회	社會	명사	sample	
+산업	產業	명사	sample	
+상	上	접미사	sample	
+상업	商業	명사	sample	
+생활	生活	명사	sample	
+서양	西洋	명사	sample	
+서적	書籍	명사	sample	
+선거	選擧	명사	sample	
+선생	先生	명사	sample	
+성	性	접미사	sample	
+세계	世界	명사	sample	
+세계 대전	世界 大戰	명사	sample	
+소대	小隊	명사	sample	
+수도	修道	명사	sample	ascetic practice
+수도	水道	명사	sample	waterworks
+수도	首都	명사	sample	capital city
+수립	樹立	명사	sample	
+수상	受賞	명사	sample	award
+수상	首相	명사	sample	prime minister
+승리	勝利	명사	sample	
+시간	時間	명사	sample	
+시대	時代	명사	sample	
+시민	市民	명사	sample	
+시장	市場	명사	sample	market
+시장	市長	명사	sample	mayor
+신	新	접두사	sample	
+신문	新聞	명사	sample	
+실제	實際	명사	sample	
+심지어	甚至於	부사	sample	
+안보	安保	명사	sample	
+약	約	부사	sample	
+약	藥	명사	sample	
+언어	言語	명사	sample	
+여자	女子	명사	sample	
+역사	歷史	명사	sample	
+역시	亦是	부사	sample	
+연구	硏究	명사	sample	
+연기	延期	명사	sample	postponement
+연기	演技	명사	sample	acting
+연기	煙氣	명사	sample	smoke
+연대	年代	명사	sample	era
+연대	聯隊	명사	sample	regiment
+연대	連帶	명사	sample	solidarity
+영국	英國	명사	sample	
+오류	誤謬	명사	sample	
+왕	王	명사	sample	
+왕국	王國	명사	sample	
+외교	外交	명사	sample	
+용	用	접미사	sample	
+월	月	의존 명사	sample	
+의무	義務	명사	sample	
+의사	意思	명사	sample	intention
+의사	義士	명사	sample	righteous person
+의사	醫師	명사	sample	physician
+의원	議員	명사	sample	assembly member
+의원	醫院	명사	sample	clinic
+이론	理論	명사	sample	
+이상	以上	명사	sample	above
+이상	理想	명사	sample	ideal
+이상	異常	명사	sample	abnormal
+이순신	李舜臣	명사	sample	
+인구	人口	명사	sample	
+인권	人權	명사	sample	
+일	日	의존 명사	sample	
+일본	日本	명사	sample	
+자	者	접미사	sample	
+자녀	子女	명사	sample	
+자동차	自動車	명사	sample	
+자유	自由	명사	sample	
+작전	作戰	명사	sample	
+작전 계획	作戰 計劃	명사	sample	
+잡지	雜誌	명사	sample	
+장관	長官	명사	sample	
+장교	將校	명사	sample	
+적	的	접미사	sample	
+전기	傳記	명사	sample	biography
+전기	前期	명사	sample	first half period
+전기	電氣	명사	sample	electricity
+전기 공학	電氣 工學	명사	sample	
+전략	戰略	명사	sample	
+전술	戰術	명사	sample	
+전자	電子	명사	sample	
+전쟁	戰爭	명사	sample	
+전통	傳統	명사	sample	
+정당	政黨	명사	sample	party
+정당	正當	명사	sample	legitimate
+정부	政府	명사	sample	
+정상	正常	명사	sample	normal
+정상	頂上	명사	sample	summit
+정의	正義	명사	sample	
+정치	政治	명사	sample	
+제	第	접두사	sample	
+제국	帝國	명사	sample	
+조	條	의존 명사	sample	
+조국	祖國	명사	sample	
+조선	朝鮮	명사	sample	Joseon
+조선	造船	명사	sample	shipbuilding
+조약	條約	명사	sample	
+주권	主權	명사	sample	
+중국	中國	명사	sample	
+중대	中隊	명사	sample	company (mil.)
+중대	重大	명사	sample	grave
+중앙	中央	명사	sample	
+중화민국	中華民國	명사	sample	
+즉	卽	부사	sample	
+지방	地方	명사	sample	
+지역	地域	명사	sample	
+차	次	의존 명사	sample	
+철도	鐵道	명사	sample	
+철학	哲學	명사	sample	
+총	總	접두사	sample	
+총리	總理	명사	sample	
+추측	推測	명사	sample	
+통일	統一	명사	sample	
+투표	投票	명사	sample	
+판단	判斷	명사	sample	
+판사	判事	명사	sample	
+패배	敗北	명사	sample	
+평등	平等	명사	sample	
+평화	平和	명사	sample	
+학교	學校	명사	sample	
+학생	學生	명사	sample	
+한국	韓國	명사	sample	
+한자	漢字	명사	sample	
+항	項	의존 명사	sample	
+항구	港口	명사	sample	
+항복	降伏	명사	sample	
+헌법	憲法	명사	sample	
+혁명	革命	명사	sample	
+현대	現代	명사	sample	
+형제	兄弟	명사	sample	
+호	號	의존 명사	sample	
+혼용	混用	명사	sample	
+화	化	접미사	sample	
+황제	皇帝	명사	sample	
+회	回	의존 명사	sample	
