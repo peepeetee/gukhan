@@ -53,16 +53,22 @@ nothing anywhere.
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
-First score, 2026-10-28 (民國115年), 1948 constitution, lexicon built from
-Wiktionary (kaikki.org) + Unihan 18.0.0, default settings:
+First scores, 2026-10-28 (民國115年), lexicon built from Wiktionary
+(kaikki.org) + Unihan 18.0.0, default settings:
 
-| items | words | right | partial | flagged | wrong | over |
-| --- | --- | --- | --- | --- | --- | --- |
-| 321 | 1897 | 919 (48.4%) | 121 | 835 | 22 (1.2%) | 0 |
+| source | items | words | right | wrong | over |
+| --- | --- | --- | --- | --- | --- |
+| 大韓民國憲法 1948 | 321 | 1897 | 48.4% | 22 (1.2%) | 0 |
+| 憲法 1952 amendment | 352 | 2149 | 46.2% | 28 (1.3%) | 0 |
+| 憲法 1954 amendment | 360 | 2244 | 46.2% | 32 (1.4%) | 0 |
+| 大韓民國臨時憲章 1919 | 22 | 133 | 48.1% | 3 (2.3%) | 0 |
+| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 22.9% | 31 (6.2%) | 9 |
 
-Per Hanja character: 60.7% right, 0.8% wrong. Every one of the 22 wrong words
-is a homograph the Wiktionary lexicon lacks (繼承 written as 階乘, 移轉 as
-以前, 前項 as 全항); a 표준국어대사전 build is expected to close most of them.
+Per Hanja character on the 1948 text: 60.7% right, 0.8% wrong. Nearly every
+wrong word on the constitutions is a homograph the Wiktionary lexicon lacks
+(繼承 written as 階乘, 移轉 as 以前, 前項 as 全항); a 표준국어대사전 build
+is expected to close most of them. The 1919 declaration is pre-modern prose
+(吾人 → 誤認, archaic 하야 → 下野) that the analyser was never trained on.
 The large `flagged` share is by design: the tool abstains where it cannot be
 sure, and a user override file turns repeated flags into conversions.
 
