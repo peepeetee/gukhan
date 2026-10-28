@@ -11,11 +11,21 @@ from typing import Any
 
 from gukhan import __version__
 
-LICENCE_NOTICE = (
-    "이 사전 데이터는 國立國語院 《標準國語大辭典》(stdict.korean.go.kr)을 바탕으로 만들어졌으며, "
-    "크리에이티브 커먼즈 저작자표시-동일조건변경허락 2.0 대한민국 라이선스(CC BY-SA 2.0 KR)에 따라 配布됩니다. "
-    "漢字 讀音은 Unicode Unihan database(Unicode License v3)를 사용하였습니다."
+NOTICE_STDICT = "國立國語院 《標準國語大辭典》(stdict.korean.go.kr, CC BY-SA 2.0 KR)"
+NOTICE_WIKT = (
+    "Wiktionary 寄與者들의 Korean 項目 (en.wiktionary.org, CC BY-SA 4.0; kaikki.org의 wiktextract 抽出本 使用)"
 )
+NOTICE_UNIHAN = "漢字 讀音은 Unicode Unihan database(Unicode License v3)를 사용하였습니다."
+
+
+def licence_notice(*, stdict: bool, wiktextract: bool, unihan: bool, licence: str) -> str:
+    parts = [n for n, used in ((NOTICE_STDICT, stdict), (NOTICE_WIKT, wiktextract)) if used]
+    text = (
+        "이 사전 데이터는 " + "과 ".join(parts) + f"을(를) 바탕으로 만들어졌으며, {licence} 라이선스에 따라 配布됩니다."
+    )
+    if unihan:
+        text += " " + NOTICE_UNIHAN
+    return text
 
 
 def sha256_of(path: Path) -> str:
@@ -42,9 +52,11 @@ def describe_input(path: Path) -> dict[str, Any]:
 def write_manifest(
     out_dir: Path,
     *,
-    stdict: Path,
+    stdict: Path | None,
+    wiktextract: list[Path],
     unihan: Path | None,
     unihan_version: str | None,
+    licence: str,
     counts: dict[str, int],
     outputs: dict[str, Path],
 ) -> Path:
@@ -52,10 +64,24 @@ def write_manifest(
         "format": "gukhan-lexicon-manifest/1",
         "builder": {"package": "gukhan", "version": __version__},
         "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "licence": "CC-BY-SA-2.0-KR",
-        "notice": LICENCE_NOTICE,
+        "licence": licence,
+        "notice": licence_notice(
+            stdict=bool(stdict), wiktextract=bool(wiktextract), unihan=bool(unihan), licence=licence
+        ),
         "sources": {
-            "stdict": {"name": "표준국어대사전 XML dump", "licence": "CC-BY-SA-2.0-KR", **describe_input(stdict)},
+            "stdict": (
+                {"name": "표준국어대사전 XML dump", "licence": "CC-BY-SA-2.0-KR", **describe_input(stdict)}
+                if stdict
+                else None
+            ),
+            "wiktextract": [
+                {
+                    "name": "Wiktionary (English edition) Korean entries, wiktextract JSONL via kaikki.org",
+                    "licence": "CC-BY-SA-4.0 AND GFDL-1.3",
+                    **describe_input(p),
+                }
+                for p in wiktextract
+            ],
             "unihan": (
                 {
                     "name": "Unicode Unihan database",

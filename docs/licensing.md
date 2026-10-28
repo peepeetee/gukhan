@@ -7,7 +7,7 @@ Decided 2026-10-28 (民國115年). Goal: widest possible adoption.
 | Part | Licence | Package |
 | --- | --- | --- |
 | Code (CLI, library, lexicon builder, Chrome extension) | Apache-2.0 | `gukhan` |
-| Prebuilt lexicon data | CC BY-SA 2.0 KR | `gukhan-lexicon` (separate) |
+| Prebuilt lexicon data | CC BY-SA 2.0 KR (표준국어대사전 only) or CC BY-SA 4.0 (any build that includes Wiktionary) | `gukhan-lexicon` (separate) |
 
 The two never share a package. Anyone may embed the code in a product of any
 licence; the lexicon file travels alongside it, unchanged, with its
@@ -36,6 +36,18 @@ readings) is permissive, and characters alone cannot resolve word-level
 homographs. Hence the lexicon is built from 표준국어대사전 and shipped
 separately under its own licence. The builder in this repo lets anyone rebuild
 it from the source; the build manifest records source versions and hashes.
+
+## Second source: Wiktionary (added 2026-10-28, 民國115年)
+
+The 표준국어대사전 dump turned out to require a 국립국어원 account with
+Korean identity verification (본인인증), which many users cannot pass. The
+builder therefore also reads the English Wiktionary's Korean entries through
+the wiktextract JSONL that kaikki.org publishes without login. That data is
+CC BY-SA 4.0 (+ GFDL). CC BY-SA 2.0 KR allows adaptations to be released
+under a later version of the licence, so a lexicon that mixes both sources
+is CC BY-SA 4.0; one built from 표준국어대사전 alone stays CC BY-SA 2.0 KR.
+The builder records the resulting licence in `manifest.json` and in the
+first line of `lexicon.tsv`. Code licensing is unaffected.
 
 ## Rules for contributors
 

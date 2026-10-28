@@ -70,3 +70,51 @@ def test_cli_rejects_wrong_schema(tmp_path):
     bad = tmp_path / "bad.xml"
     bad.write_text("<root><thing>x</thing></root>", encoding="utf-8")
     assert main(["--stdict", str(bad), "-o", str(tmp_path / "o")]) == 2
+
+
+def test_wiktextract_fixture():
+    from gukhan.lexicon_build import wiktextract
+
+    readings, _ = unihan.read_khangul(FIX / "Unihan_Readings.txt")
+    entries, rejects, stats = wiktextract.parse(FIX / "wiktextract_sample.jsonl", readings)
+    forms = {(e.hangul, e.hanja, e.pos) for e in entries}
+    assert ("핵산", "核酸", "명사") not in forms  # 核/酸 not in the tiny Unihan fixture → rejected, not guessed
+    assert ("제정", "制定", "명사") not in forms  # same
+    assert ("전기", "電氣", "명사") in forms and ("전기", "傳記", "명사") in forms
+    assert ("공부하다", "工夫하다", "동사") not in forms  # 工/夫 not in fixture
+    assert not any(e.hangul == "전" for e in entries)  # character pages skipped
+    assert not any(e.hangul == "사과" for e in entries)  # no hanja form
+    assert stats.items == 9
+    assert any(r.hangul == "오류" and "reads" in r.reason for r in rejects)
+    # without Unihan validation everything aligned is kept
+    entries2, _, _ = wiktextract.parse(FIX / "wiktextract_sample.jsonl")
+    forms2 = {(e.hangul, e.hanja) for e in entries2}
+    assert {("핵산", "核酸"), ("제정", "制定"), ("공부하다", "工夫하다"), ("오류", "電氣")} <= forms2
+    assert next(e for e in entries2 if e.hanja == "制定").sense == ""  # "hanja form of" gloss dropped
+
+
+def test_cli_wiktextract_only_sets_licence(tmp_path):
+    out = tmp_path / "w"
+    rc = main(["--wiktextract", str(FIX / "wiktextract_sample.jsonl"), "-o", str(out)])
+    assert rc == 0
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-4.0"
+    assert m["sources"]["stdict"] is None and len(m["sources"]["wiktextract"]) == 1
+    assert "Wiktionary" in m["notice"] and "標準國語大辭典" not in m["notice"]
+    assert (out / "lexicon.tsv").read_text(encoding="utf-8").startswith("# gukhan lexicon\tlicence=CC-BY-SA-4.0")
+    rc = main(
+        [
+            "--stdict",
+            str(FIX / "stdict_sample.xml"),
+            "--wiktextract",
+            str(FIX / "wiktextract_sample.jsonl"),
+            "--unihan",
+            str(FIX / "Unihan_Readings.txt"),
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-4.0" and m["counts"]["stdict_entries"] == 6
+    assert main(["-o", str(out)]) == 2

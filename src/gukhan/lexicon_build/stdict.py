@@ -82,7 +82,7 @@ def clean_headword(word: str) -> str:
 
 
 def clean_hanja(raw: str) -> str:
-    return re.sub(r"[▽▼\s()（）]", "", raw)
+    return re.sub(r"[▽▼\s()（）]", "", raw).replace("ː", "")
 
 
 def align(hangul: str, hanja: str) -> str | None:
@@ -102,7 +102,7 @@ def align(hangul: str, hanja: str) -> str | None:
             continue
         h = hanja[i]
         i += 1
-        if h == "-":
+        if h == "-" or h == ch:  # no Hanja for this syllable (mixed word)
             out.append(ch)
         elif is_cjk(h):
             out.append(h)

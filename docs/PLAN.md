@@ -63,13 +63,21 @@ Verb/adjective stems are reached through their noun root (`研究하다` is
 
 ## 3. Lexicon build pipeline (milestone 2)
 
-Source: 國立國語院 《標準國語大辭典》 full XML dump, CC BY-SA 2.0 KR.
+Sources, either or both:
 
-How users obtain it: the dump is not on a public URL. The user creates an
-account on <https://stdict.korean.go.kr>, requests 「사전 내려받기」 and
-downloads the XML zip (one or more files). The builder takes the path to the
-zip or the extracted XML files; nothing is fetched automatically, and nothing
-from the dump is committed to this repository.
+1. 國立國語院 《標準國語大辭典》 full XML dump, CC BY-SA 2.0 KR. Not on a
+   public URL: the user creates an account on <https://stdict.korean.go.kr>,
+   requests 「사전 내려받기」 and downloads the XML zip. As of 2026-10-28 the
+   account needs Korean identity verification (본인인증), which rules it out
+   for many users. 우리말샘 sign-up goes through the same verification page.
+2. Wiktionary (English edition) Korean entries, CC BY-SA 4.0, read through
+   the wiktextract JSONL that kaikki.org publishes with no login:
+   <https://kaikki.org/dictionary/Korean/kaikki.org-dictionary-Korean.jsonl>
+   (about 200 MB; roughly 58 000 Korean headwords, Hanja forms tagged
+   `hanja`). A build that includes it is CC BY-SA 4.0; see docs/licensing.md.
+
+The builder takes file paths; nothing is fetched automatically, and nothing
+from either source is committed to this repository.
 
 Unihan: `Unihan.zip` from <https://www.unicode.org/Public/UCD/latest/ucd/>.
 Used for `kHangul` per-character readings, which the builder uses to
@@ -78,8 +86,8 @@ syllable as one of its readings, allowing 頭音法則) and to populate a
 character-level fallback table. Entries that fail validation are written to a
 rejects file, not into the lexicon.
 
-Builder: `gukhan-lexicon-build --stdict <zip|dir> [--unihan Unihan.zip] -o out/`
-produces:
+Builder: `gukhan-lexicon-build [--stdict <zip|dir>] [--wiktextract <jsonl>]
+[--unihan Unihan.zip] -o out/` produces:
 
 - `lexicon.tsv`: one line per (headword, Hanja) pair. Columns:
   `hangul  hanja  pos  source  sense`. Homographs are simply repeated
@@ -87,7 +95,8 @@ produces:
   input give the same bytes.
 - `chars.tsv` (if Unihan given): `hanja  readings`.
 - `manifest.json`: builder version, source file names, sizes and SHA-256,
-  Unihan version, entry counts, build time, licence text.
+  Unihan version, entry counts, build time, the resulting licence and the
+  attribution notice to display.
 - `rejects.tsv`: entries dropped and why.
 
 Entry selection from the dump: `word_type` is 한자어 or 혼종어 and the

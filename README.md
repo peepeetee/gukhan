@@ -32,7 +32,10 @@ Build the lexicon (nothing is downloaded; see docs/PLAN.md §3 for where the
 inputs come from):
 
 ```
-gukhan-lexicon-build --stdict stdict_dump.zip --unihan Unihan.zip -o build/lexicon
+# login-free: Wiktionary Korean entries via kaikki.org (CC BY-SA 4.0)
+gukhan-lexicon-build --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
+# with a 표준국어대사전 dump too, or instead (needs a verified 국립국어원 account)
+gukhan-lexicon-build --stdict stdict_dump.zip --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
 ```
 
 ## How it works
@@ -46,9 +49,10 @@ nothing anywhere.
 ## Licence
 
 - Code: [Apache-2.0](LICENSE). Keep the [NOTICE](NOTICE) file with any copy.
-- Lexicon data: distributed separately as `gukhan-lexicon` under
-  CC BY-SA 2.0 KR, built from 國立國語院 《標準國語大辭典》 and the Unicode
-  Unihan database.
+- Lexicon data: distributed separately as `gukhan-lexicon` under CC BY-SA,
+  built from Wiktionary's Korean entries (CC BY-SA 4.0) and/or 國立國語院
+  《標準國語大辭典》 (CC BY-SA 2.0 KR), validated with the Unicode Unihan
+  database. The build manifest states which.
 
 See [docs/licensing.md](docs/licensing.md) for the reasoning and
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every source.
