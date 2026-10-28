@@ -24,7 +24,9 @@ text ──▶ segment (protect code/URLs) ──▶ Kiwi morphological analysis
 Only the characters of a matched lexicon headword are replaced. Everything
 else in the input, including particles, endings, spacing and punctuation, is
 copied through unchanged, so the converter can never damage grammar. Pure
-CPU, no neural model; Kiwi's own statistical model is a small bundled file.
+CPU; gukhan trains nothing and has no Hanja-selection network. Kiwi's own
+pretrained language model (CoNg, see §2) is the only learned component, and
+it only decides segmentation and part of speech.
 
 Module layout (`src/gukhan/`):
 
@@ -54,6 +56,21 @@ Chosen over mecab-ko / mecab-ko-dic because:
   irregular conjugation handled, and a user-dictionary API for later tuning.
 - Measured here: model load about 2 s, then thousands of sentences per second
   on one CPU core.
+
+Language model. Kiwi scores candidate morpheme paths with a pretrained
+language model. kiwipiepy 0.24.1 ships (package `kiwipiepy_model` 0.24.0)
+the CoNg (Contextual N-gram embedding) model, `cong.mdl`, about 76 MB on
+disk, plus the `cong-global` variant; the older KnLM and SkipBigram models
+were dropped from the default model files in 0.22. Kiwi's default
+`model_type="none"` means "fastest available", so `analyser.py` passes
+`model_type="cong"` explicitly and `KiwiAnalyser.describe()` reports the
+version and model actually loaded. CoNg is a neural model; its layer sizes
+and parameter count have not been verified here and are not claimed. gukhan
+trains nothing, fine-tunes nothing, and the regression texts and collected
+literature are evaluation material, never training data.
+
+言語 model (國漢文): gukhan은 自體 model을 訓練하지 않는다. Kiwi가 싣고 오는
+CoNg 事前學習 言語 model은 形態素 分析에만 쓰이며 漢字 選擇에는 關與하지 않는다.
 
 What Kiwi does *not* do: it never outputs Hanja. All Hanja comes from the
 lexicon, so analyser errors can only cause a missed or wrong *segmentation*,

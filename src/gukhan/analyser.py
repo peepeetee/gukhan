@@ -1,11 +1,24 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Morphological analyser interface. The default is Kiwi (kiwipiepy)."""
+"""Morphological analyser interface. The default is Kiwi (kiwipiepy).
+
+gukhan trains nothing. Kiwi itself loads a pretrained language model to pick
+the best morpheme path; since kiwipiepy 0.22 the bundled model is CoNg
+(Contextual N-gram embedding), a neural model. Which model Kiwi uses is
+fixed here (``KIWI_MODEL_TYPE``) so two runs of the same gukhan version with
+the same kiwipiepy version analyse text the same way. Kiwi never outputs
+Hanja; every Hanja form still comes from the lexicon.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
+
+# Kiwi language model selected explicitly for reproducibility. Kiwi's default
+# ("none") means "the fastest model available", which can change between
+# kiwipiepy releases; "cong" names the CoNg model bundled since 0.22.
+KIWI_MODEL_TYPE = "cong"
 
 # Sejong-style tags whose tokens may carry a Sino-Korean lexicon entry.
 CANDIDATE_TAGS = frozenset({"NNG", "NNP", "NNB", "NR", "XR", "XPN", "XSN", "MAG", "MM"})
@@ -51,8 +64,9 @@ class Analyser(Protocol):
 class KiwiAnalyser:
     """Wraps kiwipiepy. The model (about 2 s) loads on first use."""
 
-    def __init__(self) -> None:
+    def __init__(self, model_type: str = KIWI_MODEL_TYPE) -> None:
         self._kiwi = None
+        self.model_type = model_type
 
     def _load(self):
         if self._kiwi is None:
@@ -62,8 +76,15 @@ class KiwiAnalyser:
                 raise RuntimeError(
                     "kiwipiepy가 設置되어 있지 않습니다 / kiwipiepy is not installed: pip install kiwipiepy"
                 ) from e
-            self._kiwi = Kiwi()
+            self._kiwi = Kiwi(model_type=self.model_type)
         return self._kiwi
+
+    def describe(self) -> str:
+        """``kiwipiepy <version>, model <type>`` as actually loaded, for reports and bug reports."""
+        import kiwipiepy
+
+        kiwi = self._load()
+        return f"kiwipiepy {kiwipiepy.__version__}, model {kiwi.model_type}"
 
     def tokenize(self, text: str) -> list[Token]:
         kiwi = self._load()

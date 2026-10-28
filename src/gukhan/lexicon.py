@@ -78,7 +78,12 @@ class Lexicon:
                 raise ValueError(
                     f"line {n}: weight must be an integer / weight는 整數여야 합니다: {weight!r}"
                 ) from None
-            level, rank = (int(p.strip()) if p.strip() else 0 for p in parts[6:8])
+            try:
+                level, rank = (int(p.strip()) if p.strip() else 0 for p in parts[6:8])
+            except ValueError:
+                raise ValueError(
+                    f"line {n}: level and learner_rank must be integers / 整數여야 합니다: {parts[6:8]!r}"
+                ) from None
             lex.add(Entry(hangul, hanja, pos, source, sense, w, level, rank))
         return lex
 

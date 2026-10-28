@@ -21,17 +21,24 @@ use deterministic Hanja ordering. This is ordering, not inferred disambiguation.
 
 Milestone 4 adds three scan-linked 韓龍雲 items. Original-edition verification for
 李光洙, 玄鎭健, 蔡萬植 remains pending; modernized pages are not valid historical gold.
-Milestone 5 has an MV3 preview with separate local data import; browser integration
-validation remains pending. The downloaded Chromium failed to start on this Windows
-installation (side-by-side configuration error); the Edge fallback exited at launch.
-The proposed browser CI workflow is retained locally at `.github/workflows/extension.yml`:
-GitHub rejected its push because the saved OAuth credential lacks `workflow` scope.
-The draft PR includes the browser test harness, but not that workflow.
+Milestone 5 has an MV3 preview with separate local data import. The Playwright
+smoke test (`extension/browser-smoke.cjs`) passed in headless Chromium on Linux on
+2026-10-28 after two harness fixes (Playwright resolved from the environment; the
+panel host has no box, so the test waits for it to be attached rather than visible).
+On the Windows laptop the downloaded Chromium failed to start (side-by-side
+configuration error) and the Edge fallback exited at launch, so a Windows or headed
+run is still pending. `.github/workflows/extension.yml` runs the engine tests and the
+smoke test on every push and pull request.
 Milestone 6 font guidance is in `fonts.md`. A stable milestone 7 release is not ready
-until the browser checks and literature provenance review are complete.
+until the literature provenance review is complete and the browser has been tried by
+hand on real pages.
 
-한국어: 나머지 세 작가의 원문 판본 확인과 브라우저 통합 검증이 남아 있습니다.
-현재 확장 프로그램은 시험판이며 안정판 출시 완료로 표시하지 않습니다.
+Analyser: gukhan trains no model. Kiwi (kiwipiepy 0.24.1) loads its pretrained CoNg
+language model for morphology; gukhan now selects it explicitly (`model_type="cong"`,
+see `docs/PLAN.md` §2). Earlier "no neural model" wording was corrected on 2026-10-28.
+
+한국어: 나머지 세 작가의 원문 판본 확인이 남아 있습니다. 브라우저 자동 시험은 Linux에서
+통과했고 Windows 확인은 남아 있습니다. 확장 프로그램은 시험판이며 안정판이 아닙니다.
 
 Names: `gukhan` is used by this repository. `國漢混用` is a descriptive phrase.
 `dahlia/gukhanmun` is a distinct reverse-direction project; none of its code was used.
