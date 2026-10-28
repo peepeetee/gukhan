@@ -1,0 +1,6 @@
+# Sources for the public regression set. One row per text. kind: html | wikisource-api.
+# basis: why the text may be redistributed. Korean Copyright Act art. 7 (저작권법 제7조) excludes
+# constitutions, statutes, treaties, orders, public notices and their official translations from
+# protection. Works whose author died before 1962 are in the public domain in the Republic of Korea.
+id	kind	url	start	end	basis	notes
+constitution-1948	html	https://www.ccourt.go.kr/site/history/01/10102000000002020101203.jsp	悠久한 歷史와 傳統에 빛나는	檀紀 4281年 7月 17日	저작권법 제7조 1호 (헌법)	大韓民國憲法, 헌법 제1호, 1948-07-17 (民國37年). Original mixed-script text on the Constitutional Court's 헌법 제·개정사 pages.
