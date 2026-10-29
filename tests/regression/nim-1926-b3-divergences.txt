@@ -1,0 +1,23 @@
+# 님의 沈黙 1926 batch 3: scan vs ko.wikisource divergences (PDF pp.79-85)
+# Gold follows the scan. Notes:
+#  p085 봄동산의: one glyph is damaged in the scan; 동 follows Wikisource's restoration (Wikisource page text carries it as a restoration).
+#  p084 그늬를ᄯᅱᆷ니다: jamo form as in Wikisource; my crop reading was not clear.
+#  p083 터럭하나도 and p084 간은봄비가 were confirmed against the scan; p083 그리하고 too.
+#  Page-break joins (p079 to p080 보내것슴니다) show as differences only because the scan splits the word across pages.
+
+## p079: DIFFERS
+  scan : 만일 당신이 비오는날에 오신다면 나는 蓮닙으로 윗옷을지어서 보
+  wiki : 만일 당신이 비오는날에 오신다면 나는 蓮닙으로 윗옷을지어서
+  chars: '보'->''
+## p080: DIFFERS
+  scan : 내것슴니다
+  wiki : 보내것슴니다
+  chars: ''->'보'
+## p083: DIFFERS
+  scan : 나의몸은 터력하나도 ᄲᅢ지아니한채로 당신의품에 사러지것슴니다
+  wiki : 나의몸은 터럭하나도 ᄲᅢ지아니한채로 당신의품에 사러지것슴니다
+  chars: '력'->'럭'
+## p085: DIFFERS
+  scan : 봄동산의 미친바람은 ᄭᅩᆺᄯᅥ러트리는힘을 더하랴고 나의한숨을 기다리고 섯슴니다
+  wiki : 봄산의 미친바람은 ᄭᅩᆺᄯᅥ러트리는힘을 더하랴고 나의한숨을 기다리고 섯슴니다
+  chars: '동'->''
