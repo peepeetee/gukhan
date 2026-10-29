@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-const {chromium} = require('../build/browser-check/node_modules/playwright');
+// Playwright from the environment (CI, a global install) or from the local check directory.
+let playwright;
+try { playwright = require('playwright'); } catch { playwright = require('../build/browser-check/node_modules/playwright'); }
+const {chromium} = playwright;
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -30,7 +33,7 @@ const crypto = require('node:crypto');
     await page.locator('[data-gukhan="word"]').first().waitFor();
     assert.equal(await page.locator('pre').textContent(),'전기 연구');
     await page.locator('[data-gukhan="word"]').first().click();
-    await page.locator('[data-gukhan="panel"]').waitFor();
+    await page.locator('[data-gukhan="panel"]').waitFor({state: 'attached'}); // host has no box; the dialog lives in its shadow root
     await page.getByRole('button', {name: /^電氣/}).click();
     await page.waitForFunction(() => document.querySelector('#text').textContent.includes('電氣'));
     await page.reload();
