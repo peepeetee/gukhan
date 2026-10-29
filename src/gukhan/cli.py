@@ -47,7 +47,39 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def review_main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(
+        prog="gukhan review",
+        description="flag된 낱말의 漢字를 文脈 속에서 직접 고릅니다 / Pick the Hanja for flagged words in context. "
+        "Answers are appended to the override file; nothing is guessed.",
+    )
+    ap.add_argument("input", type=Path, help="the same file you convert")
+    ap.add_argument(
+        "--overrides", type=Path, required=True, help="override file to read and append to (created if absent)"
+    )
+    ap.add_argument("--lexicon", type=Path, help="lexicon.tsv or its directory (default: bundled sample)")
+    ap.add_argument("--rules", default="default", help="same as for conversion")
+    ap.add_argument("--include-review", action="store_true", help="also ask about words with no entry (type the Hanja)")
+    args = ap.parse_args(argv)
+    from .review import Reviewer
+
+    if not args.input.is_file():
+        return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
+    text = args.input.read_text(encoding="utf-8")
+    try:
+        lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.sample()
+        overrides = Overrides.load(args.overrides) if args.overrides.exists() else Overrides()
+        use_rules = rules.parse_rules(args.rules)
+    except (OSError, ValueError) as e:
+        return _err(str(e))
+    conv = Converter(lexicon, overrides, use_rules=use_rules)
+    return Reviewer(conv, text, args.overrides, include_review=args.include_review).run()
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] == "review":
+        return review_main(argv[1:])
     args = build_parser().parse_args(argv)
     if args.stdin == (args.input is not None):
         return _err("入力 file 하나 또는 --stdin 을 指定하세요 / give one input file or --stdin")

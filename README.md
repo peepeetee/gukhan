@@ -30,6 +30,18 @@ words) with line and column; `--mark` shows flagged words inline as
 이순신 = 李舜臣      # add a word
 ```
 
+Flagged words that no rule can settle (國家 or 國歌?) need a reader. `gukhan review`
+shows each one in context with its numbered candidates and appends your choice to the
+override file, so the next run reuses it. Nothing is preselected and Enter does nothing:
+
+```
+gukhan review input.md --lexicon build/lexicon/ --overrides my.txt
+#  3    this Hanja for the word everywhere      k   keep Hangul      s   skip
+#  n3   only where the same next word follows   p3  only after the same previous word
+#  u    undo the last answer                    q   save and quit (every answer is saved at once)
+#  漢字  type the Hanja yourself (also for words with no entry; add --include-review)
+```
+
 Build the lexicon (nothing is downloaded; see docs/PLAN.md §3 for where the
 inputs come from):
 

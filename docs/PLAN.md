@@ -216,6 +216,28 @@ Flagged-word report columns: `line  col  hangul  candidates  context`. The
 review list (names and unknown words) follows with the same columns and
 `candidates` empty.
 
+### 5b. `gukhan review`: the reader for true homographs
+
+```
+gukhan review input.md --lexicon build/lexicon/ --overrides my.txt [--include-review]
+```
+
+Converts the file, groups the flagged words by spelling (most frequent first), and for
+each shows up to three contexts and the numbered candidates with their glosses. The
+answer is appended to the override file at once, in the existing format, so a quit or
+crash loses nothing and every later run, in the CLI or the extension, reuses it.
+
+- A number chooses that Hanja for the word everywhere. `k` keeps Hangul, `s` skips,
+  `u` undoes the last answer (and removes its line), `q` quits. Typed Hanja is accepted
+  when its length matches (for review-list words, `--include-review`).
+- The override format has no per-occurrence entry and none was added. "Only here" is a
+  phrase entry with the neighbouring word (`n3` next word, `p3` previous word), for
+  example `국가 안전 = 國家 安全`. The tool re-converts the text and keeps the line only
+  if the phrase really applies at that place.
+- No default, no preselected candidate, Enter is ignored: the tool never guesses.
+- Deferred: the same decisions in the extension popup; an optional local-model
+  suggester that may only highlight a candidate for the human to confirm.
+
 ## 5a. Evidence rules: fewer flags without guessing
 
 A flag lists several Hanja readings of one Hangul word. The converter narrows

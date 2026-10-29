@@ -6,6 +6,10 @@ the default rules right is up 47 to 70 words per constitution over the PR #12 ba
 wrong is unchanged; the opt-in `verb` rule gains 98 to 125 more right words and adds 2 wrong
 words per constitution, which is why it is off.
 
+`gukhan review` (docs/PLAN.md §5b) lets a reader settle the homographs that remain flagged
+(國家 or 國歌). It writes the override file; nothing is guessed. Also fixed: a phrase override
+written with spaces (`전기 공학 = 電氣 工學`) was output with doubled spaces.
+
 # 진행 상황 / Status — 2026-10-28
 
 PR #6 was already merged; PR #7 was merged as `f14d8fd` after resolving the test
