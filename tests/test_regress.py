@@ -153,3 +153,4 @@ def test_variant_glyph_takes_standard_reading():
     assert p.hangul == "공망"
     assert p.unknown == []
     assert sc.fold_variants("共兦") == sc.fold_variants("共亡")
+    assert sc.fold_variants("萬二千峯") == sc.fold_variants("萬二千峰")
