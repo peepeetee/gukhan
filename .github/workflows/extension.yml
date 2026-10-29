@@ -24,3 +24,15 @@ jobs:
           npx --prefix build/browser-check playwright install --with-deps chromium
       - name: Browser smoke test (real extension in headless Chromium)
         run: node extension/browser-smoke.cjs
+
+  firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Selenium WebDriver (Apache-2.0)
+        run: npm install --no-save --prefix build/firefox-check selenium-webdriver@4.51.0
+      - name: Firefox smoke test (real extension in headless Firefox)
+        run: node extension/firefox-smoke.cjs

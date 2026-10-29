@@ -10,6 +10,13 @@ switch to restore the original text. Settings also let you edit or remove choice
 설정에서 사전과 manifest를 함께 가져온 뒤 전체 스위치와 사이트 스위치를 켜세요.
 밑줄 단어를 누르면 후보를 보고 선택을 저장할 수 있습니다. 끄면 원문으로 돌아갑니다.
 
+Firefox (140 or later): the same folder works. Open `about:debugging` → This Firefox →
+Load Temporary Add-on and pick `manifest.json`; the manifest carries both `service_worker`
+(Chrome) and `scripts` (Firefox event page) and a fixed add-on id. `firefox-smoke.cjs`
+drives real headless Firefox through Selenium in CI (`firefox` job); it has not been run
+outside CI yet. Firefox may suspend the background page, which re-parses the dictionary on
+each wake.
+
 This is an exact whole-word preview, without Kiwi morphology. Words with attached
 particles and endings usually remain unchanged. Ambiguous forms and single-syllable
 words remain Hangul until the user chooses. CLI regression scores do not apply.
