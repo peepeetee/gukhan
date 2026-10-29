@@ -1,0 +1,15 @@
+# 님의 沈黙 1926 batch 8: scan vs ko.wikisource divergences (PDF pp.108-113)
+# Gold follows the scan. This batch has no spelling differences from Wikisource; the entries below are page-break joins only.
+#  The last syllable 다 of the 論介 poem (batch 7, PDF p.107) is printed at the top of p.108; joined text is unchanged.
+#  p111/p112: 사랑 + 하는 split across the page break.
+
+## p108: DIFFERS
+  scan : 다
+## p111: DIFFERS
+  scan : 다른사람들은 나의健康만을 사랑하지마는 당신은 나의죽엄도 사랑
+  wiki : 다른사람들은 나의健康만을 사랑하지마는 당신은 나의죽엄도
+  chars: '사랑'->''
+## p112: DIFFERS
+  scan : 하는 ᄭᅡ닭임니다
+  wiki : 사랑하는 ᄭᅡ닭임니다
+  chars: ''->'사랑'
