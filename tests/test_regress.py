@@ -154,3 +154,22 @@ def test_variant_glyph_takes_standard_reading():
     assert p.unknown == []
     assert sc.fold_variants("共兦") == sc.fold_variants("共亡")
     assert sc.fold_variants("萬二千峯") == sc.fold_variants("萬二千峰")
+
+
+def test_in_candidates_counts_offered_hanja():
+    lex = Lexicon(
+        [
+            Entry("전기", "電氣", "명사", "t"),
+            Entry("전기", "傳記", "명사", "t"),
+            Entry("사과", "沙果", "명사", "t"),
+            Entry("사과", "謝過", "명사", "t"),
+        ]
+    )
+    conv = Converter(lex, None, ListAnalyser([("전기", "NNG"), ("사과", "NNG")]))
+    items = [
+        sc.Item("a", "t", "전기", "傳記"),  # flagged, but the gold Hanja is offered
+        sc.Item("b", "t", "사과", "賜課"),  # flagged, gold not among the candidates
+    ]
+    t = sc.score(items, conv)
+    assert (t.flagged, t.right, t.wrong, t.in_candidates) == (2, 0, 0, 1)
+    assert t.as_dict()["in_candidates_pct"] == 50.0

@@ -33,7 +33,25 @@ const crypto = require('node:crypto');
     await page.goto('http://fixture.test/');
     await page.locator('[data-gukhan="word"]').first().waitFor();
     assert.equal(await page.locator('pre').textContent(),'전기 연구');
-    await page.locator('[data-gukhan="word"]').first().click();
+    // The popover is unintrusive: hover previews it without taking focus or moving the page;
+    // Escape closes it; Enter opens it from the keyboard and Escape returns focus to the word.
+    const word = page.locator('[data-gukhan="word"]').first(), panel = page.locator('[data-gukhan="panel"]');
+    const layout = () => page.evaluate(() => `${document.documentElement.scrollHeight}:${JSON.stringify(document.querySelector('#more').getBoundingClientRect())}`);
+    const before = await layout();
+    await word.hover();
+    await panel.waitFor({state: 'attached'});
+    assert.equal(await layout(), before);
+    assert.equal(await page.evaluate(() => document.activeElement === document.body || document.activeElement.dataset.gukhan !== 'panel'), true);
+    await page.keyboard.press('Escape');
+    await panel.waitFor({state: 'detached'});
+    await page.mouse.move(0, 0);
+    await word.focus(); await page.keyboard.press('Enter');
+    await panel.waitFor({state: 'attached'});
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan), 'panel');
+    await page.keyboard.press('Escape');
+    await panel.waitFor({state: 'detached'});
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan), 'word');
+    await word.click();
     await page.locator('[data-gukhan="panel"]').waitFor({state: 'attached'}); // host has no box; the dialog lives in its shadow root
     await page.getByRole('button', {name: /^電氣/}).click();
     await page.waitForFunction(() => document.querySelector('#text').textContent.includes('電氣'));

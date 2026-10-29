@@ -12,6 +12,11 @@ run of Hanja in the gold text is one *word*; it counts as
 - ``wrong``   the output has different Hanja somewhere in the run,
 
 and a run of Hanja in the output where the gold has Hangul is ``over``.
+
+``in_candidates`` counts the words whose gold Hanja is *offered*: the output is
+right, or the converter's decision for that word lists the gold Hanja among its
+candidates (so a reviewer, or the browser popup, can pick it). It never changes
+what the converter writes; abstaining stays abstaining.
 Glyph variants (强/強, 眞/真 …) are folded before comparison. Character
 counts (``chars_right`` …) are reported alongside. Accuracy figures in the
 README come only from this script.
@@ -23,7 +28,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gukhan.convert import Converter
+from gukhan.convert import Converter, Decision
 from gukhan.lexicon_build.hangul import is_cjk
 
 
@@ -57,6 +62,7 @@ class Tally:
     flagged: int = 0
     wrong: int = 0
     over: int = 0
+    in_candidates: int = 0  # right, or the gold Hanja is among the candidates offered
     chars_right: int = 0
     chars_flagged: int = 0
     chars_wrong: int = 0
@@ -79,6 +85,7 @@ class Tally:
             "flagged": self.flagged,
             "wrong": self.wrong,
             "over": self.over,
+            "in_candidates": self.in_candidates,
             "chars": c,
             "chars_right": self.chars_right,
             "chars_flagged": self.chars_flagged,
@@ -86,6 +93,7 @@ class Tally:
             "misaligned_items": self.misaligned,
             "right_pct": round(100 * self.right / w, 1) if w else 0.0,
             "wrong_pct": round(100 * self.wrong / w, 1) if w else 0.0,
+            "in_candidates_pct": round(100 * self.in_candidates / w, 1) if w else 0.0,
             "chars_right_pct": round(100 * self.chars_right / c, 1) if c else 0.0,
             "chars_wrong_pct": round(100 * self.chars_wrong / c, 1) if c else 0.0,
         }
@@ -116,7 +124,21 @@ def _runs(text: str) -> list[tuple[int, int]]:
     return runs
 
 
-def score_item(item: Item, output: str, tally: Tally) -> None:
+def _offered(gold: str, a: int, b: int, decisions: Iterable[Decision]) -> bool:
+    """Does a decision covering gold[a:b] list exactly that Hanja among its candidates?"""
+    for d in decisions:
+        if not d.candidates or d.start > a or d.end < b:
+            continue
+        # position i of the span ↔ position j of a candidate's Hanja (spaces carry no Hanja)
+        offset = len(d.hangul[: a - d.start].replace(" ", ""))
+        width = len(gold[a:b])
+        for c in d.candidates:
+            if fold_variants(c.hanja.replace(" ", ""))[offset : offset + width] == gold[a:b]:
+                return True
+    return False
+
+
+def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decision] = ()) -> None:
     if len(output) != len(item.mixed):
         tally.misaligned += 1
         return
@@ -130,6 +152,8 @@ def score_item(item: Item, output: str, tally: Tally) -> None:
         tally.chars_right += right_chars
         tally.chars_wrong += wrong_chars
         tally.chars_flagged += len(g) - right_chars - wrong_chars
+        if o == g or _offered(gold, a, b, decisions):
+            tally.in_candidates += 1
         if o == g:
             tally.right += 1
         elif wrong_chars:
@@ -152,5 +176,6 @@ def score_item(item: Item, output: str, tally: Tally) -> None:
 def score(items: Iterable[Item], converter: Converter) -> Tally:
     tally = Tally()
     for item in items:
-        score_item(item, converter.convert(item.hangul).text, tally)
+        result = converter.convert(item.hangul)
+        score_item(item, result.text, tally, result.decisions)
     return tally

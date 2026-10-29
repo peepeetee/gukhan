@@ -131,3 +131,8 @@ admitted as historical gold. 해당 작가의 현대화된 전사는 원문 정�
 English: stdict-only entries have weight zero; a positive cutoff abstains on many valid
 entries. Vocabulary levels and learner ranks only break candidate-order ties and do
 not affect this cutoff. Archaic spelling is preserved and requires review.
+
+`gukhan-regress score` also prints `in_candidates`: words that are right, or whose decision lists the
+gold Hanja among its candidates (what a reviewer or the browser card can offer). It does not change
+what the converter writes. `node scripts/measure_extension.mjs lexicon.tsv items.tsv…` gives the same
+figure for the browser engine.

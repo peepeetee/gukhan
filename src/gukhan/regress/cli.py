@@ -74,6 +74,7 @@ def cmd_score(args: argparse.Namespace) -> int:
             f"partial={result['partial']} flagged={result['flagged']} wrong={result['wrong']} "
             f"({result['wrong_pct']}%) over={result['over']} misaligned={result['misaligned_items']}"
         )
+        print(f"in_candidates={result['in_candidates']} ({result['in_candidates_pct']}%): right or offered")
         print(
             f"chars={result['chars']} right={result['chars_right']} ({result['chars_right_pct']}%) "
             f"flagged={result['chars_flagged']} wrong={result['chars_wrong']} ({result['chars_wrong_pct']}%)"

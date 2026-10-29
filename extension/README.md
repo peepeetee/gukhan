@@ -6,8 +6,10 @@ Add-on → choose `manifest.json` in this folder. One manifest serves both brows
 Firefox removes a temporary add-on when it closes; a permanent install needs a signed
 package from addons.mozilla.org (not published yet).
 Open extension settings and select `lexicon.tsv` and its matching `manifest.json`.
-Enable the global switch and the current site's switch in the popup. Click or press
-Enter on an underlined word to inspect candidates and save a choice. Disable the
+Enable the global switch and the current site's switch in the popup. Hover an underlined word for a small
+candidate card (it takes no focus and moves nothing on the page); click it, or focus it and
+press Enter, to pin the card and pick with the arrow keys and Enter. Escape, a click elsewhere
+or scrolling closes it. A pick is saved as your choice. Disable the
 switch to restore the original text. Settings also let you edit or remove choices.
 
 한국어: Chrome 확장 프로그램 관리에서 개발자 모드를 켜고 이 폴더를 로드하세요.
