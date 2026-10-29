@@ -104,7 +104,7 @@ def decide(
     if has:
         if entry is None:
             return Decision(0, 0, hangul, Kind.KEPT, reason="override: keep Hangul", tag=tag)
-        return Decision(0, 0, hangul, Kind.CONVERTED, entry.hanja, (entry,), "override", tag)
+        return Decision(0, 0, hangul, Kind.CONVERTED, entry.hanja.replace(" ", ""), (entry,), "override", tag)
     allowed = TAG_TO_POS.get(tag)
     pool = [c for c in candidates if allowed is None or c.pos in allowed]
     if not pool or all(is_native_entry(c) for c in pool):
