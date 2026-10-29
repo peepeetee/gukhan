@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written fixture in the shape of the 우리말샘 dump (one item per sense). Not dictionary data. -->
+<channel>
+  <title>사전 검색</title>
+  <item>
+    <target_code>2001</target_code>
+    <wordInfo>
+      <word>전기</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo>
+      <sense_no>001</sense_no>
+      <pos>명사</pos>
+      <type>일반어</type>
+      <definition><![CDATA[물질 안의 <strong>전자</strong>가 흐르는 현상.]]></definition>
+      <example_info><example><![CDATA[{전기}가 나갔다.]]></example><source><![CDATA[어느 신문 2020년]]></source></example_info>
+    </senseInfo>
+  </item>
+  <item>
+    <target_code>2002</target_code>
+    <wordInfo>
+      <word>전기</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>002</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[전기 에너지.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2003</target_code>
+    <wordInfo>
+      <word>전기</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[傳記]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>북한어</type><definition><![CDATA[북한에서만 쓰는 뜻.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2004</target_code>
+    <wordInfo>
+      <word>전기</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[前期]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>방언</type><definition><![CDATA[‘전기’의 방언.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2005</target_code>
+    <wordInfo>
+      <word>작전^계획</word>
+      <word_unit>구</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[作戰計劃]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><type>일반어</type><definition><![CDATA[작전을 위한 계획.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2006</target_code>
+    <wordInfo>
+      <word>책상-다리</word>
+      <word_unit>어휘</word_unit>
+      <word_type>혼종어</word_type>
+      <original_language_info><original_language><![CDATA[冊床]]></original_language><language_type>한자</language_type></original_language_info>
+      <original_language_info><original_language><![CDATA[다리]]></original_language><language_type>고유어</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[책상의 다리.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2007</target_code>
+    <wordInfo>
+      <word>전기-주스</word>
+      <word_unit>어휘</word_unit>
+      <word_type>혼종어</word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+      <original_language_info><original_language><![CDATA[juice]]></original_language><language_type>영어</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[지어낸 낱말.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2008</target_code>
+    <wordInfo>
+      <word>전극</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[電劇]]></original_language><language_type>한자</language_type></original_language_info>
+      <original_language_info><original_language><![CDATA[/]]></original_language><language_type>/(병기)</language_type></original_language_info>
+      <original_language_info><original_language><![CDATA[前劇]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[지어낸 낱말.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2009</target_code>
+    <wordInfo>
+      <word>이론-적</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[理論的]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>관·명</pos><type>일반어</type><definition><![CDATA[이론에 관한. 또는 그런 것.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2010</target_code>
+    <wordInfo>
+      <word>가감</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[加減]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>품사 없음</pos><type>일반어</type><definition><![CDATA[‘가감하다’의 어근.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2011</target_code>
+    <wordInfo>
+      <word>전끼</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[‘전기’의 잘못. ⇒규범 표기는 ‘전기’이다.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2012</target_code>
+    <wordInfo>
+      <word>전기가^통하다</word>
+      <word_unit>관용구</word_unit>
+      <word_type></word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><type>일반어</type><definition><![CDATA[마음이 통하다.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2013</target_code>
+    <wordInfo>
+      <word>오류</word>
+      <word_unit>어휘</word_unit>
+      <word_type>한자어</word_type>
+      <original_language_info><original_language><![CDATA[電氣]]></original_language><language_type>한자</language_type></original_language_info>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[읽는 소리가 맞지 않는 항목.]]></definition></senseInfo>
+  </item>
+  <item>
+    <target_code>2014</target_code>
+    <wordInfo>
+      <word>사과</word>
+      <word_unit>어휘</word_unit>
+      <word_type>고유어</word_type>
+    </wordInfo>
+    <senseInfo><sense_no>001</sense_no><pos>명사</pos><type>일반어</type><definition><![CDATA[과일.]]></definition></senseInfo>
+  </item>
+</channel>

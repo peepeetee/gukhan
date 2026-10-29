@@ -49,6 +49,15 @@ is CC BY-SA 4.0; one built from 표준국어대사전 alone stays CC BY-SA 2.0 K
 The builder records the resulting licence in `manifest.json` and in the
 first line of `lexicon.tsv`. Code licensing is unaffected.
 
+## Third source: 우리말샘 (added 2026-10-29)
+
+`--opendict` reads the 우리말샘 XML dump. Its policy page states the same
+CC BY-SA 2.0 KR terms as 표준국어대사전, contributor-written entries
+included, with the same carve-outs (media, source-cited 용례). The builder
+reads no examples. A build from 표준국어대사전 and 우리말샘 alone stays
+CC BY-SA 2.0 KR; with Wiktionary it is CC BY-SA 4.0 as before. The notice in
+`manifest.json` names every dictionary that went in.
+
 ## Rules for contributors
 
 - Every source file carries an SPDX header:

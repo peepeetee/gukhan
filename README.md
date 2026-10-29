@@ -36,7 +36,15 @@ inputs come from):
 gukhan-lexicon-build --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
 # with a 표준국어대사전 dump too, or instead (needs a verified 국립국어원 account)
 gukhan-lexicon-build --stdict stdict_dump.zip --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
+# plus 우리말샘 (opendict.korean.go.kr dump, CC BY-SA 2.0 KR; contributor-edited, so
+# 표준국어대사전 represents a pair when both have it)
+gukhan-lexicon-build --stdict stdict/ --opendict opendict/ --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
 ```
+
+`--opendict` keeps only 일반어 senses of 어휘 and 구 entries: dialect (방언),
+North-Korean (북한어) and archaic (옛말) senses, proverbs, idioms and spellings
+the dictionary marks as non-standard are skipped, and usage examples are never
+read.
 
 ## How it works
 

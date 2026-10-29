@@ -93,7 +93,17 @@ Sources, either or both:
    requests 「사전 내려받기」 and downloads the XML zip. As of 2026-10-28 the
    account needs Korean identity verification (본인인증), which rules it out
    for many users. 우리말샘 sign-up goes through the same verification page.
-2. Wiktionary (English edition) Korean entries, CC BY-SA 4.0, read through
+2. 國立國語院 《우리말샘》 (opendict.korean.go.kr) XML dump, CC BY-SA 2.0 KR,
+   the open, contributor-edited dictionary of the same institute. One
+   `<item>` per sense under `wordInfo`/`senseInfo`; the builder keeps 일반어
+   senses of 어휘 and 구 entries whose `original_language_info` has a 한자
+   component, skips 방언/북한어/옛말 senses, 속담, 관용구 and spellings marked
+   `⇒규범 표기는 …`, and never reads examples. Because the entries are
+   contributor-edited, a (headword, Hanja) pair present in both dictionaries
+   is represented by its 표준국어대사전 line (`SOURCE_PRIORITY` in
+   `lexicon_build/cli.py`); 우리말샘-only pairs are added with source
+   `opendict:<target_code>`. Adding it does not change the licence.
+3. Wiktionary (English edition) Korean entries, CC BY-SA 4.0, read through
    the wiktextract JSONL that kaikki.org publishes with no login:
    <https://kaikki.org/dictionary/Korean/kaikki.org-dictionary-Korean.jsonl>
    (about 200 MB; roughly 58 000 Korean headwords, Hanja forms tagged
@@ -109,8 +119,8 @@ syllable as one of its readings, allowing 頭音法則) and to populate a
 character-level fallback table. Entries that fail validation are written to a
 rejects file, not into the lexicon.
 
-Builder: `gukhan-lexicon-build [--stdict <zip|dir>] [--wiktextract <jsonl>]
-[--unihan Unihan.zip] -o out/` produces:
+Builder: `gukhan-lexicon-build [--stdict <zip|dir>] [--opendict <zip|dir>]
+[--wiktextract <jsonl>] [--unihan Unihan.zip] -o out/` produces:
 
 - `lexicon.tsv`: one line per (headword, Hanja) pair. Columns:
   `hangul  hanja  pos  source  sense`. Homographs are simply repeated
@@ -125,7 +135,10 @@ Builder: `gukhan-lexicon-build [--stdict <zip|dir>] [--wiktextract <jsonl>]
 Entry selection from the dump: `word_type` is 한자어 or 혼종어 and the
 original-language field contains CJK characters. Mixed entries keep the
 Hangul part as Hangul (`한자어+고유어` such as 木手일 → only the Sino part is
-Hanja). Entries whose Hanja field contains `▽` (variant marks), `-`, or
+Hanja). Both NIKL dumps list the components of a mixed word separately
+(`original_language_info` 生 한자 + 과일 고유어); `components_to_hanja` in
+`stdict.py` assembles them, placing one component of unknown length (a
+foreign word such as juice) by whatever syllables the others leave over. Entries whose Hanja field contains `▽` (variant marks), `-`, or
 parentheses are normalised by stripping those marks. Usage examples are never
 read, which keeps the source-cited 용례 exclusion trivially satisfied.
 

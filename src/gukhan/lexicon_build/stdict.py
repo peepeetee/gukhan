@@ -80,6 +80,26 @@ def _find_text(item: ET.Element, name: str) -> str | None:
     return None
 
 
+def _components(item: ET.Element) -> list[tuple[str, str]]:
+    """``[(original_language, language_type), …]``; a bare ``original_language`` counts as 한자."""
+    out = []
+    for el in item.iter():
+        if _local(el.tag) != "original_language_info":
+            continue
+        text = kind = ""
+        for child in el:
+            if _local(child.tag) == "original_language":
+                text = (child.text or "").strip()
+            elif _local(child.tag) == "language_type":
+                kind = (child.text or "").strip()
+        out.append((text, kind or "한자"))
+    if not out:
+        raw = _find_text(item, "original_language")
+        if raw:
+            out.append((raw, "한자"))
+    return out
+
+
 HOMONYM_SUFFIX = re.compile(r"(\d{2})$")
 
 
@@ -103,6 +123,56 @@ def clean_headword(word: str) -> str:
 
 def clean_hanja(raw: str) -> str:
     return re.sub(r"[▽▼\s()（）]", "", raw).replace("ː", "")
+
+
+def components_to_hanja(hangul: str, comps: list[tuple[str, str]]) -> str | None:
+    """Assemble the raw Hanja string of a mixed word from its ``original_language_info`` components.
+
+    ``comps`` is ``[(text, language_type), …]`` in order. A 한자 component
+    contributes its characters; any other component covers the matching
+    Hangul syllables and is written as ``-`` so ``align`` keeps them in
+    Hangul. A native component normally spells those syllables itself
+    (生 + 과일 → 生과일); a foreign one (juice) does not, and its length is
+    taken as whatever the other components leave over. Two such components
+    cannot be placed and give ``None``. ``/(병기)`` separators introduce an
+    alternative spelling; only the first alternative is kept.
+    """
+    if any(kind == "/(병기)" or text == "/" for text, kind in comps):
+        first = []
+        for text, kind in comps:
+            if kind == "/(병기)" or text == "/":
+                break
+            first.append((text, kind))
+        comps = first
+    syllables = hangul.replace(" ", "")
+    pieces: list[str] = []
+    pending: int | None = None  # index in pieces of a component whose length is not known yet
+    pos = 0
+    for text, kind in comps:
+        if kind == "한자":
+            h = clean_hanja(text)
+            pieces.append(h)
+            pos += len(h)
+            continue
+        literal = re.sub(r"[\s^-]", "", text)
+        idx = syllables.find(literal, pos) if literal else -1
+        if idx == pos or (idx > pos and pending is not None):
+            if pending is not None:
+                pieces[pending] = "-" * (idx - pos)
+                pending = None
+            pieces.append("-" * len(literal))
+            pos = idx + len(literal)
+        elif pending is None:
+            pending = len(pieces)
+            pieces.append("")
+        else:
+            return None  # two components of unknown length cannot be placed
+    if pending is not None:
+        gap = len(syllables) - sum(len(p) for p in pieces)
+        if gap < 1:
+            return None
+        pieces[pending] = "-" * gap
+    return "".join(pieces)
 
 
 # Hangul tails the full dump leaves out of the original-language field:
@@ -209,7 +279,8 @@ def parse(
         word = _find_text(item, "word")
         if not word:
             continue
-        raw_hanja = _find_text(item, "original_language") or _find_text(item, "origin") or ""
+        comps = _components(item)
+        raw_hanja = "".join(raw for raw, _ in comps) or _find_text(item, "origin") or ""
         word_type = _find_text(item, "word_type") or ""
         if word_type and word_type not in SINO_WORD_TYPES:
             continue
@@ -220,7 +291,8 @@ def parse(
         sup = _find_text(item, "sup_no") or split_homonym(word)[1]
         source = f"stdict:{code}" if code else f"stdict:{word}{sup}"
         hangul = clean_headword(word)
-        mixed = align_with_suffix(hangul, clean_hanja(raw_hanja))
+        assembled = components_to_hanja(hangul, comps) if len(comps) > 1 else clean_hanja(raw_hanja)
+        mixed = align_with_suffix(hangul, assembled) if assembled else None
         if mixed is None:
             rejects.append(Reject(hangul, raw_hanja, source, "hanja does not align with headword"))
             stats.rejected += 1

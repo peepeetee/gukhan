@@ -7,6 +7,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import opendict as opendict_mod
 from . import stdict as stdict_mod
 from . import unihan as unihan_mod
 from . import wiktextract as wikt_mod
@@ -20,6 +21,13 @@ HEADER = (
 
 
 POS_PREFERENCE = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두사": 1, "접미사": 1, "고유 명사": 3}
+# Which source's line represents a (hangul, hanja) pair when several have it. 우리말샘 is
+# contributor-edited, so its line is used only when no edited source has the pair.
+SOURCE_PRIORITY = {"stdict": 0, "enwikt": 0, "opendict": 1}
+
+
+def source_rank(source: str) -> int:
+    return SOURCE_PRIORITY.get(source.split(":", 1)[0], 0)
 
 
 def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
@@ -33,9 +41,9 @@ def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
     for e in entries:
         key = (e.hangul, e.hanja)
         weight[key] = max(weight.get(key, 0), e.weight)
-        rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), e.source)
+        rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), source_rank(e.source), e.source)
         cur = best.get(key)
-        if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), cur.source):
+        if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), source_rank(cur.source), cur.source):
             best[key] = e
     out = [stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k]) for k, e in best.items()]
     return sorted(drop_nonstandard_spellings(out), key=lambda e: (e.hangul, e.hanja))
@@ -61,12 +69,19 @@ def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_m
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="gukhan-lexicon-build",
-        description="辭典 構築 / build lexicon.tsv from 표준국어대사전 and/or Wiktionary (kaikki.org). No downloads.",
+        description=(
+            "辭典 構築 / build lexicon.tsv from 표준국어대사전, 우리말샘 and/or Wiktionary (kaikki.org). No downloads."
+        ),
     )
     ap.add_argument(
         "--stdict",
         type=Path,
         help="표준국어대사전 XML dump: zip, directory or single file (needs a 국립국어원 account)",
+    )
+    ap.add_argument(
+        "--opendict",
+        type=Path,
+        help="우리말샘 XML dump: directory of chunks (opendict/0050000.xml …), zip or single file",
     )
     ap.add_argument(
         "--wiktextract",
@@ -81,10 +96,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--learner-list", type=Path, help="국립국어원 learner vocabulary text / candidate tie-breaker")
     args = ap.parse_args(argv)
 
-    if not args.stdict and not args.wiktextract:
-        print("辭典 source가 없습니다 / give --stdict and/or --wiktextract", file=sys.stderr)
+    if not args.stdict and not args.opendict and not args.wiktextract:
+        print("辭典 source가 없습니다 / give --stdict, --opendict and/or --wiktextract", file=sys.stderr)
         return 2
-    for p in [p for p in (args.stdict, args.krdict, args.learner_list) if p] + args.wiktextract:
+    for p in [p for p in (args.stdict, args.opendict, args.krdict, args.learner_list) if p] + args.wiktextract:
         if not p.exists():
             print(f"入力 file을 찾을 수 없습니다 / input not found: {p}", file=sys.stderr)
             return 2
@@ -115,6 +130,19 @@ def main(argv: list[str] | None = None) -> int:
         entries += e
         rejects += r
         counts["stdict_items"], counts["stdict_entries"] = stats.items, stats.entries
+    if args.opendict:
+        e, r, stats = opendict_mod.parse(args.opendict, readings)
+        print(f"opendict: items={stats.items} sino={stats.sino} entries={stats.entries} rejected={stats.rejected}")
+        if stats.items == 0 or "wordInfo" not in stats.tags_seen:
+            print(
+                "XML에서 <item>/<wordInfo>를 찾지 못했습니다. 우리말샘 덤프 形式을 確認하세요 / "
+                "No <item>/<wordInfo> found; check the 우리말샘 dump schema (see lexicon_build/opendict.py).",
+                file=sys.stderr,
+            )
+            return 2
+        entries += e
+        rejects += r
+        counts["opendict_items"], counts["opendict_entries"] = stats.items, stats.entries
     for p in args.wiktextract:
         e, r, stats = wikt_mod.parse(p, readings)
         print(
@@ -180,6 +208,7 @@ def main(argv: list[str] | None = None) -> int:
     write_manifest(
         args.out,
         stdict=args.stdict,
+        opendict=args.opendict,
         wiktextract=args.wiktextract,
         unihan=args.unihan,
         unihan_version=unihan_version,

@@ -238,3 +238,93 @@ def test_unihan_version_from_date_or_header(tmp_path):
     assert unihan.read_khangul(f)[1] == "18.0.0"
     f.write_text("# Unihan_Readings-17.0.0.txt\nU+4E00\tkHangul\t일:0E\n", encoding="utf-8")
     assert unihan.read_khangul(f)[1] == "17.0.0"
+
+
+def test_opendict_fixture():
+    from gukhan.lexicon_build import opendict
+
+    readings, _ = unihan.read_khangul(FIX / "Unihan_Readings.txt")
+    entries, rejects, stats = opendict.parse(FIX / "opendict_sample.xml", readings)
+    forms = {(e.hangul, e.hanja, e.pos) for e in entries}
+    assert ("전기", "電氣", "명사") in forms  # two senses → two entries here, one line after merge
+    assert sum(1 for e in entries if e.hanja == "電氣" and e.hangul == "전기") == 2
+    assert not any(e.hanja == "傳記" for e in entries)  # 북한어 sense skipped
+    assert not any(e.hanja == "前期" for e in entries)  # 방언 sense skipped
+    assert ("작전 계획", "作戰 計劃", "품사 없음") in forms  # 구: ^ is a space, pos as 표준국어대사전 writes it
+    assert ("책상다리", "冊床다리", "명사") in forms  # native component assembled from the parts
+    assert ("전기주스", "電氣주스", "명사") in forms  # foreign component of unknown length
+    assert ("전극", "電劇", "명사") in forms and not any(e.hanja == "前劇" for e in entries)  # /(병기): first only
+    assert ("이론적", "理論的", "관형사") in forms and ("이론적", "理論的", "명사") in forms  # 관·명 expanded
+    assert ("가감", "加減", "어근") in forms  # 품사 없음 + ‘…’의 어근 → 어근
+    assert not any(e.hangul == "전끼" for e in entries)  # ⇒규범 표기는: non-standard spelling skipped
+    assert not any(e.hangul.startswith("전기가") for e in entries)  # 관용구 skipped
+    assert not any(e.hangul == "사과" for e in entries)  # 고유어 skipped
+    assert [r.hangul for r in rejects] == ["오류"] and "reads" in rejects[0].reason
+    assert stats.items == 14 and stats.rejected == 1
+    e = next(e for e in entries if e.source == "opendict:2001")
+    assert e.sense == "물질 안의 전자가 흐르는 현상." and e.weight == 0  # markup stripped, examples never read
+
+
+def test_components_to_hanja():
+    from gukhan.lexicon_build.stdict import components_to_hanja as c
+
+    assert c("생과일", [("生", "한자"), ("과일", "고유어")]) == "生--"
+    assert c("생과일주스", [("生", "한자"), ("과일", "고유어"), ("juice", "영어")]) == "生----"
+    assert c("생크림단팥빵", [("生", "한자"), ("cream", "영어"), ("단팥빵", "고유어")]) == "生-----"
+    assert c("가갸시절", [("가갸", "고유어"), ("時節", "한자")]) == "--時節"
+    assert c("서어", [("齟齬", "한자"), ("/", "/(병기)"), ("鉏鋙", "한자")]) == "齟齬"
+    assert c("생균 백신", [("生菌", "한자"), ("vaccine", "영어")]) == "生菌--"
+    # two foreign components cannot be placed
+    assert c("생식샘자극호르몬분비호르몬", [("生殖", "한자"), ("샘", "고유어"), ("刺戟", "한자"), ("hormone", "영어"),
+                                            ("分泌", "한자"), ("hormone", "영어")]) is None  # fmt: skip
+    assert (
+        c("생과일", [("生", "한자"), ("배", "고유어")]) == "生--"
+    )  # a mismatching native part is still placed by length
+
+
+def test_cli_opendict_merges_and_ranks_below_stdict(tmp_path):
+    out = tmp_path / "od"
+    rc = main(
+        [
+            "--stdict",
+            str(FIX / "stdict_sample.xml"),
+            "--opendict",
+            str(FIX / "opendict_sample.xml"),
+            "--unihan",
+            str(FIX / "Unihan_Readings.txt"),
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    tsv = (out / "lexicon.tsv").read_text(encoding="utf-8")
+    lines = [ln for ln in tsv.splitlines() if ln.startswith("전기\t電氣\t")]
+    assert len(lines) == 1 and "\tstdict:1001\t" in lines[0]  # one line per pair; 표준국어대사전 represents it
+    assert sum(1 for ln in tsv.splitlines() if ln.startswith("작전 계획\t")) == 1
+    assert "전기주스\t電氣주스\t명사\topendict:2007" in tsv  # 우리말샘-only pair kept with its own source
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-2.0-KR"
+    assert m["sources"]["opendict"]["licence"] == "CC-BY-SA-2.0-KR" and m["sources"]["opendict"]["sha256"]
+    assert m["counts"]["opendict_items"] == 14 and m["counts"]["opendict_entries"] == 9
+    assert "우리말샘" in m["notice"] and "標準國語大辭典" in m["notice"]
+    rc = main(["--opendict", str(FIX / "opendict_sample.xml"), "-o", str(tmp_path / "only")])
+    assert rc == 0
+    m = json.loads((tmp_path / "only" / "manifest.json").read_text(encoding="utf-8"))
+    assert m["sources"]["stdict"] is None and m["licence"] == "CC-BY-SA-2.0-KR"
+
+
+def test_stdict_mixed_word_from_components():
+    xml = (
+        "<channel><item><target_code>9</target_code><word_info><word>생-과일</word><word_type>혼종어</word_type>"
+        "<original_language_info><original_language>生</original_language><language_type>한자</language_type>"
+        "</original_language_info><original_language_info><original_language>과일</original_language>"
+        "<language_type>고유어</language_type></original_language_info><pos_info><pos>명사</pos></pos_info>"
+        "</word_info></item></channel>"
+    )
+    f = FIX.parent / "_tmp_stdict_mixed.xml"
+    f.write_text(xml, encoding="utf-8")
+    try:
+        entries, rejects, _ = stdict.parse(f)
+    finally:
+        f.unlink()
+    assert [(e.hangul, e.hanja) for e in entries] == [("생과일", "生과일")] and not rejects
