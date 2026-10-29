@@ -83,11 +83,11 @@ def test_undo_goes_back_to_the_word_and_removes_its_line(tmp_path):
 
 
 def test_phrase_scope_resolves_only_that_place(tmp_path):
-    r, path, _ = reviewer(tmp_path, ["n2", "q"])
+    r, path, _ = reviewer(tmp_path, ["n1", "q"])
     r.run()
-    assert lines(path) == ["국가 안전 = 國歌 安全"]
+    assert lines(path) == ["국가 안전 = 國家 安全"]
     after = Converter(LEX, Overrides.load(path), ListAnalyser(TOKENS)).convert(TEXT)
-    assert after.text.startswith("國歌 安全") and len(after.of(Kind.FLAGGED)) == 1
+    assert after.text.startswith("國家 安全") and len(after.of(Kind.FLAGGED)) == 1
 
 
 def test_phrase_scope_without_a_neighbour_is_refused(tmp_path):

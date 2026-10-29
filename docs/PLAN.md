@@ -232,7 +232,7 @@ crash loses nothing and every later run, in the CLI or the extension, reuses it.
   when its length matches (for review-list words, `--include-review`).
 - The override format has no per-occurrence entry and none was added. "Only here" is a
   phrase entry with the neighbouring word (`n3` next word, `p3` previous word), for
-  example `국가 안전 = 國歌 安全`. The tool re-converts the text and keeps the line only
+  example `국가 안전 = 國家 安全`. The tool re-converts the text and keeps the line only
   if the phrase really applies at that place.
 - No default, no preselected candidate, Enter is ignored: the tool never guesses.
 - Deferred: the same decisions in the extension popup; an optional local-model
