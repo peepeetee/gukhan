@@ -8,6 +8,7 @@ import json
 import sys
 from pathlib import Path
 
+from gukhan import rules
 from gukhan.convert import Converter
 from gukhan.lexicon import Lexicon
 from gukhan.overrides import Overrides
@@ -48,13 +49,23 @@ def cmd_score(args: argparse.Namespace) -> int:
         overrides = Overrides()
         for p in args.overrides:
             overrides.update(Overrides.load(p))
-    conv = Converter(lexicon, overrides, min_weight=args.min_weight)
+    try:
+        use_rules = rules.parse_rules(args.rules)
+    except ValueError as e:
+        print(f"gukhan-regress: {e}", file=sys.stderr)
+        return 2
+    conv = Converter(lexicon, overrides, min_weight=args.min_weight, use_rules=use_rules)
     items = []
     for p in args.items:
         for it in sc.read_items(p):
             items.append(sc.Item(it.id, it.source, it.hangul, it.mixed.split(" # CHECK ")[0]))
     tally = sc.score(items, conv)
-    result = {"items": len(items), "lexicon": str(args.lexicon or "sample"), **tally.as_dict()}
+    result = {
+        "items": len(items),
+        "lexicon": str(args.lexicon or "sample"),
+        "rules": ",".join(sorted(use_rules)) or "none",
+        **tally.as_dict(),
+    }
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -95,6 +106,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument(
         "--min-weight", type=int, default=None, help="passed to the converter (default 12 on a weighted lexicon)"
     )
+    s.add_argument("--rules", default="default", help="default, all, none or rule names, as for `gukhan --rules`")
     s.set_defaults(func=cmd_score)
     args = ap.parse_args(argv)
     for attr in ("text", "chars"):

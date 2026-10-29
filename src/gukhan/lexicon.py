@@ -27,6 +27,14 @@ def _strip_spaces(s: str) -> str:
     return s.replace(" ", "")
 
 
+def _is_han(ch: str) -> bool:
+    return not ("가" <= ch <= "힣")
+
+
+def is_native_entry_text(hangul: str, hanja: str) -> bool:
+    return hangul == hanja
+
+
 class Lexicon:
     """Entries indexed by space-free Hangul so 작전계획 and 작전 계획 both match."""
 
@@ -35,6 +43,7 @@ class Lexicon:
         self.max_key_len = 0
         self.weighted = False  # any entry carries a weight (Wiktionary-built lexicons do)
         self.path: Path | None = None
+        self._grams: dict[str, list[tuple[str, str]]] | None = None  # 4-syllable index for attested(), built lazily
         for e in entries:
             self.add(e)
 
@@ -49,6 +58,47 @@ class Lexicon:
 
     def candidates(self, hangul: str) -> list[Entry]:
         return list(self._by_key.get(_strip_spaces(hangul), ()))
+
+    GRAM = 4
+
+    def attested(self, run: str) -> tuple[set[str], int]:
+        """Hanja forms that the lexicon itself writes for ``run`` inside longer headwords, and how many headwords do.
+
+        ``국무위원`` is not a headword, but 국무위원회 (國務委員會) and 국무위원장 (國務委員長)
+        contain it with one Hanja form. Only Hanja-only stretches count (a Hangul-kept
+        syllable in the entry means the entry does not settle the Hanja there), and only runs
+        of at least four syllables, so a short stretch is never read out of an unrelated word.
+        Returns ``(forms, headword count)``.
+        """
+        run = _strip_spaces(run)
+        n = len(run)
+        if n < self.GRAM:
+            return set(), 0
+        if self._grams is None:
+            grams: dict[str, list[tuple[str, str]]] = {}
+            for key, bucket in self._by_key.items():
+                if len(key) <= self.GRAM:
+                    continue
+                for e in bucket:
+                    hanja = _strip_spaces(e.hanja)
+                    if len(hanja) != len(key) or is_native_entry_text(key, hanja):
+                        continue
+                    for i in range(len(key) - self.GRAM + 1):
+                        grams.setdefault(key[i : i + self.GRAM], []).append((key, hanja))
+            self._grams = grams
+        forms: set[str] = set()
+        heads: set[str] = set()
+        for key, hanja in self._grams.get(run[: self.GRAM], ()):
+            if len(key) <= n:
+                continue
+            at = key.find(run)
+            while at >= 0:
+                piece = hanja[at : at + n]
+                if all(_is_han(c) for c in piece):
+                    forms.add(piece)
+                    heads.add(key)
+                at = key.find(run, at + 1)
+        return forms, len(heads)
 
     def __contains__(self, hangul: str) -> bool:
         return _strip_spaces(hangul) in self._by_key

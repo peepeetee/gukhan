@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 
-from .analyser import CANDIDATE_TAGS, NATIVE_STOP, TAG_TO_POS, Analyser, KiwiAnalyser, Token
+from . import rules
+from .analyser import CANDIDATE_TAGS, NATIVE_STOP, TAG_TO_POS, VERB_SUFFIXES, Analyser, KiwiAnalyser, Token
 from .lexicon import Entry, Lexicon
 from .overrides import Overrides
 from .segments import segment
@@ -85,12 +86,19 @@ def decide(
     override: tuple[bool, Entry | None] = (False, None),
     *,
     min_weight: int = 0,
+    attested: str = "",
 ) -> Decision:
     """Override → rule → flag, for one matched span. Offsets are filled by the caller.
 
     ``min_weight`` > 0 means a lone candidate is written only when its weight
     reaches it; a rarer single entry is flagged instead, because one entry in
     a crowd-sourced lexicon is no proof that no other reading exists.
+
+    ``attested`` is the note of a rule that already narrowed the candidates
+    (「attested as 중요하다」, 「ordinal prefix before a number」). A lone survivor of
+    two or more syllables then rests on that evidence, so the weight caution does
+    not apply. One syllable stays flagged: the dictionary lists 부하다 (富) but not
+    附하다, so a lone verb is a gap, not proof.
     """
     has, entry = override
     if has:
@@ -106,6 +114,8 @@ def decide(
         why = "single entry" if len(pool) == 1 else "all candidates agree"
         if len(pool) < len(candidates):
             why += f" after POS filter ({tag})"
+        if attested and len(hangul.replace(" ", "")) > 1:
+            return Decision(0, 0, hangul, Kind.CONVERTED, forms[0], tuple(pool), f"{why}, {attested}", tag)
         if len(hangul.replace(" ", "")) == 1 and tag in ("NNG", "NNP", "NR", "XR"):
             # one syllable, one entry: almost every Sino-Korean syllable has many Hanja, so a
             # lone entry is a lexicon gap, not evidence (前項 → 全항 came from this)
@@ -143,11 +153,13 @@ class Converter:
         *,
         review_all: bool = False,
         min_weight: int | None = None,
+        use_rules: bool | frozenset[str] = True,
     ) -> None:
         self.lexicon = lexicon if lexicon is not None else Lexicon.sample()
         self.overrides = overrides
         self.analyser = analyser if analyser is not None else KiwiAnalyser()
         self.review_all = review_all
+        self.rules = rules.DEFAULT if use_rules is True else frozenset(use_rules or ())
         if min_weight is None:
             min_weight = DEFAULT_MIN_WEIGHT if self.lexicon.weighted else 0
         self.min_weight = min_weight
@@ -167,19 +179,81 @@ class Converter:
         return has_ov, ov, cands
 
     def _candidate_tokens(self, text: str, tokens: list[Token]) -> list[Token]:
-        return [
-            t
-            for t in tokens
-            if t.tag in CANDIDATE_TAGS
-            and text[t.start : t.end] == t.form
-            and _is_hangul(t.form)
-            and not (t.tag == "NNB" and t.form in NATIVE_STOP)
-        ]
+        out: list[Token] = []
+        for i, t in enumerate(tokens):
+            if (
+                t.tag not in CANDIDATE_TAGS
+                or text[t.start : t.end] != t.form
+                or not _is_hangul(t.form)
+                or (t.tag == "NNB" and t.form in NATIVE_STOP)
+            ):
+                continue
+            nxt = tokens[i + 1] if i + 1 < len(tokens) else None
+            if t.tag in ("NNG", "XR") and nxt is not None and nxt.start == t.end:
+                tail = VERB_SUFFIXES.get((nxt.form, nxt.tag))
+                if tail:
+                    t = replace(t, suffix=tail[0], suffix_pos=tail[1])
+            out.append(t)
+        return out
+
+    def _after_number(self, toks: list[Token], tok: Token) -> bool:
+        """The token before ``tok`` is a number (digits, Sino-Korean numeral, or a 몇/각-type determiner)."""
+        if tok.idx <= 0:
+            return False
+        prev = toks[tok.idx - 1]
+        return prev.tag in ("SN", "NR", "MM") and tok.start - prev.end <= 1
+
+    def _narrow_by_context(self, toks: list[Token], tok: Token, cands: list[Entry]) -> tuple[list[Entry], str]:
+        """Apply the evidence rules of ``rules`` that depend on the neighbouring tokens."""
+        note = ""
+        active = self.rules
+        before = toks[tok.idx - 1] if tok.idx > 0 else None
+        after = toks[tok.idx + 1] if 0 <= tok.idx + 1 < len(toks) else None
+        if "counter" in active and tok.tag == "NNB" and not self._after_number(toks, tok):
+            # 일 (日, 「날을 세는 단위」) and 시 (時) are counters only after a count; alone they are native words
+            pool = [c for c in cands if c.pos in TAG_TO_POS["NNB"]]
+            if pool and all(rules.UNIT_SENSE in c.sense for c in pool):
+                return [], "counter without a number"
+        if tok.tag == "NNG" and "name" in active:
+            kept = rules.drop_proper_names(cands)
+            if len(kept) < len(cands):
+                cands, note = kept, "common noun, not a name"
+        if "ordinal" in active and tok.tag == "XPN" and after is not None and after.tag == "SN":
+            kept = rules.by_sense(cands, rules.ORDINAL_SENSE)
+            if kept and len(kept) < len(cands):
+                cands, note = kept, "ordinal prefix before a number"
+        if "division" in active and tok.tag in ("NNB", "NNG") and before is not None and before.tag == "SN":
+            earlier = toks[tok.idx - 2] if tok.idx > 1 else None
+            if earlier is not None and earlier.tag == "XPN" and earlier.form == "제":
+                kept = rules.by_sense(cands, rules.DIVISION_SENSE)
+                if kept and len(kept) < len(cands):
+                    cands, note = kept, "numbered division (제 N …)"
+        return cands, note
+
+    def _narrow_by_verb(self, tok: Token, cands: list[Entry]) -> tuple[list[Entry], str]:
+        """Keep the readings of a noun that also exist as the dictionary verb it is about to become.
+
+        ``명`` before ``하/XSV`` is the verb 명하다 (命하다, 동사); readings with no such
+        verb of the same part of speech (名, 銘; 富하다 is an adjective) are not what the
+        text says. Applied only when at least one reading survives; otherwise nothing changes.
+        """
+        n = len(tok.suffix)
+        verbs = {
+            e.hanja.replace(" ", "")[:-n]
+            for e in self.lexicon.candidates(tok.form + tok.suffix)
+            if e.hanja.endswith(tok.suffix) and len(e.hanja) > n and e.pos == tok.suffix_pos
+        }
+        kept = [c for c in cands if c.hanja.replace(" ", "") in verbs]
+        if kept and len(kept) < len(cands):
+            return kept, f"attested as {tok.form}{tok.suffix}"
+        return cands, ""
 
     # -- main pipeline --------------------------------------------------
     def convert_span(self, text: str, base: int = 0) -> list[Decision]:
         """Decisions for one convertible span; offsets are relative to ``base``."""
-        cands = self._candidate_tokens(text, self.analyser.tokenize(text))
+        toks = self.analyser.tokenize(text)
+        toks = [replace(t, idx=i) for i, t in enumerate(toks)]
+        cands = self._candidate_tokens(text, toks)
         decisions: list[Decision] = []
         max_len = self._max_key_len()
         i = 0
@@ -190,23 +264,58 @@ class Converter:
                 span = text[first.start : last.end]
                 if len(span.replace(" ", "")) > max_len:
                     continue
+                compact = " " not in span
                 if n > 1 and (
-                    first.tag not in PHRASE_TAGS
+                    (first.tag not in PHRASE_TAGS and not compact)
                     or not all(
-                        text[cands[k].end : cands[k + 1].start] in ("", " ") and cands[k + 1].tag in PHRASE_TAGS
+                        text[cands[k].end : cands[k + 1].start] in ("", " ")
+                        and (cands[k + 1].tag in PHRASE_TAGS or compact)
                         for k in range(i, i + n - 1)
                     )
                 ):
                     continue
+                attested = ""
                 has_ov, ov, lex_cands = self._lookup(span)
+                if n > 1 and not has_ov and not lex_cands and compact and "compound" in self.rules:
+                    forms, heads = self.lexicon.attested(span)
+                    if len(forms) == 1 and first.tag in PHRASE_TAGS:
+                        (form,) = forms
+                        decisions.append(
+                            Decision(
+                                base + first.start,
+                                base + last.end,
+                                span,
+                                Kind.CONVERTED,
+                                form,
+                                (Entry(span, form, "", "attested", ""),),
+                                f"attested inside {heads} longer headword(s)",
+                                first.tag,
+                            )
+                        )
+                        i += n
+                        matched = True
+                        break
+                if n == 1 and not has_ov and self.rules:
+                    if first.suffix and "verb" in self.rules:
+                        lex_cands, attested = self._narrow_by_verb(first, lex_cands)
+                    lex_cands, note = self._narrow_by_context(toks, first, lex_cands)
+                    attested = attested or note
                 if not has_ov and not lex_cands:
                     continue
-                d = decide(span, first.tag, lex_cands, (has_ov, ov), min_weight=self.min_weight)
+                d = decide(
+                    span,
+                    first.tag,
+                    lex_cands,
+                    (has_ov, ov),
+                    min_weight=self.min_weight,
+                    attested=attested,
+                )
                 if d.kind == Kind.NONE:
                     continue
                 hanja = _apply_spacing(span, d.hanja) if d.hanja else None
+                reason = d.reason if not attested or attested in d.reason else f"{d.reason}; {attested}"
                 decisions.append(
-                    Decision(base + first.start, base + last.end, span, d.kind, hanja, d.candidates, d.reason, d.tag)
+                    Decision(base + first.start, base + last.end, span, d.kind, hanja, d.candidates, reason, d.tag)
                 )
                 i += n
                 matched = True

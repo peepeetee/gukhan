@@ -30,23 +30,34 @@ def source_rank(source: str) -> int:
     return SOURCE_PRIORITY.get(source.split(":", 1)[0], 0)
 
 
-def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
-    """One line per (hangul, hanja): prefer the entry with a gloss, then a common noun over a proper noun.
+def pos_group(e: stdict_mod.Entry) -> str:
+    """Common and proper nouns (and unlabelled phrases) are one group; other parts of speech keep their own line.
 
-    The same pair often comes from a Hangul page and a Hanja page, or as 명사 and
-    고유 명사; keeping both would make every flag list twice as long.
+    A pair is often listed as 명사 on a Hangul page and 고유 명사 on a Hanja page, which is
+    one reading. But 일절 一切 as 부사 and as 명사 are different facts: the converter's
+    part-of-speech filter needs both, so a Kiwi adverb token can find the adverb line.
     """
-    best: dict[tuple[str, str], stdict_mod.Entry] = {}
-    weight: dict[tuple[str, str], int] = {}
+    if e.pos in ("명사", "고유 명사") or (e.pos == "품사 없음" and " " in e.hangul):
+        return "명사"
+    return e.pos
+
+
+def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
+    """One line per (hangul, hanja, part-of-speech group): prefer a gloss, then a common noun, then source rank."""
+    best: dict[tuple[str, str, str], stdict_mod.Entry] = {}
+    weight: dict[tuple[str, str, str], int] = {}
     for e in entries:
-        key = (e.hangul, e.hanja)
+        key = (e.hangul, e.hanja, pos_group(e))
         weight[key] = max(weight.get(key, 0), e.weight)
         rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), source_rank(e.source), e.source)
         cur = best.get(key)
         if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), source_rank(cur.source), cur.source):
             best[key] = e
     out = [stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k]) for k, e in best.items()]
-    return sorted(drop_nonstandard_spellings(out), key=lambda e: (e.hangul, e.hanja))
+    return sorted(drop_nonstandard_spellings(out), key=lambda e: (e.hangul, e.hanja, e.pos))
+
+
+BOUND_POS = frozenset({"의존 명사", "접미사", "접사"})
 
 
 def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
@@ -58,6 +69,9 @@ def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_m
         by_hanja.setdefault(e.hanja, set()).add(e.hangul)
     kept = []
     for e in entries:
+        if e.pos in BOUND_POS:
+            kept.append(e)  # 2026년, 100리: a bound form is not word-initial, 頭音法則 does not apply to it
+            continue
         first = e.hangul[0]
         standard = initial_sound_variants(first) - {first}
         if standard and any(first_alt + e.hangul[1:] in by_hanja[e.hanja] for first_alt in standard):
@@ -172,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
         for w, (pos, gloss, weight) in sorted(native.items())
         if w in sino_words
     ]
-    merged = sorted(merged + natives, key=lambda e: (e.hangul, e.hanja))
+    merged = sorted(merged + natives, key=lambda e: (e.hangul, e.hanja, e.pos))
     counts["native_homographs"] = len(natives)
     lex_path = args.out / "lexicon.tsv"
     levels = krdict_levels(args.krdict) if args.krdict else {}

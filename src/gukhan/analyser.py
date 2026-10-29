@@ -21,7 +21,7 @@ from typing import Protocol
 KIWI_MODEL_TYPE = "cong"
 
 # Sejong-style tags whose tokens may carry a Sino-Korean lexicon entry.
-CANDIDATE_TAGS = frozenset({"NNG", "NNP", "NNB", "NR", "XR", "XPN", "XSN", "MAG", "MM"})
+CANDIDATE_TAGS = frozenset({"NNG", "NNP", "NNB", "NR", "XR", "XPN", "XSN", "MAG", "MAJ", "MM"})
 
 # Lexicon part-of-speech labels compatible with each analyser tag. An entry
 # whose pos is not listed for the token's tag is not a candidate at all, so a
@@ -37,7 +37,19 @@ TAG_TO_POS: dict[str, frozenset[str]] = {
     "XPN": frozenset({"접두사", "접사"}),
     "XSN": frozenset({"접미사", "접사"}),
     "MAG": frozenset({"부사"}),
+    "MAJ": frozenset({"부사"}),
     "MM": frozenset({"관형사"}),
+}
+
+# Derivational suffix tokens Kiwi splits off a noun: (form, tag) → (dictionary headword tail, dictionary POS).
+# 명/NNG + 하/XSV is the verb 명하다 (동사), 중요/NNG + 하/XSA the adjective 중요하다 (형용사).
+VERB_SUFFIXES: dict[tuple[str, str], tuple[str, str]] = {
+    ("하", "XSV"): ("하다", "동사"),
+    ("하", "XSA"): ("하다", "형용사"),
+    ("되", "XSV"): ("되다", "동사"),
+    ("시키", "XSV"): ("시키다", "동사"),
+    ("스럽", "XSA"): ("스럽다", "형용사"),
+    ("롭", "XSA"): ("롭다", "형용사"),
 }
 
 
@@ -55,6 +67,9 @@ class Token:
     tag: str
     start: int  # character offset in the analysed string
     end: int
+    suffix: str = ""  # dictionary tail (하다, 되다 …) of the verb this token begins, "" if none
+    suffix_pos: str = ""  # that verb's dictionary part of speech (동사 / 형용사)
+    idx: int = -1  # position in the analyser's full token list, -1 if not set
 
 
 class Analyser(Protocol):

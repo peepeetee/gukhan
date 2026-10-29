@@ -216,6 +216,38 @@ Flagged-word report columns: `line  col  hangul  candidates  context`. The
 review list (names and unknown words) follows with the same columns and
 `candidates` empty.
 
+## 5a. Evidence rules: fewer flags without guessing
+
+A flag lists several Hanja readings of one Hangul word. The converter narrows
+that list only on evidence, and only when at least one reading survives. If one
+is left it is written; if several are left the flag stays with a shorter list.
+No rule counts how common a word is, and none runs on a word the analyser tagged
+as something the evidence does not cover. `gukhan --rules` and
+`gukhan-regress score --rules` switch them (`default`, `all`, `none`, or names).
+Implementation: `src/gukhan/rules.py`, wiring in `convert.py`.
+
+| Rule | Evidence | Default |
+| --- | --- | --- |
+| `name` | Kiwi tagged the word a common noun (NNG) and a reading's definition marks it as a surname, a person with life dates, a place or a courtesy name (渭原 「평안북도 위원군에 있는 면」, 魏源 「…학자(1794~1857)」, not 委員) | on |
+| `ordinal` | prefix directly before a number, and one reading's definition says 「그 숫자에 해당되는 차례」: 第, not 諸 | on |
+| `division` | in the frame 「제 N X」 the word X is an ordinal-numbered part, so only a reading whose definition says it divides or orders qualifies (條 「나누어 구분하는 단위」, 號 「순서를 매겨」), not 組 | on |
+| `counter` | a counter whose every reading is defined as a 「… 단위」 (日 「날을 세는 단위」) is converted only after a number; alone, 일 and 시 are native words | on |
+| `compound` | a compact run of two or more tokens, at least four syllables, that is not a headword but occurs inside longer headwords with exactly one Hanja form (國務委員 inside 國務委員會 and 國務委員長) | on |
+| `verb` | the noun is followed by 하/되 …, and only some readings exist as that dictionary verb with the matching part of speech (重要하다 형용사, not 中夭하다). One-syllable words stay flagged | off |
+
+Two further changes work together with these. The builder now keeps one lexicon
+line per (headword, Hanja, part-of-speech group) instead of one per pair, so that
+a Kiwi adverb or counter finds its own part-of-speech line (일절 as 부사, 월 and 년
+as 의존 명사); bound forms such as 년 are no longer dropped by the initial-sound
+filter. And a compact stretch of text, without spaces, may match a headword that
+contains numerals or counters (삼일운동 → 三一運動); a spaced stretch still may not.
+
+`verb` is opt-in because it removes readings for what is *missing* from a
+dictionary entry, which is weaker than a statement in it: the dictionary has
+妨害하다 but not 防害하다, which the 1948 text writes. On the regression sets it
+raises the wrong count (see `tests/regression/README.md`), so it ships off.
+A person who prefers fewer flags to the guarantee can turn it on.
+
 ## 6. Test strategy
 
 - Unit tests with a fake analyser: lexicon loading, longest match, override

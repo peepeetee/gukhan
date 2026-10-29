@@ -7,7 +7,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, report
+from . import __version__, report, rules
 from .convert import Converter
 from .lexicon import Lexicon
 from .overrides import Overrides
@@ -36,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="flag a lone candidate whose weight is below this (default 12 on a weighted lexicon, 0 otherwise)",
+    )
+    ap.add_argument(
+        "--rules",
+        default="default",
+        help="evidence rules that narrow a flag's candidates: default, all, none, or names "
+        f"({', '.join(sorted(rules.ALL))}), comma separated; see docs/PLAN.md §5",
     )
     ap.add_argument("--version", action="version", version=f"gukhan {__version__}")
     return ap
@@ -69,8 +75,16 @@ def main(argv: list[str] | None = None) -> int:
             "Note: using the bundled sample lexicon; pass --lexicon for real use.",
             file=sys.stderr,
         )
+    try:
+        use_rules = rules.parse_rules(args.rules)
+    except ValueError as e:
+        return _err(str(e))
     conv = Converter(
-        lexicon, overrides if args.overrides else None, review_all=args.review_all, min_weight=args.min_weight
+        lexicon,
+        overrides if args.overrides else None,
+        review_all=args.review_all,
+        min_weight=args.min_weight,
+        use_rules=use_rules,
     )
     result = conv.convert(text, mark=args.mark)
 

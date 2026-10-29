@@ -17,6 +17,8 @@ gukhan input.md -o out.md --report flagged.tsv --overrides my.txt --mark
 gukhan input.md --lexicon build/lexicon/     # a lexicon you built
 ```
 
+`--rules default|all|none|<names>` chooses the evidence rules that narrow a flag's
+candidates (docs/PLAN.md §5a); `default` is on, `verb` is opt-in.
 `--report` writes flagged homographs and the review list (names and unknown
 words) with line and column; `--mark` shows flagged words inline as
 `전기{電氣|傳記}`. An override file is plain text, one decision per line:
@@ -34,7 +36,7 @@ inputs come from):
 ```
 # login-free: Wiktionary Korean entries via kaikki.org (CC BY-SA 4.0)
 gukhan-lexicon-build --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
-# with a 표준국어대사전 dump too, or instead (needs a verified 국립국어원 account)
+# with a 표준국어대사전 dump too, or instead (the full dump is mirrored login-free; see docs/data-distribution.md)
 gukhan-lexicon-build --stdict stdict_dump.zip --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip -o build/lexicon
 # plus 우리말샘 (opendict.korean.go.kr dump, CC BY-SA 2.0 KR; contributor-edited, so
 # 표준국어대사전 represents a pair when both have it)
@@ -66,16 +68,21 @@ extension processes text locally and sends nothing anywhere.
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
-Scores, 2026-10-28, lexicon built from 標準國語大辭典 + Wiktionary
-(kaikki.org) + Unihan 18.0.0, Kiwi 0.24.1, default settings:
+Scores, 2026-10-29, lexicon built from 標準國語大辭典 + 우리말샘 + Wiktionary
+(kaikki.org) + 韓國語基礎辭典 + Unihan 18.0.0 (705,000 lines), Kiwi 0.24.1, default settings
+(evidence rules `default`, docs/PLAN.md §5a):
 
-| source | items | words | right | wrong | over |
+| source | items | words | right | wrong | flagged or partial |
 | --- | --- | --- | --- | --- | --- |
-| 大韓民國憲法 1948 | 321 | 1897 | 44.7% | 13 (0.7%) | 1 |
-| 憲法 1952 amendment | 352 | 2149 | 42.5% | 14 (0.7%) | 2 |
-| 憲法 1954 amendment | 360 | 2244 | 42.6% | 15 (0.7%) | 3 |
-| 大韓民國臨時憲章 1919 | 22 | 133 | 32.3% | 4 (3.0%) | 0 |
-| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 27.4% | 13 (2.6%) | 2 |
+| 大韓民國憲法 1948 | 321 | 1897 | 47.0% | 5 (0.3%) | 1000 |
+| 憲法 1952 amendment | 352 | 2149 | 45.0% | 6 (0.3%) | 1176 |
+| 憲法 1954 amendment | 360 | 2244 | 45.5% | 5 (0.2%) | 1219 |
+| 大韓民國臨時憲章 1919 | 22 | 133 | 35.3% | 2 (1.5%) | 84 |
+| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 338 |
+
+The same sets before 우리말샘 and the evidence rules (2026-10-28): right 44.7%,
+42.5%, 42.6%, 32.3%, 27.4%; wrong 13, 14, 15, 4, 13 words. Full tables, with
+`over` and per-rule effects, are in tests/regression/README.md.
 
 Per Hanja character on the 1948 text: 48.7% right, 0.4% wrong. The larger
 dictionary removes the reported 繼承→階乘, 移轉→以前 and 前項→全항 errors,

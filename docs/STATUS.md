@@ -1,3 +1,11 @@
+# 진행 상황 / Status — 2026-10-29
+
+우리말샘 (`--opendict`, PR #12) is read by the builder, and evidence rules narrow flags
+(docs/PLAN.md §5a). Scores and the per-rule effects: tests/regression/README.md. With
+the default rules right is up 47 to 70 words per constitution over the PR #12 baseline and
+wrong is unchanged; the opt-in `verb` rule gains 98 to 125 more right words and adds 2 wrong
+words per constitution, which is why it is off.
+
 # 진행 상황 / Status — 2026-10-28
 
 PR #6 was already merged; PR #7 was merged as `f14d8fd` after resolving the test
