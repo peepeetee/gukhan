@@ -16,7 +16,7 @@ Unihan과 학습용 어휘 목록은 작고 허용적이므로 `gukhan-lexicon` 
 | --- | --- | --- | ---: | --- | --- |
 | 標準國語大辭典 (Standard Korean Language Dictionary) XML, 88 chunks | CC BY-SA 2.0 KR | Yes | 689 MB | In principle, but source-cited 用例 (usage examples) and media are excluded by the policy, and the raw XML contains them | Not shipped. Built lexicon only, in `gukhan-lexicon`. Builder may fetch from the pinned mirror commit on request; never silently |
 | 韓國語基礎辭典 (Korean Basic Dictionary) XML, 11 chunks | CC BY-SA 2.0 KR | Yes | 387 MB | Same as above | Not shipped. Only vocabulary levels enter the lexicon |
-| 우리말샘 (Urimalsaem) XML, 25 chunks | CC BY-SA 2.0 KR | Yes | 1,861 MB | Same as above; contributor entries also CC BY-SA 2.0 KR | Not shipped. Held locally for a later builder stage |
+| 우리말샘 (Urimalsaem) XML, 25 chunks | CC BY-SA 2.0 KR | Yes | 1,861 MB | Same as above; contributor entries also CC BY-SA 2.0 KR | Not shipped. Read by `gukhan-lexicon-build --opendict`; only the built lexicon ships |
 | 韓國語 學習用 語彙 目錄 (2003 learner vocabulary list) | KOGL Type 1 (公共누리 第1類型) | No (attribution only) | 132 KB | Yes | Ship the raw file in the `gukhan-lexicon` repo with attribution; ranks also enter the lexicon |
 | Wiktionary Korean entries, kaikki.org wiktextract JSONL | CC BY-SA 4.0 + GFDL 1.3 (Wikimedia Terms of Use) | Yes | 208 MB | Yes, with attribution and share-alike | Release asset of `gukhan-lexicon` (pinned copy for reproducible builds). Not in any repo |
 | Unicode Unihan 18.0.0 | Unicode License v3 | No | 8 MB | Yes, with the notice | Ship in the `gukhan-lexicon` repo (small, permissive); builder also accepts the versioned unicode.org URL |

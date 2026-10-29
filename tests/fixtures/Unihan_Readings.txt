@@ -8,6 +8,7 @@ U+8A18	kHangul	기:0E
 U+96FB	kHangul	전:0E
 U+7406	kHangul	리:0E
 U+8AD6	kHangul	론:0E
+U+7684	kHangul	적:0E
 U+518A	kHangul	책:0E
 U+5E8A	kHangul	상:0E
 U+4F5C	kHangul	작:0E
