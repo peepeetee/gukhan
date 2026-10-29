@@ -1,0 +1,16 @@
+# 님의 沈黙 1926 batch 5: scan vs ko.wikisource divergences (PDF pp.92-96)
+# Gold follows the scan. Differences are orthographic: the scan prints 왼갓 (Wikisource 왼갖), 종작업는 (종작없는), the 、 separator (Wikisource uses a comma), and 蓮ᄭᅩᆺ where Wikisource's text drops the 蓮 (it carries it as a correction).
+# p095/p096: the line 님의 / 微笑가튼 is split across the page break.
+
+## p093: DIFFERS
+  scan : 너의님은 너ᄯᅢ문에 가슴에서타오르는 불ᄭᅩᆺ에 왼갓 宗敎、哲學、名譽、財産 그외에도 잇스면잇는대로 태여버리는줄을 너는모를니라
+  wiki : 너의님은 너ᄯᅢ문에 가슴에서타오르는 불ᄭᅩᆺ에 왼갖 宗敎, 哲學, 名譽, 財産 그외에도 잇스면잇는대로 태여버리는줄을 너는모를니라
+  chars: '갓'->'갖' | '、'->',' | '、'->',' | '、'->','
+## p094: DIFFERS
+  scan : 너는 철모르는아해들에게 종작업는讚美를바드면서 싯분우슴을참고 고요히잇는줄을 나는잘안다
+  wiki : 너는 철모르는아해들에게 종작없는讚美를바드면서 싯분우슴을참고 고요히잇는줄을 나는잘안다
+  chars: '업'->'없'
+## p095: DIFFERS
+  scan : 님의입설가튼 蓮ᄭᅩᆺ이 어데잇서요 님의살빗가튼 白玉이 어데잇서요
+  wiki : 님의입설가튼 ᄭᅩᆺ이 어데잇서요 님의살빗가튼 白玉이 어데잇서요
+  chars: '蓮'->''
