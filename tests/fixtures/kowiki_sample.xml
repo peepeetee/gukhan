@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!-- Hand-written fixture in the shape of a MediaWiki export. Not Wikipedia text. -->
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.11/" version="0.11" xml:lang="ko">
+  <page><title>이순신</title><ns>0</ns><id>1</id><revision><id>11</id><text xml:space="preserve">{{사람 정보
+|이름 = 이순신
+|한자 = 李舜臣
+}}
+'''이순신'''(李舜臣, 1545년 4월 28일 ~ 1598년 12월 16일)은 조선의 [[무신]]이다.&lt;ref&gt;출처&lt;/ref&gt;</text></revision></page>
+  <page><title>대한민국 헌법</title><ns>0</ns><id>2</id><revision><id>12</id><text xml:space="preserve">'''대한민국 헌법'''(大韓民國憲法, {{llang|en|Constitution of the Republic of Korea}})은 최고법이다.</text></revision></page>
+  <page><title>서울특별시</title><ns>0</ns><id>3</id><revision><id>13</id><text xml:space="preserve">'''서울특별시'''(서울特別市, {{lang|en|Seoul}})는 수도이다.</text></revision></page>
+  <page><title>전기 (물리)</title><ns>0</ns><id>4</id><revision><id>14</id><text xml:space="preserve">'''전기'''({{한자|電氣}})는 물리 현상이다.</text></revision></page>
+  <page><title>마오쩌둥</title><ns>0</ns><id>5</id><revision><id>15</id><text xml:space="preserve">'''마오쩌둥'''(毛澤東, 1893년 ~ 1976년)은 중국의 정치가이다.</text></revision></page>
+  <page><title>도쿄</title><ns>0</ns><id>6</id><revision><id>16</id><text xml:space="preserve">'''도쿄'''(東京, 일본어: 東京)는 일본의 수도이다.</text></revision></page>
+  <page><title>김철수</title><ns>0</ns><id>7</id><revision><id>17</id><text xml:space="preserve">'''김철수'''(1950년 ~ )는 한국의 인물이다.</text></revision></page>
+  <page><title>동음이의</title><ns>0</ns><id>8</id><revision><id>18</id><text xml:space="preserve">'''동음이의'''는 다음을 뜻한다.</text></revision></page>
+  <page><title>이순신 (동음이의)</title><ns>0</ns><id>9</id><redirect title="이순신"/><revision><id>19</id><text xml:space="preserve">#REDIRECT [[이순신]]</text></revision></page>
+  <page><title>분류:인물</title><ns>14</ns><id>10</id><revision><id>20</id><text xml:space="preserve">'''분류'''(大韓民國)</text></revision></page>
+</mediawiki>

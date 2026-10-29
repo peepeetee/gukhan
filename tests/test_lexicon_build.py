@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-from gukhan.lexicon_build import stdict, unihan
+from gukhan.lexicon_build import kowiki, stdict, unihan, wikidata_lexemes
 from gukhan.lexicon_build.cli import main
 from gukhan.lexicon_build.hangul import initial_sound_variants
 
@@ -328,3 +328,64 @@ def test_stdict_mixed_word_from_components():
     finally:
         f.unlink()
     assert [(e.hangul, e.hanja) for e in entries] == [("생과일", "生과일")] and not rejects
+
+
+def test_kowiki_leads_become_name_entries():
+    readings, _ = unihan.read_khangul(FIX / "Unihan_Readings_names.txt")
+    entries, rejects, stats = kowiki.parse(FIX / "kowiki_sample.xml", readings)
+    forms = {(e.hangul, e.hanja) for e in entries}
+    assert ("이순신", "李舜臣") in forms  # 頭音法則: 李 reads 리, written 이
+    assert ("대한민국 헌법", "大韓民國 憲法") in forms  # {{llang}} dropped; spacing follows the Hangul
+    assert ("서울특별시", "서울特別市") in forms  # Hangul inside the parenthesis stays Hangul
+    assert ("전기", "電氣") in forms  # {{한자|…}} unwrapped; title disambiguator removed
+    assert all(e.pos == "고유 명사" and e.source.startswith("kowiki:") for e in entries)
+    assert next(e for e in entries if e.hanja == "電氣").sense == "물리"
+    reasons = {r.hangul: r.reason for r in rejects}
+    assert "마오쩌둥" in reasons and "도쿄" in reasons  # Chinese/Japanese readings, not Sino-Korean
+    assert not any(e.hangul in ("김철수", "동음이의", "분류") for e in entries)  # no Hanja / redirect / other namespace
+    assert stats.items == 8 and stats.entries == 4
+
+
+def test_kowiki_markup_helpers():
+    assert kowiki.hanja_of("한자: 大韓民國, 영어: Korea", "대한민국") == "大韓民國"
+    assert kowiki.hanja_of("1950년 ~ ", "김철수") is None
+    assert kowiki.lead_pair("{{틀|a=b}}\n* 목록\n'''가나'''(街那)는") == ("가나", "街那")
+
+
+def test_wikidata_lexeme_survey_and_parse():
+    report = wikidata_lexemes.survey(FIX / "wikidata_lexemes_sample.json")
+    assert report["counts"]["lexemes"] == 5 and report["counts"]["korean"] == 4
+    assert report["counts"]["hanja_in_lemma_or_form"] == 2
+    assert report["hanja_statement_properties"] == {"P9999": 1}
+    readings, _ = unihan.read_khangul(FIX / "Unihan_Readings_names.txt")
+    entries, _, stats = wikidata_lexemes.parse(FIX / "wikidata_lexemes_sample.json", readings)
+    assert {(e.hangul, e.hanja, e.pos) for e in entries} == {("전기", "電氣", "명사")}
+    assert stats.rejected == 1  # 傳記: no fixture reading for 傳
+    entries, _, _ = wikidata_lexemes.parse(FIX / "wikidata_lexemes_sample.json", None, ("P9999",))
+    assert ("서울", "漢陽", "고유 명사") in {(e.hangul, e.hanja, e.pos) for e in entries}
+
+
+def test_cli_names_sources_set_licence_and_manifest(tmp_path):
+    out = tmp_path / "n"
+    rc = main(
+        [
+            "--kowiki",
+            str(FIX / "kowiki_sample.xml"),
+            "--wikidata-lexemes",
+            str(FIX / "wikidata_lexemes_sample.json"),
+            "--unihan",
+            str(FIX / "Unihan_Readings_names.txt"),
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["licence"] == "CC-BY-SA-4.0" and m["sources"]["kowiki"]["licence"].startswith("CC-BY-SA-4.0")
+    assert m["sources"]["wikidata_lexemes"]["licence"] == "CC0-1.0"
+    assert "위키백과" in m["notice"] and "Wikidata" in m["notice"]
+    text = (out / "lexicon.tsv").read_text(encoding="utf-8")
+    assert "이순신\t李舜臣\t고유 명사\tkowiki:이순신" in text and "전기\t電氣" in text
+    wd_only = tmp_path / "w"
+    assert main(["--wikidata-lexemes", str(FIX / "wikidata_lexemes_sample.json"), "-o", str(wd_only)]) == 0
+    assert json.loads((wd_only / "manifest.json").read_text(encoding="utf-8"))["licence"] == "CC0-1.0"

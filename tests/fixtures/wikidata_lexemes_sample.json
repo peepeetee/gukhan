@@ -1,0 +1,7 @@
+[
+{"type":"lexeme","id":"L1","language":"Q9176","lexicalCategory":"Q1084","lemmas":{"ko":{"language":"ko","value":"전기"}},"forms":[{"id":"L1-F1","representations":{"ko":{"language":"ko","value":"전기"},"ko-hani":{"language":"ko-hani","value":"電氣"}}}],"claims":{}},
+{"type":"lexeme","id":"L2","language":"Q9176","lexicalCategory":"Q147276","lemmas":{"ko":{"language":"ko","value":"서울"}},"forms":[],"claims":{"P9999":[{"mainsnak":{"datavalue":{"value":"漢陽","type":"string"}}}]}},
+{"type":"lexeme","id":"L3","language":"Q9176","lexicalCategory":"Q24905","lemmas":{"ko":{"language":"ko","value":"하다"}},"forms":[],"claims":{}},
+{"type":"lexeme","id":"L4","language":"Q1860","lexicalCategory":"Q1084","lemmas":{"en":{"language":"en","value":"electric"}},"forms":[],"claims":{}},
+{"type":"lexeme","id":"L5","language":"Q9176","lexicalCategory":"Q1084","lemmas":{"ko":{"language":"ko","value":"전기"}},"forms":[{"id":"L5-F1","representations":{"ko-hani":{"language":"ko-hani","value":"傳記"}}}],"claims":{}}
+]

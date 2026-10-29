@@ -7,9 +7,11 @@ import argparse
 import sys
 from pathlib import Path
 
+from . import kowiki as kowiki_mod
 from . import opendict as opendict_mod
 from . import stdict as stdict_mod
 from . import unihan as unihan_mod
+from . import wikidata_lexemes as wikidata_mod
 from . import wiktextract as wikt_mod
 from .manifest import write_manifest
 from .ranking import krdict_levels, learner_ranks
@@ -23,7 +25,7 @@ HEADER = (
 POS_PREFERENCE = {"명사": 0, "의존 명사": 1, "부사": 1, "어근": 1, "접두사": 1, "접미사": 1, "고유 명사": 3}
 # Which source's line represents a (hangul, hanja) pair when several have it. 우리말샘 is
 # contributor-edited, so its line is used only when no edited source has the pair.
-SOURCE_PRIORITY = {"stdict": 0, "enwikt": 0, "opendict": 1}
+SOURCE_PRIORITY = {"stdict": 0, "enwikt": 0, "opendict": 1, "wikidata": 2, "kowiki": 2}
 
 
 def source_rank(source: str) -> int:
@@ -104,16 +106,38 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         help="kaikki.org wiktextract JSONL (.jsonl or .jsonl.gz), e.g. kaikki.org-dictionary-Korean.jsonl; repeatable",
     )
+    ap.add_argument(
+        "--kowiki",
+        type=Path,
+        help="Korean Wikipedia dump (kowiki-latest-pages-articles.xml.bz2): names from article leads, CC BY-SA 4.0",
+    )
+    ap.add_argument(
+        "--wikidata-lexemes",
+        type=Path,
+        help="Wikidata lexeme dump (latest-lexemes.json.bz2, CC0); run the survey first (see wikidata_lexemes.py)",
+    )
+    ap.add_argument(
+        "--wikidata-hanja-property",
+        action="append",
+        default=[],
+        metavar="P####",
+        help="Wikidata statement property that holds the Hanja form (from the survey); repeatable",
+    )
     ap.add_argument("--unihan", type=Path, help="Unihan.zip or directory with Unihan_Readings.txt (validates readings)")
     ap.add_argument("-o", "--out", required=True, type=Path, help="output directory")
     ap.add_argument("--krdict", type=Path, help="한국어기초사전 XML vocabulary levels / candidate tie-breaker")
     ap.add_argument("--learner-list", type=Path, help="국립국어원 learner vocabulary text / candidate tie-breaker")
     args = ap.parse_args(argv)
 
-    if not args.stdict and not args.opendict and not args.wiktextract:
-        print("辭典 source가 없습니다 / give --stdict, --opendict and/or --wiktextract", file=sys.stderr)
+    if not (args.stdict or args.opendict or args.wiktextract or args.kowiki or args.wikidata_lexemes):
+        print(
+            "辭典 source가 없습니다 / give --stdict, --opendict, --wiktextract, --kowiki or --wikidata-lexemes",
+            file=sys.stderr,
+        )
         return 2
-    for p in [p for p in (args.stdict, args.opendict, args.krdict, args.learner_list) if p] + args.wiktextract:
+    for p in [
+        p for p in (args.stdict, args.opendict, args.kowiki, args.wikidata_lexemes, args.krdict, args.learner_list) if p
+    ] + args.wiktextract:
         if not p.exists():
             print(f"入力 file을 찾을 수 없습니다 / input not found: {p}", file=sys.stderr)
             return 2
@@ -157,6 +181,30 @@ def main(argv: list[str] | None = None) -> int:
         entries += e
         rejects += r
         counts["opendict_items"], counts["opendict_entries"] = stats.items, stats.entries
+    if args.kowiki:
+        e, r, stats = kowiki_mod.parse(args.kowiki, readings)
+        print(f"kowiki: pages={stats.items} hanja-leads={stats.sino} entries={stats.entries} rejected={stats.rejected}")
+        if stats.items == 0:
+            print(
+                "위키백과 덤프에서 문서를 찾지 못했습니다 / no main-namespace pages found in the kowiki dump",
+                file=sys.stderr,
+            )
+            return 2
+        entries += e
+        rejects += r
+        counts["kowiki_pages"], counts["kowiki_entries"] = stats.items, stats.entries
+    if args.wikidata_lexemes:
+        e, r, stats = wikidata_mod.parse(args.wikidata_lexemes, readings, tuple(args.wikidata_hanja_property))
+        print(
+            f"wikidata lexemes: lexemes={stats.items} with-hanja={stats.sino} "
+            f"entries={stats.entries} rejected={stats.rejected}"
+        )
+        if stats.items == 0:
+            print("lexeme 덤프에서 항목을 찾지 못했습니다 / no lexemes found in the Wikidata dump", file=sys.stderr)
+            return 2
+        entries += e
+        rejects += r
+        counts["wikidata_lexemes"], counts["wikidata_entries"] = stats.items, stats.entries
     for p in args.wiktextract:
         e, r, stats = wikt_mod.parse(p, readings)
         print(
@@ -174,7 +222,9 @@ def main(argv: list[str] | None = None) -> int:
         native.update(stats.native)
         counts["wiktextract_lines"] = counts.get("wiktextract_lines", 0) + stats.items
         counts["wiktextract_entries"] = counts.get("wiktextract_entries", 0) + stats.entries
-    licence = "CC-BY-SA-2.0-KR" if not args.wiktextract else "CC-BY-SA-4.0"
+    licence = "CC-BY-SA-2.0-KR" if not (args.wiktextract or args.kowiki) else "CC-BY-SA-4.0"
+    if not (args.stdict or args.opendict or args.wiktextract or args.kowiki):
+        licence = "CC0-1.0"  # Wikidata lexemes alone
 
     args.out.mkdir(parents=True, exist_ok=True)
     merged = merge_entries(entries)
@@ -224,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
         stdict=args.stdict,
         opendict=args.opendict,
         wiktextract=args.wiktextract,
+        kowiki=args.kowiki,
+        wikidata_lexemes=args.wikidata_lexemes,
         unihan=args.unihan,
         unihan_version=unihan_version,
         licence=licence,
