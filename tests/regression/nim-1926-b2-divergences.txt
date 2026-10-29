@@ -1,0 +1,49 @@
+# 님의 沈黙 1926 batch 2: scan vs ko.wikisource divergences (PDF pp.67-78)
+# Gold follows the scan. Uncertain or unresolved:
+#  p072 ᄯᅳᆯ압희 and 그늬를ᄯᅱᆷ니다: jamo read from Wikisource, the crop was not clear enough to confirm.
+#  p073 흔들리는: one glyph is damaged in the scan; 리 follows Wikisource's restoration.
+#  p076 픠엿다고: scan reading of 엿 vs Wikisource 였 not resolved (crop cut off).
+#  p074 너미차서 and p077 업슴이다 are printed that way in the scan (apparent typos kept).
+#  p070 卑劫 is printed 劫 in the scan; Wikisource drops it.
+
+## p070: DIFFERS
+  scan : 조는獅子를 죽은羊이라고 할지언정 당신이 試鍊을밧기위하야 盜賊에게 捕虜가되얏다고 그것을 卑劫이라고할수는 업슴니다
+  wiki : 조는獅子를 죽은羊이라고 할지언정 당신이 試鍊을밧기위하야 盜賊에게 捕虜가되얏다고 그것을 卑이라고할수는 업슴니다
+  chars: '劫'->''
+## p072: DIFFERS
+  scan : 동풍에몰니는 소낙비는 산모롱이를 지나가고 ᄯᅳᆯ압희 파초닙위에 비ㅅ소리의 남은音波가 그뇌를 쒸립니다
+  wiki : 동풍에몰니는 소낙비는 산모롱이를 지나가고 ᄯᅳᆯ압희 파초닙위에 비ㅅ소리의 남은音波가 그늬를ᄯᅱᆷ니다
+  chars: '뇌'->'늬' | '쒸립'->'ᄯᅱᆷ'
+  scan : 죽은밤을지키는 외로은등잔ㅅ불의 구슬ᄭᅩᆺ이 제무게를 이기지못하야 고
+  wiki : 죽은밤을지키는 외로은등잔ㅅ불의 구슬ᄭᅩᆺ이 제무게를 이기지못하야
+  chars: '고'->''
+## p073: DIFFERS
+  scan : 요히ᄯᅥ러짐니다
+  wiki : 고요히ᄯᅥ러짐니다
+  chars: ''->'고'
+  scan : 적은새여 바람에흔들리는 약한가지에서 잠자는 적은새여
+  wiki : 적은새여 바람에흔들는 약한가지에서 잠자는 적은새여
+  chars: '리'->''
+## p074: DIFFERS
+  scan : 님의사랑은 鋼鐵을녹이는불보다도 ᄯᅳ거은데 님의손ㅅ길은 너미차서 限度가업슴니다
+  wiki : 님의사랑은 鋼鐵을녹이는불보다도 ᄯᅳ거은데 님의손ㅅ길은 너머차서 限度가업슴니다
+  chars: '미'->'머'
+## p075: DIFFERS
+  scan : 님의손ㅅ길의濕度를 測量할만한 寒暖計는 나의가슴밧게는 아모데도 업슴니다
+  wiki : 님의손ㅅ길의溫度를 測量할만한 寒暖計는 나의가슴밧게는 아모데도 업슴니다
+  chars: '濕'->'溫'
+## p076: DIFFERS
+  scan : 철모르는아해들은 뒤ㅅ동산에 해당화가픠엿다고 다투어말하기로 듯고도 못드른체 하얏더니
+  wiki : 철모르는아해들은 뒤ㅅ동산에 해당화가픠였다고 다투어말하기로 듯고도 못드른체 하얏더니
+  chars: '엿'->'였'
+## p077: DIFFERS
+  scan : 나는 집도업고 다른ᄭᅡ닭을겸하야 民籍이업슴이다
+  wiki : 나는 집도업고 다른ᄭᅡ닭을겸하야 民籍이업슴다
+  chars: '이'->''
+## p078: DIFFERS
+  scan : 아아 왼갓 倫理、道德、法律은 칼과黃金을祭祀지내는 烟氣인줄을 아럿슴니다
+  scan : 永遠의사랑을 바들ㅅ가 人間歷史의첫페지에 잉크칠을할ㅅ가 술을말실ㅅ가 망서릴ᄯᅢ에 당신을보앗슴니다
+  wiki : 아아 왼갓 倫理, 道德, 法律은 칼과黃金을祭祀지내는 烟氣인줄을 아럿슴니다
+  wiki : 永遠의사랑을 바들ㅅ가 人間歷史의첫페지에 잉크칠을할ㅅ가 술을실ㅅ가 망서릴ᄯᅢ에 당신을보앗슴니다
+  chars: '、'->',' | '、'->','
+  chars: '말'->''
