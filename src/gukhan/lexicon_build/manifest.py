@@ -16,12 +16,31 @@ NOTICE_OPENDICT = "國立國語院 《우리말샘》(opendict.korean.go.kr, CC 
 NOTICE_WIKT = (
     "Wiktionary 寄與者들의 Korean 項目 (en.wiktionary.org, CC BY-SA 4.0; kaikki.org의 wiktextract 抽出本 使用)"
 )
+NOTICE_KOWIKI = "한국어 위키백과 기여자들의 문서 첫 문단 (ko.wikipedia.org, CC BY-SA 4.0)"
+NOTICE_WIKIDATA = "Wikidata 어휘소 (www.wikidata.org, CC0 1.0)"
 NOTICE_UNIHAN = "漢字 讀音은 Unicode Unihan database(Unicode License v3)를 사용하였습니다."
 
 
-def licence_notice(*, stdict: bool, wiktextract: bool, unihan: bool, licence: str, opendict: bool = False) -> str:
+def licence_notice(
+    *,
+    stdict: bool,
+    wiktextract: bool,
+    unihan: bool,
+    licence: str,
+    opendict: bool = False,
+    kowiki: bool = False,
+    wikidata: bool = False,
+) -> str:
     parts = [
-        n for n, used in ((NOTICE_STDICT, stdict), (NOTICE_OPENDICT, opendict), (NOTICE_WIKT, wiktextract)) if used
+        n
+        for n, used in (
+            (NOTICE_STDICT, stdict),
+            (NOTICE_OPENDICT, opendict),
+            (NOTICE_WIKT, wiktextract),
+            (NOTICE_KOWIKI, kowiki),
+            (NOTICE_WIKIDATA, wikidata),
+        )
+        if used
     ]
     text = (
         "이 사전 데이터는 " + "과 ".join(parts) + f"을(를) 바탕으로 만들어졌으며, {licence} 라이선스에 따라 配布됩니다."
@@ -58,6 +77,8 @@ def write_manifest(
     stdict: Path | None,
     wiktextract: list[Path],
     opendict: Path | None = None,
+    kowiki: Path | None = None,
+    wikidata_lexemes: Path | None = None,
     unihan: Path | None,
     unihan_version: str | None,
     licence: str,
@@ -74,6 +95,8 @@ def write_manifest(
             stdict=bool(stdict),
             opendict=bool(opendict),
             wiktextract=bool(wiktextract),
+            kowiki=bool(kowiki),
+            wikidata=bool(wikidata_lexemes),
             unihan=bool(unihan),
             licence=licence,
         ),
@@ -101,6 +124,20 @@ def write_manifest(
                 }
                 for p in wiktextract
             ],
+            "kowiki": (
+                {
+                    "name": "Korean Wikipedia dump (article leads: Hangul + parenthesised Hanja)",
+                    "licence": "CC-BY-SA-4.0 AND GFDL-1.3",
+                    **describe_input(kowiki),
+                }
+                if kowiki
+                else None
+            ),
+            "wikidata_lexemes": (
+                {"name": "Wikidata lexeme dump", "licence": "CC0-1.0", **describe_input(wikidata_lexemes)}
+                if wikidata_lexemes
+                else None
+            ),
             "unihan": (
                 {
                     "name": "Unicode Unihan database",

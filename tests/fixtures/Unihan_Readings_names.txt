@@ -1,0 +1,18 @@
+# Unihan_Readings-16.0.0.txt  (hand-written excerpt in Unihan format, test fixture only)
+U+674E	kHangul	리:0E
+U+821C	kHangul	순:0E
+U+81E3	kHangul	신:0E
+U+5927	kHangul	대:0E
+U+97D3	kHangul	한:0E
+U+6C11	kHangul	민:0E
+U+570B	kHangul	국:0E
+U+61B2	kHangul	헌:0E
+U+6CD5	kHangul	법:0E
+U+96FB	kHangul	전:0E
+U+6C23	kHangul	기:0E
+U+6BDB	kHangul	모:0E
+U+6FA4	kHangul	택:0E
+U+6771	kHangul	동:0E
+U+7279	kHangul	특:0E
+U+5225	kHangul	별:0E
+U+5E02	kHangul	시:0E
