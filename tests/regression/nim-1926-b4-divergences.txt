@@ -1,0 +1,21 @@
+# 님의 沈黙 1926 batch 4: scan vs ko.wikisource divergences (PDF pp.86-91)
+# Gold follows the scan. Notes:
+#  p090 푸려주는 (scan) vs 푸러주는 (Wikisource): the glyph is read as 려 at high zoom but is not fully certain.
+#  p090 그럼으로 (scan, confirmed at zoom) vs 그러므로 (Wikisource normalisation).
+#  p090 열 vs 얼거매는: the scan prints 얼거매는; the gold follows the scan.
+#  p090/p091 page-break join: 줄 + 을 split across pages shows as a difference only because of the break.
+
+## p090: DIFFERS
+  scan : 사랑의束縛은 단々히 얼거매는것이 푸려주는것임니다
+  scan : 그럼으로 大解脫은 束縛에서 엇는것임니다
+  scan : 님이어 나를얽은 님의사랑의줄이 약할가버서 나의 님을사랑하는줄
+  wiki : 사랑의束縛은 단々히 얼거매는것이 푸러주는것임니다
+  wiki : 그러므로 大解脫은 束縛에서 엇는것임니다
+  wiki : 님이어 나를얽은 님의사랑의줄이 약할가버서 나의 님을사랑하는줄을
+  chars: '려'->'러'
+  chars: '럼으'->'러므'
+  chars: ''->'을'
+## p091: DIFFERS
+  scan : 을 곱드렷슴니다
+  wiki : 곱드렷슴니다
+  chars: '을'->''
