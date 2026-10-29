@@ -17,14 +17,18 @@ addons.mozilla.org 서명이 필요합니다(아직 게시하지 않았습니다
 설정에서 사전과 manifest를 함께 가져온 뒤 전체 스위치와 사이트 스위치를 켜세요.
 밑줄 단어를 누르면 후보를 보고 선택을 저장할 수 있습니다. 끄면 원문으로 돌아갑니다.
 
-This is an exact whole-word preview, without Kiwi morphology. Words with attached
-particles and endings usually remain unchanged. Ambiguous forms and single-syllable
-words remain Hangul until the user chooses. CLI regression scores do not apply.
+This preview has no morphology model. It matches whole words, plus a fixed list of
+particles and endings (가, 는, 에서, 하는, 된 …): the stem must be a dictionary word and the
+particle stays in Hangul (`전기가` → 電氣가 once 전기 is decided). Anything else with an
+ending stays unchanged. Phrase entries (`전기 공학 = 電氣 工學`, in the dictionary or in your
+choices) match words separated by one space. Ambiguous words and single-syllable words stay
+Hangul until the user chooses. CLI regression scores do not apply.
 Code, links, controls and editable regions are skipped. Cross-frame and shadow-root
 content is not supported. Dynamic pages may conflict with DOM rewriting; turn the
 site off if its layout or interaction changes.
 
-한국어: 형태소 분석 없는 완전 일치 방식이므로 조사·어미가 붙으면 보류될 수 있습니다.
+한국어: 형태소 분석이 없습니다. 완전 일치와 정해진 조사·어미 목록만 처리하며, 그 밖의 어미는 그대로 둡니다.
+句(「전기 공학 = 電氣 工學」)는 한 칸 띄어 쓴 낱말에 적용됩니다.
 CLI 정확도 수치를 브라우저에 적용할 수 없습니다. 동적 페이지에서 문제가 생기면
 사이트 스위치를 끄세요. 프레임과 Shadow DOM 내부는 지원하지 않습니다.
 
@@ -41,8 +45,9 @@ Firefox: the manifest carries `browser_specific_settings.gecko` (id, minimum ver
 (Chrome) and `scripts` (Firefox event page). Chrome may show a harmless warning about the
 unknown `browser_specific_settings` key. `node extension/firefox-smoke.cjs` runs the same
 flow in an installed Firefox over Marionette (set `FIREFOX_BIN` if needed); it passed on
-2026-10-29 in Firefox 158 on Windows 11. Firefox may suspend the background page, which
-re-parses the dictionary on each wake. Privacy policy: `docs/privacy.md`.
+2026-10-29 in Firefox 158 on Windows 11. The imported dictionary is kept in IndexedDB, one record per headword (a 626k-headword import takes about a minute once);
+the background page reads only the words a page needs, so it does not re-parse anything when it wakes.
+Dictionaries imported before this change must be imported again. Privacy policy: `docs/privacy.md`.
 
 Validation: `node --test extension/engine.test.mjs` for the matching engine, and
 `node extension/browser-smoke.cjs` for a real Chromium run through Playwright

@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
-import {parseLexicon, convert} from './engine.mjs';
-let cached;
-async function lexicon() {
-  if (!cached) cached = chrome.storage.local.get('lexicon').then(s => parseLexicon(s.lexicon || ''));
-  return cached;
+import {convert, neededKeys} from './engine.mjs';
+import {readKeys} from './lexstore.js';
+
+// A small index with just the headwords (and phrase lists) the given texts can need.
+async function pageIndex(texts) {
+  const found = await readKeys(neededKeys(texts));
+  const phraseKeys = [...found].filter(([k]) => k.startsWith(' ')).flatMap(([, list]) => list);
+  for (const [k, v] of await readKeys(phraseKeys)) found.set(k, v);
+  const index = new Map();
+  for (const [k, v] of found) if (!k.startsWith(' ')) index.set(k, v);
+  return index;
 }
-chrome.storage.onChanged.addListener(changes => { if (changes.lexicon) cached = undefined; });
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   (async () => {
     if (message.type !== 'convert' || !sender.tab || !Array.isArray(message.texts)) return {};
@@ -15,8 +20,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (message.texts.length > 100 || message.texts.some(t => typeof t !== 'string' || t.length > 20000)) {
       throw new Error('Page batch too large');
     }
-    const index = await lexicon();
+    const index = await pageIndex(message.texts);
     return {results: message.texts.map(t => convert(t, index, settings.overrides || {}))};
-  })().then(reply, e => reply({error: String(e)}));
+  })().then(reply, e => { console.error(e); reply({error: String(e)}); });
   return true;
 });

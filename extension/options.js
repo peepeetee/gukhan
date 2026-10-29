@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import {parseLexicon} from './engine.mjs';
+import {saveIndex} from './lexstore.js';
 const status = document.querySelector('#status');
 async function show() {
   const s = await chrome.storage.local.get(['notice', 'overrides']);
@@ -17,7 +18,10 @@ document.querySelector('#import').onclick = async () => {
     if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('Manifest does not match dictionary');
     const entries = parseLexicon(text);
     if (!entries.size) throw new Error('Empty dictionary');
-    await chrome.storage.local.set({lexicon: text, notice: metadata.notice});
+    status.textContent = '저장 중… / Saving…';
+    await saveIndex(entries);
+    await chrome.storage.local.remove('lexicon');  // pre-IndexedDB copy
+    await chrome.storage.local.set({lexiconInfo: {headwords: entries.size, sha256: digest}, notice: metadata.notice});
     status.textContent = `${entries.size} 단어 / headwords imported`; await show();
   } catch (e) { status.textContent = String(e); }
 };
@@ -28,9 +32,13 @@ document.querySelector('#save').onclick = async () => {
     for (const raw of document.querySelector('#overrides').value.split('\n')) {
       const line = raw.split('#', 1)[0].trim();
       if (!line) continue;
-      const m = line.match(/^([가-힣]+)\s*(?:=|\t)\s*([^=\s]+)$/u);
-      if (!m || (m[2] !== '-' && (!/^[가-힣\p{Script=Han}]+$/u.test(m[2]) || m[1].length !== m[2].length))) throw new Error('Invalid override / 선택 형식 오류');
-      overrides[m[1]] = m[2];
+      const m = line.match(/^([가-힣]+(?: [가-힣]+)*)\s*(?:=|\t)\s*(\S+(?: \S+)*)$/u);
+      // A phrase ("전기 공학 = 電氣 工學") keeps one space between words on both sides.
+      const key = m?.[1], val = m?.[2];
+      const ok = m && (val === '-' || (/^[가-힣\p{Script=Han}]+(?: [가-힣\p{Script=Han}]+)*$/u.test(val) &&
+        key.split(' ').length === val.split(' ').length && [...key.replace(/ /g, '')].length === [...val.replace(/ /g, '')].length));
+      if (!ok) throw new Error('Invalid override / 선택 형식 오류');
+      overrides[key] = val;
     }
     await chrome.storage.local.set({overrides}); status.textContent = '저장됨 / Saved';
   } catch (e) { status.textContent = String(e); }

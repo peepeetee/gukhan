@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 (() => {
   const wrappers = new Set();
+  const groups = [];  // {original, nodes}: the text node a conversion replaced, and the nodes standing in for it
   let generation = 0, timer, panel;
   const protectedSelector = 'script,style,textarea,input,select,option,pre,code,a,button,[contenteditable], [data-gukhan]';
   function restore() {
+    // Put each replaced text node back whole, so a later pass sees "전기 공학" as one text again.
+    for (const {original, nodes} of groups) {
+      if (!nodes.every(n => n.isConnected)) continue;
+      nodes[0].replaceWith(original);
+      for (const n of nodes.slice(1)) n.remove();
+    }
+    groups.length = 0;
     for (const span of wrappers) {
       if (span.isConnected) span.replaceWith(document.createTextNode(span.dataset.original));
     }
@@ -60,7 +68,8 @@
             span.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') choose(e, decision); });
             wrappers.add(span); fragment.append(span); end = decision.end;
           }
-          fragment.append(document.createTextNode(originals[i].slice(end))); node.replaceWith(fragment);
+          fragment.append(document.createTextNode(originals[i].slice(end)));
+          groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
         });
       }
     } finally {
