@@ -70,6 +70,42 @@ is off by default and the single-syllable rule carries the caution instead.
 `wrong` and `over` are the numbers that matter most: the tool promises never
 to guess, so they should stay near zero while `flagged` shrinks.
 
+## 우리말샘 and evidence rules / 우리말샘과 근거 규칙 (2026-10-29)
+
+Lexicon: 標準國語大辭典 (88 chunks) + 우리말샘 (25 chunks) + Wiktionary + 韓國語基礎辭典
++ learner list + Unihan 18.0.0, mirror commit `42c0d01889f34536e9cf94fe57f62bd2055b1bde`,
+Kiwi 0.24.1 `cong`. Rows are `gukhan-regress score <set> --lexicon <build> [--rules …]`.
+Columns: words, right, partial, flagged, wrong, over.
+
+| id | PR #12 baseline (old merge, no rules) | new lexicon, `--rules none` | new lexicon, default rules | `--rules all` (adds `verb`) |
+| --- | --- | --- | --- | --- |
+| constitution-1948 | 1897 · 845 · 80 · 967 · **5** · 1 | 659 · 89 · 1144 · **5** · 1 | **892** · 93 · 907 · **5** · 3 | 990 · 94 · 806 · **7** · 3 |
+| constitution-1952 | 2149 · 907 · 97 · 1139 · **6** · 2 | 719 · 113 · 1311 · **6** · 1 | **967** · 119 · 1057 · **6** · 5 | 1084 · 119 · 938 · **8** · 5 |
+| constitution-1954 | 2244 · 950 · 91 · 1198 · **5** · 3 | 745 · 105 · 1389 · **5** · 1 | **1020** · 114 · 1105 · **5** · 7 | 1145 · 115 · 977 · **7** · 7 |
+| declaration-1919 | 497 · 138 · 17 · 332 · **10** · 2 | 144 · 26 · 317 · **10** · 5 | **150** · 26 · 312 · **9** · 4 | 161 · 23 · 302 · **11** · 4 |
+| provisional-charter-1919 | 133 · 44 · 8 · 79 · **2** · 0 | 44 · 9 · 79 · **1** · 0 | **47** · 5 · 79 · **2** · 0 | 50 · 5 · 76 · **2** · 0 |
+| nim-preface-1926 | 12 · 2 · 0 · 10 · **0** · 3 | 2 · 0 · 10 · **0** · 2 | 2 · 0 · 10 · **0** · 2 | 2 · 0 · 10 · **0** · 2 |
+
+Reading the table:
+
+- The builder change alone (one lexicon line per part-of-speech group) lowers *right*
+  from 845 to 659 on 1948 and leaves wrong unchanged. It stops hiding alternative
+  readings that the old merge dropped by accident (제 was 第 only because other readings such as 諸 were
+  merged away); the evidence rules then recover that and more.
+- Default rules: right +47, +60, +70 on the three constitutions (+5.6% to +7.4%), wrong
+  unchanged; flagged-or-partial falls from 1047 to 1000 on 1948. In the 1948 set the largest
+  recovered groups are 제N조 (`ordinal`, `division`), compact compounds such as 國務委員
+  (`compound`) and a common-noun reading over a place or surname (`name`).
+- `verb` adds 98, 117 and 125 right words on the three constitutions and 2 wrong words each: 妨害 for 防害
+  (the dictionary has 妨害하다 only), 回附 for 廻付 and 竝進 for 幷進 (variant forms of the
+  same words). It is therefore off by default.
+- `over` rises on the constitutions because a bracketed amendment note, `<제1호,1948.7.17>`,
+  is kept in Hangul in the gold and the tool writes 第1號 there, and because 即 for 즉 and
+  安易 for 안이 are written where the 1919 author kept Hangul. These are not wrong readings
+  but they are conversions the gold did not make.
+- Chars: wrong characters 7 → 7, 9 → 9, 7 → 7, 10 → 11, 2 → 2 (declaration-1919 gains one
+  wrong character in a word that was a plain flag before).
+
 ## Combined dictionary measurement / 통합 사전 측정
 
 2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.
