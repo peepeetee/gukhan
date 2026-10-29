@@ -1,0 +1,19 @@
+# 님의 沈黙 1926 batch 7: scan vs ko.wikisource divergences (PDF pp.102-107)
+# Gold follows the scan. Notes (all confirmed at high zoom):
+#  p102 아츰이슬 (scan) vs 아침이슬 (Wikisource).
+#  p103 鍜鍊 (scan prints 鍜) vs a corrected 鍛 in Wikisource, whose page text drops it.
+#  p106 아름담고 (scan) vs a corrected 아름답고 in Wikisource.
+#  p105/p106: the line ending 그대의當年을 continues with 回想한다 across the page break.
+
+## p102: DIFFERS
+  scan : ᄭᅩᆺ송이에는 아츰이슬이 아즉마르지아니한가 하얏더니 아々 나의눈물이 ᄯᅥ러진줄이야 ᄭᅩᆺ이먼저아럿슴니다
+  wiki : ᄭᅩᆺ송이에는 아침이슬이 아즉마르지아니한가 하얏더니 아々 나의눈물이 ᄯᅥ러진줄이야 ᄭᅩᆺ이먼저아럿슴니다
+  chars: '츰'->'침'
+## p103: DIFFERS
+  scan : 님이어 당신은 百番이나 鍜鍊한金결임니다
+  wiki : 님이어 당신은 百番이나鍊한金결임니다
+  chars: '鍜'->''
+## p106: DIFFERS
+  scan : 아름담고無毒한 그대의눈은 비록우섯지만 우는것보다도 더욱슯엇다
+  wiki : 아름고無毒한 그대의눈은 비록우섯지만 우는것보다도 더욱슯엇다
+  chars: '담'->''
