@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // End-to-end check of the unpacked extension in a real Firefox, driven over Marionette.
-// No dependencies: Node's built-in net and http, plus an installed Firefox (>= 128).
+// No dependencies: Node's built-in net and http, plus an installed Firefox (>= 140).
 // Set FIREFOX_BIN to the executable if it is not in a default location.
 const {spawn} = require('node:child_process');
 const assert = require('node:assert/strict');
