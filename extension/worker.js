@@ -25,3 +25,5 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   })().then(reply, e => { console.error(e); reply({error: String(e)}); });
   return true;
 });
+// First install: open settings, where a bundled dictionary (if this build has one) is loaded.
+chrome.runtime.onInstalled.addListener(({reason}) => { if (reason === 'install') chrome.runtime.openOptionsPage(); });

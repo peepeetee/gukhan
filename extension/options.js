@@ -7,24 +7,40 @@ async function show() {
   document.querySelector('#notice').textContent = s.notice || '';
   document.querySelector('#overrides').value = Object.entries(s.overrides || {}).map(([w, h]) => `${w} = ${h}`).join('\n');
 }
+// Import a dictionary: the bytes of lexicon.tsv and the parsed manifest.json that describes them.
+async function importDictionary(bytes, metadata) {
+  const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+  if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('Manifest does not match dictionary');
+  const entries = parseLexicon(new TextDecoder().decode(bytes));
+  if (!entries.size) throw new Error('Empty dictionary');
+  status.textContent = '저장 중… / Saving…';
+  await saveIndex(entries);
+  await chrome.storage.local.remove('lexicon');  // pre-IndexedDB copy
+  await chrome.storage.local.set({lexiconInfo: {headwords: entries.size, sha256: digest}, notice: metadata.notice});
+  status.textContent = `${entries.size} 단어 / headwords imported`; await show();
+}
 document.querySelector('#import').onclick = async () => {
   try {
     const files = [...document.querySelector('#files').files];
     const lex = files.find(f => f.name === 'lexicon.tsv'), manifest = files.find(f => f.name === 'manifest.json');
     if (!lex || !manifest) throw new Error('Select lexicon.tsv + manifest.json');
-    const text = await lex.text(), metadata = JSON.parse(await manifest.text());
-    const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', await lex.arrayBuffer()))]
-      .map(x => x.toString(16).padStart(2, '0')).join('');
-    if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('Manifest does not match dictionary');
-    const entries = parseLexicon(text);
-    if (!entries.size) throw new Error('Empty dictionary');
-    status.textContent = '저장 중… / Saving…';
-    await saveIndex(entries);
-    await chrome.storage.local.remove('lexicon');  // pre-IndexedDB copy
-    await chrome.storage.local.set({lexiconInfo: {headwords: entries.size, sha256: digest}, notice: metadata.notice});
-    status.textContent = `${entries.size} 단어 / headwords imported`; await show();
+    await importDictionary(await lex.arrayBuffer(), JSON.parse(await manifest.text()));
   } catch (e) { status.textContent = String(e); }
 };
+// A dictionary shipped inside the add-on (dictionary/lexicon.tsv + manifest.json) is loaded on
+// first run, and again whenever the add-on ships a different one. Nothing is fetched from the web.
+async function loadBundled() {
+  let metadata;
+  try {
+    const response = await fetch('dictionary/manifest.json');
+    if (!response.ok) return;
+    metadata = await response.json();
+  } catch { return; }  // no bundled dictionary in this build
+  const {lexiconInfo} = await chrome.storage.local.get('lexiconInfo');
+  if (lexiconInfo?.sha256 === metadata.outputs?.lexicon?.sha256) return;
+  status.textContent = '내장 사전을 불러오는 중입니다 (1분쯤) / Loading the built-in dictionary (about a minute)…';
+  await importDictionary(await (await fetch('dictionary/lexicon.tsv')).arrayBuffer(), metadata);
+}
 document.querySelector('#save').onclick = async () => {
   try {
     const overrides = {};
@@ -44,3 +60,4 @@ document.querySelector('#save').onclick = async () => {
   } catch (e) { status.textContent = String(e); }
 };
 show();
+loadBundled().catch(e => { status.textContent = String(e); });
