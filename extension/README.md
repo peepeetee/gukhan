@@ -51,6 +51,16 @@ flow in an installed Firefox over Marionette (set `FIREFOX_BIN` if needed); it p
 the background page reads only the words a page needs, so it does not re-parse anything when it wakes.
 Dictionaries imported before this change must be imported again. Privacy policy: `docs/privacy.md`.
 
+Builds: `python scripts/package_extension.py out.xpi` makes the code-only package.
+`--dictionary build/lexicon` bundles the dictionary under `dictionary/` (loaded on first install,
+and again when a build ships a different one; the settings page opens by itself), and
+`--no-definitions` drops the part-of-speech, source and definition columns (about 5x smaller; the
+candidate card then lists only the Hanja). The dictionary keeps its own licence (a notice file sits
+beside it); the add-on code is Apache-2.0 (`LICENSE.txt` in the package). Extension pages may only
+read the add-on's own files (`connect-src 'self'`); nothing is fetched from the web.
+
+한국어: 사전을 같이 묶은 版은 처음 설치할 때 자동으로 불러옵니다. 사전은 별도의 라이선스(CC BY-SA 2.0 KR)를 따릅니다.
+
 Validation: `node --test extension/engine.test.mjs` for the matching engine, and
 `node extension/browser-smoke.cjs` for a real Chromium run through Playwright
 (dictionary import with manifest check, candidate panel, saved override, protected

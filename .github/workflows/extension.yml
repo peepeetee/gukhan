@@ -24,5 +24,7 @@ jobs:
           npx --prefix build/browser-check playwright install --with-deps chromium
       - name: Browser smoke test (real extension in headless Chromium)
         run: node extension/browser-smoke.cjs
+      - name: Bundled-dictionary smoke test (first install loads it)
+        run: node extension/bundled-smoke.cjs
       - name: Firefox smoke test (same extension in the runner's Firefox)
         run: node extension/firefox-smoke.cjs
