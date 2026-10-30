@@ -4,14 +4,16 @@
   const groups = [];  // {original, nodes}: the text node a conversion replaced, and the nodes standing in for it
   let generation = 0, timer, panel;
   const protectedSelector = 'script,style,textarea,input,select,option,pre,code,a,button,[contenteditable], [data-gukhan]';
-  function restore() {
-    // Put each replaced text node back whole, so a later pass sees "전기 공학" as one text again.
-    for (const {original, nodes} of groups) {
-      if (!nodes.every(n => n.isConnected)) continue;
-      nodes[0].replaceWith(original);
-      for (const n of nodes.slice(1)) n.remove();
+  const mine = new WeakSet();  // the plain text pieces this script created around converted words
+  function restoreGroup(group) {
+    // Put the replaced text node back whole, so a later pass sees "전기 공학" as one text again.
+    if (group.nodes.every(n => n.isConnected)) {
+      group.nodes[0].replaceWith(group.original);
+      for (const n of group.nodes.slice(1)) n.remove();
     }
-    groups.length = 0;
+  }
+  function restoreAll() {
+    groups.forEach(restoreGroup); groups.length = 0;
     for (const span of wrappers) {
       if (span.isConnected) span.replaceWith(document.createTextNode(span.dataset.original));
     }
@@ -111,46 +113,86 @@
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); }
     });
   }
-  async function render() {
-    const run = ++generation;
-    observer.disconnect(); restore();
-    try {
-      const s = await chrome.storage.local.get(['enabled', 'sites']);
-      if (!s.enabled || !s.sites?.[location.hostname]) return;
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {acceptNode(node) {
-        return node.parentElement && !node.parentElement.closest(protectedSelector) && /[가-힣]/.test(node.data) && node.data.length <= 20000
-          ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-      }});
-      const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-      for (let offset = 0; offset < nodes.length; offset += 50) {
-        const batch = nodes.slice(offset, offset + 50), originals = batch.map(n => n.data);
-        const response = await chrome.runtime.sendMessage({type: 'convert', texts: originals});
-        if (run !== generation || !response?.results) return;
-        batch.forEach((node, i) => {
-          if (!node.isConnected || node.data !== originals[i] || !response.results[i].length) return;
-          const fragment = document.createDocumentFragment(); let end = 0;
-          for (const decision of response.results[i]) {
-            fragment.append(document.createTextNode(originals[i].slice(end, decision.start)));
-            const span = document.createElement('span'); span.dataset.gukhan = 'word';
-            span.dataset.original = decision.word; span.textContent = decision.text;
-            span.tabIndex = 0; span.setAttribute('role', 'button'); span.setAttribute('aria-haspopup', 'true');
-            span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
-            span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
-            attach(span, decision);
-            wrappers.add(span); fragment.append(span); end = decision.end;
-          }
-          fragment.append(document.createTextNode(originals[i].slice(end)));
-          groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
-        });
-      }
-    } finally {
-      observer.observe(document.body, {childList: true, subtree: true, characterData: true});
-    }
+  // Text nodes with Hangul that are not ours and not inside protected elements.
+  function freshNodes() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {acceptNode(node) {
+      return !mine.has(node) && node.parentElement && !node.parentElement.closest(protectedSelector) &&
+        /[가-힣]/.test(node.data) && node.data.length <= 20000 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    }});
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    return nodes;
   }
-  function schedule() { ++generation; clearTimeout(timer); timer = setTimeout(() => render().catch(console.error), 150); }
+  async function convertAll(texts) {
+    const results = [];
+    for (let offset = 0; offset < texts.length; offset += 50) {
+      const response = await chrome.runtime.sendMessage({type: 'convert', texts: texts.slice(offset, offset + 50)});
+      if (!response?.results) return;
+      results.push(...response.results);
+    }
+    return results;
+  }
+  // Replace `node` (a text node in the page) with words wrapped in buttons for `decisions`.
+  function apply(node, text, decisions) {
+    const fragment = document.createDocumentFragment(); let end = 0;
+    const plain = t => { const n = document.createTextNode(t); mine.add(n); fragment.append(n); };
+    for (const decision of decisions) {
+      plain(text.slice(end, decision.start));
+      const span = document.createElement('span'); span.dataset.gukhan = 'word';
+      span.dataset.original = decision.word; span.textContent = decision.text;
+      span.tabIndex = 0; span.setAttribute('role', 'button'); span.setAttribute('aria-haspopup', 'true');
+      span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
+      span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
+      attach(span, decision);
+      wrappers.add(span); fragment.append(span); end = decision.end;
+    }
+    plain(text.slice(end));
+    groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
+  }
+  async function enabled() {
+    const s = await chrome.storage.local.get(['enabled', 'sites']);
+    return !!(s.enabled && s.sites?.[location.hostname]);
+  }
+  // Everything below changes the page only in one synchronous step, with the observer off, so the
+  // reader never sees Hangul flash back between a restore and the next conversion.
+  async function render(full) {
+    const run = full ? ++generation : generation;
+    if (!await enabled()) { if (run === generation) { observer.disconnect(); restoreAll(); watch(); } return; }
+    const items = freshNodes().map(node => ({node, text: node.data}));
+    if (full) for (const group of groups) items.push({group, text: group.original.data});
+    const results = await convertAll(items.map(i => i.text));
+    if (!results || run !== generation) return;
+    observer.disconnect();
+    try {
+      if (full) { for (const group of groups) restoreGroup(group); groups.length = 0; closePopover(); }
+      items.forEach((item, i) => {
+        const node = item.group ? item.group.original : item.node;
+        if (!results[i].length || (!item.group && (!node.isConnected || node.data !== item.text))) return;
+        if (item.group && !node.isConnected) return;
+        apply(node, item.text, results[i]);
+      });
+    } finally { watch(); }
+    if (full) schedule(false);  // pick up anything the page added while we were converting
+  }
+  function watch() { observer.observe(document.body, {childList: true, subtree: true, characterData: true}); }
+  let running = false, again = false, fullPending = false;
+  function schedule(full) {
+    fullPending ||= full;
+    if (timer) return;  // a run is already queued; a busy page must not starve it by resetting the delay
+    timer = setTimeout(async () => {
+      timer = undefined;
+      if (running) { again = true; return; }
+      running = true;
+      try {
+        do { again = false; const f = fullPending; fullPending = false; await render(f); } while (again || fullPending);
+      } catch (e) { console.error(e); } finally { running = false; }
+    }, 150);
+  }
   const observer = new MutationObserver(records => {
-    if (records.some(r => !r.target.parentElement?.closest('[data-gukhan]'))) schedule();
+    if (records.some(r => !r.target.parentElement?.closest('[data-gukhan]'))) schedule(false);
   });
-  chrome.storage.onChanged.addListener(schedule);
-  schedule();
+  chrome.storage.onChanged.addListener(changes => {
+    // Only settings that change what the page shows; unrelated writes must not redraw it.
+    if (['enabled', 'sites', 'overrides', 'lexiconInfo'].some(k => k in changes)) schedule(true);
+  });
+  schedule(true);
 })();
