@@ -45,3 +45,21 @@ def test_package_without_dictionary(tmp_path):
     assert pkg.main([str(out)]) == 0
     with zipfile.ZipFile(out) as z:
         assert not any(n.startswith("dictionary/") for n in z.namelist())
+
+
+def test_chrome_target_manifest(tmp_path):
+    out = tmp_path / "c.zip"
+    assert pkg.main([str(out), "--target", "chrome"]) == 0
+    with zipfile.ZipFile(out) as z:
+        m = json.loads(z.read("manifest.json"))
+    assert m["manifest_version"] == 3
+    assert "browser_specific_settings" not in m and "host_permissions" not in m
+    assert "scripts" not in m["background"] and m["background"]["service_worker"] == "worker.js"
+    assert m["content_scripts"][0]["matches"] == ["http://*/*", "https://*/*"]
+
+
+def test_firefox_target_keeps_gecko_keys(tmp_path):
+    out = tmp_path / "f.xpi"
+    assert pkg.main([str(out)]) == 0
+    with zipfile.ZipFile(out) as z:
+        assert "browser_specific_settings" in json.loads(z.read("manifest.json"))
