@@ -3,16 +3,16 @@
 Hangul → Hanja mixed-script converter. 한글 文章을 國漢文混用體로 바꿔 주는 道具입니다.
 將韓文諺文轉為國漢混用文的工具。
 
-Status: pre-alpha. The CLI converts text with a small bundled sample lexicon;
-the real lexicon is built by `gukhan-lexicon-build` from a 표준국어대사전 dump
-you obtain yourself. Accuracy numbers will come only from the public regression
-set (milestone 4), never from marketing. Plan: [docs/PLAN.md](docs/PLAN.md).
+Status: pre-release, not yet published to PyPI. Accuracy numbers come only from the public
+regression set (see [Regression set and accuracy](#regression-set-and-accuracy)), never from
+marketing. Plan: [docs/PLAN.md](docs/PLAN.md). Release steps: [docs/RELEASE.md](docs/RELEASE.md).
 
 ## Install and use
 
 ```
-pip install -e .            # pulls kiwipiepy (Apache-2.0) with its model
-gukhan input.md             # converted text to stdout (sample lexicon)
+pip install gukhan                 # code only (Apache-2.0); pulls kiwipiepy with its model
+pip install "gukhan[lexicon]"      # plus the prebuilt lexicon, gukhan-lexicon (CC BY-SA 4.0)
+gukhan input.md             # converted text to stdout (installed lexicon, else a tiny sample)
 gukhan input.md -o out.md --report flagged.tsv --overrides my.txt --mark
 gukhan input.md --lexicon build/lexicon/     # a lexicon you built
 ```
@@ -80,38 +80,52 @@ extension processes text locally and sends nothing anywhere.
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
-Scores, 2026-10-29, lexicon built from 標準國語大辭典 + 우리말샘 + Wiktionary
-(kaikki.org) + 韓國語基礎辭典 + Unihan 18.0.0 (705,000 lines), Kiwi 0.24.1, default settings
-(evidence rules `default`, docs/PLAN.md §5a):
+Scores, 2026-11-01, on the lexicon built that day (標準國語大辭典 88 chunks + 우리말샘 +
+Wiktionary (kaikki.org) + 韓國語基礎辭典 + learner list + Unihan 18.0.0; 704,912 entries),
+Kiwi 0.24.1, default settings (evidence rules `default`, docs/PLAN.md §5a). A word is one
+run of Hanja in the published text. "flagged or partial" counts words the tool left in Hangul
+(abstained) or converted only in part; those are not errors. `wrong` is Hanja that differs from
+the published text; `over` is Hanja written where the published text has Hangul.
 
-| source | items | words | right | wrong | flagged or partial |
-| --- | --- | --- | --- | --- | --- |
-| 大韓民國憲法 1948 | 321 | 1897 | 47.0% | 5 (0.3%) | 1000 |
-| 憲法 1952 amendment | 352 | 2149 | 45.0% | 6 (0.3%) | 1176 |
-| 憲法 1954 amendment | 360 | 2244 | 45.5% | 5 (0.2%) | 1219 |
-| 大韓民國臨時憲章 1919 | 22 | 133 | 35.3% | 2 (1.5%) | 84 |
-| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 338 |
+| source | items | words | right | wrong | over | flagged or partial |
+| --- | --- | --- | --- | --- | --- | --- |
+| 大韓民國憲法 1948 | 321 | 1897 | 47.0% | 5 (0.3%) | 3 | 1000 (907 flagged) |
+| 憲法 1952 amendment | 352 | 2149 | 45.0% | 6 (0.3%) | 5 | 1176 |
+| 憲法 1954 amendment | 360 | 2244 | 45.5% | 5 (0.2%) | 7 | 1219 |
+| 大韓民國臨時憲章 1919 | 22 | 133 | 35.3% | 2 (1.5%) | 0 | 84 |
+| 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 4 | 338 |
+| 님의 沈黙 1926, batches b1–b8 and preface (poetry) | 251 | 585 | 23.1% | 8 (1.4%) | 126 | 442 |
 
-The same sets before 우리말샘 and the evidence rules (2026-10-28): right 44.7%,
-42.5%, 42.6%, 32.3%, 27.4%; wrong 13, 14, 15, 4, 13 words. Full tables, with
-`over` and per-rule effects, are in tests/regression/README.md.
+On the 1948 text, 80.7% of the gold words are among the candidates the tool wrote or offered.
+Full tables, `over` lists and per-rule effects are in tests/regression/README.md.
 
-Per Hanja character on the 1948 text: 48.7% right, 0.4% wrong. The larger
-dictionary removes the reported 繼承→階乘, 移轉→以前 and 前項→全항 errors,
-but increases abstentions. Errors remain, including 大法院→帶법원 and
-archaic 안이→安易. These historical texts do not establish modern-text accuracy.
-한국어: 사전 확대로 일부 오변환은 줄었지만 보류는 늘었습니다. 1919년 옛말,
-하야·안이·옛 자모와 인명은 현대 형태소 분석기의 한계로 수동 검토가 필요합니다.
-The large `flagged` share is by design: the tool abstains where it cannot be
-sure, and a user override file turns repeated flags into conversions.
+Reading the numbers:
+
+- The tool abstains rather than guesses: more than half of the words in the constitutions stay in
+  Hangul. That is the intended trade, and a user override file turns repeated flags into
+  conversions (`gukhan review`).
+- `over` is the weak spot on literary text. In 님의 沈黙 the author wrote many native words in
+  Hangul, and the tool sometimes reads them as Sino-Korean: 사랑 ("love") becomes 舍廊 ("men's
+  quarters") in at least 30 listed cases, 조→兆, 별→別, 거→炬. Wrong output on common words like
+  these is the main known problem. An override line (`사랑 = -`) keeps a word in Hangul.
+- These are pre-1970 legal and literary texts, written for a register the Kiwi analyser was not
+  trained on. They do not establish accuracy on modern text, which has not been measured.
+
+한국어: 憲法 本文에서 誤變換은 0.2~0.3%이나 절반 이상은 變換하지 않고 남깁니다. 詩集에서는
+固有語를 漢字語로 읽는 誤變換(사랑→舍廊)이 가장 큰 約點입니다. 現代 文章의 正確度는 아직 測定하지 않았습니다.
+
+Per Hanja character on the 1948 text: 51.9% right, 0.2% wrong (7 of 4,038). The five wrong words
+there are 總綱→銃腔, 命→名, 總理令→摠理營, 國防上→國防相 and 秘密會→祕密會 (a variant
+form of the same character, counted as wrong because it differs from the published text).
+한국어: 1919년 옛말, 하야·안이·옛 자모와 인명은 현대 형태소 분석기의 한계로 수동 검토가 필요합니다.
 
 ## Licence
 
 - Code: [Apache-2.0](LICENSE). Keep the [NOTICE](NOTICE) file with any copy.
-- Lexicon data: distributed separately as `gukhan-lexicon` under CC BY-SA,
-  built from Wiktionary's Korean entries (CC BY-SA 4.0) and/or 國立國語院
-  《標準國語大辭典》 (CC BY-SA 2.0 KR), validated with the Unicode Unihan
-  database. The build manifest states which.
+- Lexicon data: distributed separately as `gukhan-lexicon` under CC BY-SA 4.0 (the build
+  includes Wiktionary's Korean entries, CC BY-SA 4.0), from 國立國語院 《標準國語大辭典》 and
+  《우리말샘》 (CC BY-SA 2.0 KR) and the Unicode Unihan database. A build from the 國立國語院
+  dictionaries alone would stay CC BY-SA 2.0 KR. The build manifest states which.
 
 See [docs/licensing.md](docs/licensing.md) for the reasoning and
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for every source.

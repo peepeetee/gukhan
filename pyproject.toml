@@ -11,11 +11,24 @@ requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "the gukhan contributors" }]
+keywords = ["korean", "hanja", "hangul", "mixed-script", "kiwi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: Korean",
+    "Programming Language :: Python :: 3",
+    "Topic :: Text Processing :: Linguistic",
+]
 dependencies = [
     "kiwipiepy>=0.24",
 ]
 
+[project.urls]
+Homepage = "https://github.com/peepeetee/gukhan"
+Issues = "https://github.com/peepeetee/gukhan/issues"
+
 [project.optional-dependencies]
+lexicon = ["gukhan-lexicon"]
 dev = [
     "pip-licenses>=5.0",
     "pytest>=8",

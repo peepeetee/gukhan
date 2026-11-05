@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gukhan-lexicon"
+version = "@VERSION@"
+description = "Prebuilt Sino-Korean lexicon for gukhan (國漢混用), CC BY-SA 4.0"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "CC-BY-SA-4.0 AND Apache-2.0"
+license-files = ["NOTICE.txt", "THIRD-PARTY-NOTICES.md", "UNICODE-LICENSE.txt"]
+authors = [{ name = "the gukhan contributors" }]
+keywords = ["korean", "hanja", "hangul", "lexicon", "dictionary"]
+classifiers = [
+    "Natural Language :: Korean",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+[project.urls]
+Homepage = "https://github.com/peepeetee/gukhan"
+Issues = "https://github.com/peepeetee/gukhan/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gukhan_lexicon = ["data/*"]

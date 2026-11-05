@@ -26,7 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("input", nargs="?", type=Path, help="input file (Markdown or plain text); omit with --stdin")
     ap.add_argument("--stdin", action="store_true", help="read text from standard input / 標準 入力에서 읽기")
     ap.add_argument("-o", "--output", type=Path, help="write converted text here instead of stdout")
-    ap.add_argument("--lexicon", type=Path, help="lexicon.tsv or its directory (default: bundled sample)")
+    ap.add_argument(
+        "--lexicon", type=Path, help="lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)"
+    )
     ap.add_argument("--overrides", type=Path, action="append", default=[], help="override file; repeatable, later wins")
     ap.add_argument("--report", type=Path, help="write flagged words and review list (.tsv or .md by extension)")
     ap.add_argument("--mark", action="store_true", help="show flagged words inline as 전기{電氣|傳記}")
@@ -57,7 +59,9 @@ def review_main(argv: list[str]) -> int:
     ap.add_argument(
         "--overrides", type=Path, required=True, help="override file to read and append to (created if absent)"
     )
-    ap.add_argument("--lexicon", type=Path, help="lexicon.tsv or its directory (default: bundled sample)")
+    ap.add_argument(
+        "--lexicon", type=Path, help="lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)"
+    )
     ap.add_argument("--rules", default="default", help="same as for conversion")
     ap.add_argument("--include-review", action="store_true", help="also ask about words with no entry (type the Hanja)")
     args = ap.parse_args(argv)
@@ -67,7 +71,7 @@ def review_main(argv: list[str]) -> int:
         return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
     text = args.input.read_text(encoding="utf-8")
     try:
-        lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.sample()
+        lexicon = Lexicon.load(args.lexicon) if args.lexicon else (Lexicon.installed() or Lexicon.sample())
         overrides = Overrides.load(args.overrides) if args.overrides.exists() else Overrides()
         use_rules = rules.parse_rules(args.rules)
     except (OSError, ValueError) as e:
@@ -91,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
         text = args.input.read_text(encoding="utf-8")
 
     try:
-        lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.sample()
+        lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.installed()
     except (OSError, ValueError) as e:
         return _err(f"辭典을 읽을 수 없습니다 / cannot read lexicon: {e}")
     overrides = Overrides()
@@ -101,10 +105,11 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ValueError) as e:
             return _err(f"override file 誤謬 / override file error ({p}): {e}")
 
-    if not args.lexicon:
+    if lexicon is None:
+        lexicon = Lexicon.sample()
         print(
-            "注意: 內藏 sample 辭典을 使用합니다. 實際 變換에는 --lexicon 을 指定하세요 / "
-            "Note: using the bundled sample lexicon; pass --lexicon for real use.",
+            "注意: 內藏 sample 辭典을 使用합니다. 實際 變換에는 gukhan-lexicon 을 設置하거나 --lexicon 을 指定하세요 / "
+            "Note: using the bundled sample lexicon; install gukhan-lexicon or pass --lexicon for real use.",
             file=sys.stderr,
         )
     try:
