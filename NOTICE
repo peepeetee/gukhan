@@ -9,5 +9,11 @@ in whole or in part, as required by Section 4(d) of the Apache License.
 Lexicon data is NOT part of this software and is NOT licensed under the
 Apache License. The prebuilt lexicon is distributed separately as the
 `gukhan-lexicon` package under Creative Commons Attribution-ShareAlike
-2.0 Korea (CC BY-SA 2.0 KR), with attribution to its sources. See
-THIRD-PARTY-NOTICES.md and docs/licensing.md for details.
+4.0 International (CC BY-SA 4.0), because it includes Wiktionary content;
+a lexicon built only from 國立國語院 sources would be CC BY-SA 2.0 Korea.
+Each lexicon build states its licence and exact attribution in its
+manifest.json. Sources: 標準國語大辭典 and 우리말샘 (國立國語院, CC BY-SA 2.0 KR),
+English Wiktionary Korean entries via kaikki.org (CC BY-SA 4.0), 韓國語基礎辭典
+(CC BY-SA 2.0 KR) and 한국어 학습용 어휘 목록 (KOGL Type 1) for candidate
+ranking, and the Unicode Unihan database (Unicode License v3) for readings.
+See THIRD-PARTY-NOTICES.md and docs/licensing.md for details.

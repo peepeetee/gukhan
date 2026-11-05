@@ -148,6 +148,15 @@ class Lexicon:
         return lex
 
     @classmethod
+    def installed(cls) -> Lexicon | None:
+        """The lexicon of an installed ``gukhan-lexicon`` package, or None when it is not installed."""
+        try:
+            import gukhan_lexicon
+        except ImportError:
+            return None
+        return cls.load(gukhan_lexicon.lexicon_path())
+
+    @classmethod
     def sample(cls) -> Lexicon:
         """The small hand-written lexicon bundled for development and tests."""
         text = resources.files("gukhan").joinpath("data/sample_lexicon.tsv").read_text(encoding="utf-8")
