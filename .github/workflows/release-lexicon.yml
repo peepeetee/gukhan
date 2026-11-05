@@ -1,0 +1,57 @@
+name: release-lexicon
+
+# Manual. Builds the gukhan-lexicon package from lexicon files attached to a GitHub release of
+# this repository and, after an approval on the `pypi-lexicon` environment, publishes it to PyPI
+# with trusted publishing (no token stored). The lexicon itself is never committed to the repo.
+on:
+  workflow_dispatch:
+    inputs:
+      data_tag:
+        description: "Release tag that holds lexicon.tsv, chars.tsv and manifest.json as assets (e.g. lexicon-data-20261101)"
+        required: true
+      version:
+        description: "gukhan-lexicon version to publish (e.g. 0.1.0)"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download lexicon files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p build/lexicon
+          gh release download "${{ inputs.data_tag }}" --dir build/lexicon \
+            --pattern lexicon.tsv --pattern chars.tsv --pattern manifest.json
+      - name: Validate and stage
+        run: |
+          python scripts/package_lexicon.py build/lexicon --check-only
+          python scripts/package_lexicon.py build/lexicon --version "${{ inputs.version }}" -o build/gukhan-lexicon
+      - name: Build and check
+        run: |
+          python -m pip install build twine
+          cd build/gukhan-lexicon
+          python -m build
+          twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gukhan-lexicon-dist
+          path: build/gukhan-lexicon/dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi-lexicon # configure required reviewers here: this is the approval step
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gukhan-lexicon-dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

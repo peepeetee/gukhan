@@ -106,10 +106,10 @@ unaffected by any of the above.
 
 - `gukhan` repo (Apache-2.0): code, `tests/regression/` excerpts, this
   assessment. No dictionary data.
-- `gukhan-lexicon` repo and package (CC BY-SA): built `lexicon.tsv`,
+- `gukhan-lexicon` package (CC BY-SA), built from `packaging/gukhan-lexicon/` in this repository (decided 2026-11-05: no separate repository; the data lives only in release assets and on PyPI): built `lexicon.tsv`,
   `chars.tsv`, `manifest.json`, `Unihan.zip`, the learner list, the notice
   text from `THIRD-PARTY-NOTICES.md`.
-- `gukhan-lexicon` release assets: the pinned kaikki JSONL used for each
+- Release assets of this repository (tag `lexicon-data-*`): the pinned kaikki JSONL used for each
   release, so that anyone can rebuild bit-for-bit.
 - Never distributed by us: the three 國立國語院 dumps, the Kiwi models, raw
   HTML pages, scans. The manifest records where to get them and what hash to

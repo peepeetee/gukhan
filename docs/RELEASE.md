@@ -1,6 +1,6 @@
 # Release checklist / 配布 點檢表
 
-State as of 2026-11-05. Nothing has been published, tagged or uploaded. Items marked **you** need
+State as of 2026-11-05 (updated after the owner's answers). Nothing has been published, tagged or uploaded. Items marked **you** need
 the project owner (accounts, tokens, decisions); the rest is done in the repository.
 
 ## 1. Names
@@ -17,16 +17,15 @@ as the same name.
 
 ## 2. Before tagging (blockers and decisions)
 
-1. **Over-conversion of native words (decision: you).** On 님의 沈黙 the tool wrote Hanja where the
-   author wrote Hangul 126 times in 585 words, among them 사랑 ("love") → 舍廊 ("men's quarters")
-   at least 30 times (README, regression set). Either fix it before release (an evidence rule or a
-   default override for a short list of common native words) or ship with it stated as a known
-   problem. The README already states it.
-2. **en.wiktionary copyright page (you).** The Wiktionary row rests on the Wikimedia Terms of Use
-   and the Korean Wiktionary page; the English page did not load from the cloud (HTTP 403 from the
-   proxy). Open <https://en.wiktionary.org/wiki/Wiktionary:Copyrights> in a browser and save a
-   capture to the project folder so the licence can be read from the page itself (as was done for
-   우리말샘).
+1. **Over-conversion of native words: decided, ship as a known problem** (owner, 2026-11-05).
+   On 님의 沈黙 the tool wrote Hanja where the author wrote Hangul 126 times in 585 words, among
+   them 사랑 ("love") → 舍廊 ("men's quarters") at least 30 times. The README states it; repeat it
+   in the release notes.
+2. **en.wiktionary copyright page (open).** The Wiktionary row rests on the Wikimedia Terms of Use
+   and the Korean Wiktionary page. The English page is blocked from both the cloud container and
+   the laptop shell (HTTP 403 from the proxy) and the browser extension is not connected. Someone
+   with a browser opens <https://en.wiktionary.org/wiki/Wiktionary:Copyrights>, saves it as PDF
+   and drops it in the project folder; then the notice row can cite the page itself.
 3. **Regression excerpts provenance.** STATUS.md still lists the original-edition check for
    李光洙, 玄鎭健 and 蔡萬植 as pending. These are test excerpts, not shipped data, but the
    release notes should not claim them as verified gold.
@@ -35,9 +34,11 @@ as the same name.
    consider a binary cache of the parsed lexicon after release; it does not block 0.1.0.
 5. **Version number.** `pyproject.toml` still says `0.0.0`. Set `0.1.0` in the release PR; the
    extension is at 0.1.1 on its own track.
-6. **gukhan-lexicon repository (you).** `docs/data-distribution.md` plans a separate repository
-   for the lexicon, with the pinned kaikki JSONL as a release asset. It does not exist yet.
-   Creating it, and uploading the 208 MB JSONL, needs your GitHub account.
+6. **Where the lexicon ships: this repository, as a second package.** `packaging/gukhan-lexicon/`
+   is the template; the data is never committed, only attached to a GitHub release of this
+   repository (the 118 MB `lexicon.tsv` is far below the 2 GiB asset limit) and turned into the
+   PyPI package by `.github/workflows/release-lexicon.yml`. The pinned kaikki JSONL goes on the
+   same release page.
 
 ## 3. Licence checks (done 2026-11-05)
 
@@ -60,34 +61,39 @@ as the same name.
 - Not yet checked: how PyPI's licence classifier shows `CC-BY-SA-4.0 AND Apache-2.0` (a valid SPDX
   expression; `twine check` passes).
 
-## 4. Build and publish (you, in this order)
+## 4. Build and publish
+
+Workflows are in the repository; they only run when you start them, and each publish job waits
+for your approval. Steps only the account owner can do are marked **you**.
+
+One-time setup (**you**, about ten minutes, in a browser):
+
+1. Create a PyPI account if there is none, and enable two-factor authentication.
+2. On PyPI, add two *pending publishers* (Account settings → Publishing): project `gukhan-lexicon`,
+   workflow `release-lexicon.yml`, environment `pypi-lexicon`; and project `gukhan`, workflow
+   `release-code.yml`, environment `pypi`. Owner `peepeetee`, repository `gukhan`. No token is
+   created or stored anywhere.
+3. On GitHub, Settings → Environments: create `pypi` and `pypi-lexicon`, each with yourself as
+   required reviewer.
 
 Lexicon (package size on the 2026-11-01 build: 37.7 MB wheel, under PyPI's 100 MB file limit):
 
-```
-gukhan-lexicon-build --stdict <stdict dir> --opendict <opendict dir> \
-    --wiktextract kaikki.org-dictionary-Korean.jsonl --unihan Unihan.zip \
-    --krdict <krdict dir> --learner-list learner.txt -o build/lexicon
-python scripts/package_lexicon.py build/lexicon --check-only
-python scripts/package_lexicon.py build/lexicon --version 0.1.0 -o build/gukhan-lexicon-0.1.0
-cd build/gukhan-lexicon-0.1.0 && python -m build && twine check dist/*
-```
+1. **you** (or a laptop session, if `gh` is signed in there): create a GitHub release named
+   `lexicon-data-20261101` and attach `lexicon.tsv`, `chars.tsv`, `manifest.json` from
+   `gukhan-data\build\lexicon-20261101`, plus `kaikki.org-dictionary-Korean.jsonl` (the pinned
+   Wiktionary input). Mark it a pre-release so it does not become the "latest" release.
+2. Run the `release-lexicon` workflow (Actions tab) with that tag and version `0.1.0`; approve
+   the publish step.
 
-Code (after the version bump merges):
-
-```
-python -m build && twine check dist/*
-```
-
-Upload to TestPyPI first, install both from there in a clean virtual environment, run
-`gukhan sample.md` and look at the result. Then upload to PyPI, `gukhan-lexicon` first, because
-`gukhan[lexicon]` depends on it. Prefer PyPI trusted publishing from a GitHub workflow over an
-API token on a laptop. Then tag `v0.1.0` and create the GitHub release; the release notes should
-quote the README accuracy table and the known problems.
+Code: open a release PR that sets `version = "0.1.0"` in `pyproject.toml`; after it merges,
+push the tag `v0.1.0`; `release-code` builds it and waits for your approval. Publish the
+lexicon first, because `gukhan[lexicon]` depends on it. Before the real uploads, a dry run
+locally is the same as the workflow: `python scripts/package_lexicon.py build/lexicon --version
+0.1.0 -o build/gukhan-lexicon && cd build/gukhan-lexicon && python -m build && twine check dist/*`.
 
 An end-to-end check was run on 2026-11-05 in the cloud container with the real lexicon: both
 wheels installed from files into a clean virtual environment and `gukhan` used the installed
-lexicon by default.
+lexicon by default. TestPyPI was not used; it needs its own account and publisher setup.
 
 ## 5. Stores
 
