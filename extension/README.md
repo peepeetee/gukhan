@@ -49,7 +49,7 @@ unknown `browser_specific_settings` key. `node extension/firefox-smoke.cjs` runs
 flow in an installed Firefox over Marionette (set `FIREFOX_BIN` if needed); it passed on
 2026-10-29 in Firefox 158 on Windows 11. The imported dictionary is kept in IndexedDB, one record per headword (a 626k-headword import takes about a minute once);
 the background page reads only the words a page needs, so it does not re-parse anything when it wakes.
-Dictionaries imported before this change must be imported again. Privacy policy: `docs/privacy.md`.
+Dictionaries imported before this change must be imported again. Privacy policy: `docs/privacy.md`. Chrome Web Store build: `--target chrome` (docs/chrome-web-store.md).
 
 Builds: `python scripts/package_extension.py out.xpi` makes the code-only package.
 `--dictionary build/lexicon` bundles the dictionary under `dictionary/` (loaded on first install,

@@ -4,6 +4,7 @@
     python scripts/package_extension.py build/gukhan-0.1.0.xpi
     python scripts/package_extension.py out.xpi --dictionary build/lexicon
     python scripts/package_extension.py out.xpi --dictionary build/lexicon --no-definitions
+    python scripts/package_extension.py gukhan-chrome.zip --target chrome   # Chrome Web Store upload
 
 ``--dictionary DIR`` (lexicon.tsv + manifest.json from gukhan-lexicon-build) bundles the dictionary
 under ``dictionary/``; the add-on loads it on first run. ``--no-definitions`` first blanks the
@@ -38,6 +39,22 @@ def strip_definitions(text: str) -> str:
     return "\n".join(out) + "\n"
 
 
+def chrome_manifest(text: str) -> str:
+    """The Chrome Web Store flavour of manifest.json.
+
+    Drops what only Firefox reads (``browser_specific_settings``, the event-page ``scripts`` list)
+    so the store shows no unknown-key warnings, and drops ``host_permissions``: the content script's
+    own ``matches`` already covers HTTP(S) pages, and the popup learns the current address through
+    ``activeTab``, so the install prompt asks for nothing more than it needs.
+    """
+    m = json.loads(text)
+    m.pop("browser_specific_settings", None)
+    m.pop("host_permissions", None)
+    m["background"].pop("scripts", None)
+    m["minimum_chrome_version"] = "116"
+    return json.dumps(m, ensure_ascii=False, indent=2) + "\n"
+
+
 def dictionary_files(directory: Path, no_definitions: bool) -> dict[str, bytes]:
     text = (directory / "lexicon.tsv").read_text(encoding="utf-8")
     meta = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
@@ -68,14 +85,22 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--no-definitions", action="store_true", help="bundle the dictionary without pos/source/definitions"
     )
+    ap.add_argument(
+        "--target", choices=("firefox", "chrome"), default="firefox", help="manifest flavour (default: firefox)"
+    )
     args = ap.parse_args(argv)
     if args.no_definitions and not args.dictionary:
         ap.error("--no-definitions needs --dictionary")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for path in sorted(EXT.rglob("*")):
-            if path.is_file() and path.name not in SKIP:
-                z.write(path, path.relative_to(EXT).as_posix())
+            if not path.is_file() or path.name in SKIP:
+                continue
+            name = path.relative_to(EXT).as_posix()
+            if name == "manifest.json" and args.target == "chrome":
+                z.writestr(name, chrome_manifest(path.read_text(encoding="utf-8")))
+            else:
+                z.write(path, name)
         z.write(ROOT / "LICENSE", "LICENSE.txt")
         if args.dictionary:
             for name, data in dictionary_files(args.dictionary, args.no_definitions).items():

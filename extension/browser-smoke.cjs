@@ -13,7 +13,7 @@ const crypto = require('node:crypto');
   const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n';
   fs.writeFileSync(path.join(fixture,'lexicon.tsv'), lexicon);
   fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:crypto.createHash('sha256').update(lexicon).digest('hex')}}}));
-  const extension = path.resolve('extension');
+  const extension = path.resolve(process.env.GUKHAN_EXT || 'extension'); // GUKHAN_EXT: an unpacked store build
   fs.rmSync(path.resolve('build/browser-profile'), {recursive: true, force: true}); // a stale profile keeps the previous extension copy
   const context = await chromium.launchPersistentContext(path.resolve('build/browser-profile'), {
     channel:'chromium', headless:true,
