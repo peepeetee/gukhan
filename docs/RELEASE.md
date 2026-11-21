@@ -63,9 +63,10 @@ as the same name.
 3. **Regression excerpts provenance.** STATUS.md still lists the original-edition check for
    李光洙, 玄鎭健 and 蔡萬植 as pending. These are test excerpts, not shipped data; the release notes
    draft says they are not verified gold.
-4. **Start-up time.** Loading the 704,912-entry lexicon took about 23 s for `gukhan t.md` in the
-   cloud container (including Kiwi). Not measured on the laptop. If it feels slow for first users,
-   consider a binary cache of the parsed lexicon after release; it does not block 0.1.0.
+4. **Start-up time.** Re-measured on 2026-11-21 in the cloud container with a real 708,455-entry lexicon (built from the
+   NIKL dumps alone): `gukhan t.md` takes about 6.8 s, of which the lexicon load is 3.8-4.2 s (it was 4.8-5.2 s before
+   the parse fast path). The 23 s measured on 2026-11-05 included other work and is not repeatable. Not measured on the
+   laptop. A binary cache of the parsed lexicon remains an option after release; it does not block 0.1.0.
 5. **Version number.** `pyproject.toml` still says `0.0.0` on purpose: it is set to `0.1.0` in the release PR (owner
    step 5), after the lexicon is on PyPI. The extension is at 0.1.1 on its own track.
 6. **Where the lexicon ships: this repository, as a second package.** `packaging/gukhan-lexicon/`
