@@ -48,9 +48,23 @@ const crypto = require('node:crypto');
     await page.keyboard.press('Escape');
     await panel.waitFor({state: 'detached'});
     await page.mouse.move(0, 0);
+    // A script on the page can dispatch events but not trusted ones: forged input neither opens the card
+    // nor saves a choice (a saved choice applies on every site).
+    await page.evaluate(() => {
+      const w = document.querySelector('[data-gukhan="word"]');
+      w.click(); w.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}));
+      w.dispatchEvent(new PointerEvent('pointerenter', {pointerType: 'mouse'}));
+    });
+    await page.waitForTimeout(600);
+    assert.equal(await panel.count(), 0, 'forged events opened the card');
     await word.focus(); await page.keyboard.press('Enter');
     await panel.waitFor({state: 'attached'});
     assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan), 'panel');
+    await page.evaluate(() => {
+      for (const b of document.querySelector('[data-gukhan="panel"]').shadowRoot.querySelectorAll('button')) b.click();
+    });
+    await page.waitForTimeout(400);
+    assert.deepEqual(await worker.evaluate(() => chrome.storage.local.get('overrides')), {}, 'a forged click saved a choice');
     await page.keyboard.press('Escape');
     await panel.waitFor({state: 'detached'});
     assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan), 'word');

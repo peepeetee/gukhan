@@ -8,8 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from gukhan import rules, suggest
-from gukhan.cli import _utf8_streams
+from gukhan import console, rules, suggest
 from gukhan.convert import Converter
 from gukhan.lexicon import Lexicon
 from gukhan.overrides import Overrides
@@ -118,6 +117,7 @@ def cmd_score(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    console.utf8_streams()  # --help carries Korean; a Windows console would fail on it
     ap = argparse.ArgumentParser(prog="gukhan-regress", description="回歸 test set 道具 / regression set tools")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser(
@@ -177,7 +177,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     s.set_defaults(func=cmd_score)
     args = ap.parse_args(argv)
-    _utf8_streams()
     for attr in ("text", "chars"):
         pth = getattr(args, attr, None)
         if pth is not None and not pth.exists():

@@ -13,7 +13,7 @@ async function pageIndex(texts) {
 }
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   (async () => {
-    if (message.type !== 'convert' || !sender.tab || !Array.isArray(message.texts)) return {};
+    if (sender.id !== chrome.runtime.id || message.type !== 'convert' || !sender.tab || !Array.isArray(message.texts)) return {};
     const site = new URL(sender.url).hostname;
     const settings = await chrome.storage.local.get(['enabled', 'sites', 'overrides']);
     if (!settings.enabled || !settings.sites?.[site]) return {disabled: true};

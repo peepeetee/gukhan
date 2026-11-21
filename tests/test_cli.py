@@ -227,3 +227,71 @@ def test_bad_worker_counts_are_refused(tmp_path, capsys, extra):
     a, _ = _files(tmp_path)
     assert main([str(a), "--lexicon", MINI, *extra]) == 2
     assert "--workers" in capsys.readouterr().err
+
+
+needs_symlinks = pytest.mark.skipif(
+    __import__("os").name == "nt", reason="symlinks and POSIX permission bits need a POSIX filesystem"
+)
+
+
+@needs_symlinks
+def test_in_place_through_a_symlink_keeps_the_link_and_the_permissions(tmp_path):
+    real = tmp_path / "real.txt"
+    real.write_text("대한민국\n", encoding="utf-8")
+    real.chmod(0o600)
+    link = tmp_path / "link.txt"
+    link.symlink_to(real)
+    assert main([str(link), "--in-place", "--lexicon", MINI]) == 0
+    assert link.is_symlink()  # the link stays a link; its target is what changed
+    assert real.read_text(encoding="utf-8") == "大韓民國\n"
+    assert real.stat().st_mode & 0o777 == 0o600  # a private file does not become world-readable
+    assert not [p for p in tmp_path.iterdir() if p.name.endswith(".gukhan-tmp")]
+
+
+@needs_symlinks
+def test_a_planted_symlink_is_never_written_through(tmp_path, capsys):
+    victim = tmp_path / "victim.txt"
+    a = tmp_path / "a.txt"
+    a.write_text("대한민국\n", encoding="utf-8")
+    (tmp_path / "a.txt.bak").symlink_to(victim)  # dangling: exists() is False, a write would create the victim
+    assert main([str(a), "--in-place", "--lexicon", MINI]) == 2
+    assert not victim.exists()
+    assert "backup already exists" in capsys.readouterr().err
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "a.txt").symlink_to(victim)
+    assert main([str(a), "--out-dir", str(out), "--lexicon", MINI]) == 2
+    assert not victim.exists()
+    assert a.read_text(encoding="utf-8") == "대한민국\n"
+
+
+def test_output_or_report_that_is_the_input_is_refused(tmp_path, capsys):
+    a = tmp_path / "a.txt"
+    a.write_text("대한민국\n", encoding="utf-8")
+    assert main([str(a), "-o", str(a), "--lexicon", MINI]) == 2
+    assert "use --in-place" in capsys.readouterr().err
+    assert main([str(a), "--report", str(a), "--lexicon", MINI]) == 2
+    assert main([str(a), "-o", str(tmp_path / "x"), "--report", str(tmp_path / "x"), "--lexicon", MINI]) == 2
+    assert a.read_text(encoding="utf-8") == "대한민국\n"
+
+
+def test_displayed_context_cannot_carry_terminal_escapes():
+    from gukhan.report import one_line
+
+    hostile = "\x1b]0;title\x07 앞\x1b[31m‮뒤\x9b\n\t끝"
+    shown = one_line(hostile)
+    assert not any(ord(c) < 32 or 0x7F <= ord(c) <= 0x9F or c in "‮ " for c in shown)
+    assert "앞" in shown and "뒤" in shown and "끝" in shown
+
+
+@pytest.mark.parametrize("module", ["gukhan.cli", "gukhan.lexicon_build.cli", "gukhan.regress.cli"])
+def test_help_prints_in_every_command_on_a_narrow_console(module):
+    """--help carries Korean; with a Windows code page (cp1252) and a pipe it used to die with UnicodeEncodeError."""
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    p = subprocess.run([sys.executable, "-m", module, "--help"], capture_output=True, env=env)
+    assert p.returncode == 0, p.stderr.decode("utf-8", "replace")
+    assert "한" in p.stdout.decode("utf-8", "replace") or "國" in p.stdout.decode("utf-8", "replace")
