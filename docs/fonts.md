@@ -90,7 +90,8 @@ Words are still converted: a missing glyph is a font problem, and the reader may
 site. Limits, stated plainly: this is a check on pictures. It was tested in headless Chromium on Linux, where a
 missing glyph is drawn as nothing. Chrome on Windows and macOS is expected to draw one shared box for every missing
 character, which the second condition is meant to catch, but that was not tested here. Firefox draws the code
-point inside the box, so the pictures differ and the check stays silent there. If the canvas cannot be read
+point inside the box, so the pictures differ and the check stays silent there; so does the headless Chromium on GitHub's Linux runner (its
+browser test then checks that nothing is reported, instead of guessing). If the canvas cannot be read
 (a browser privacy setting that blanks it) the check turns itself off instead of reporting everything missing.
 It never changes a page's fonts and downloads none.
 
