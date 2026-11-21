@@ -1,0 +1,34 @@
+# 님의 沈黙 1926 batch 19: scan vs ko.wikisource divergences (PDF pp.173-180)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p173: DIFFERS
+  scan : 당신이 나를두고 멀니가신뒤로는 나는 깃븜이라고는 달도업는 가을하늘에 외기력이의 발자최만치도 업슴니다
+  wiki : 당신이 나를두고 멀니가신뒤로는 나는 깃붐이라고는 달도업는 가을하늘에 외기력이의 발자최만치도 업슴니다
+  chars: '븜'->'붐'
+  scan : ᄭᅩᆺ나무를심으고 물주고붓도든일도 아니함니다
+  wiki : ᄭᅩᆺ나무를심으고 물주고붓도드든일도 아니함니다
+  chars: ''->'드'
+## p175: DIFFERS
+  scan : 숩들은 바람과의遊戲를 그치고 잠々히섯슴니다 그것은 나에게同情하는 表象임니다
+  wiki : 숩들은 바람과의遊戱를 그치고 잠々히섯슴니다 그것은 나에게同情하는 表象임니다
+  chars: '戲'->'戱'
+## p178: DIFFERS
+  scan : 에그 등ㅅ불을켜랴다가 초를 거ᄭᅮ로ᄭᅩ젓슴니다 그려 저를 엇저나
+  scan : 저사람들이 숭보것네
+  scan : 님이어 나는 이러케밧붐니다 님은 나를 게으르다고ᄭᅮ짓슴니다
+  scan : 에그저것좀보아 「밧분것이 게으른것이다」하시네
+  wiki : 에그 등ㅅ불을켜랴다가 초를 거ᄭᅮ로ᄭᅩ젓슴니다 그려 저를 엇저나 저사람들이 숭보것네
+  wiki : 님이어 나는 이러케밧붐니다 님은 나를 게으르다고 ᄭᅮ짓슴니다 에그 저것좀보아 「밧분것이 게으른것이다」하시네
+  chars: ''->'저사람들이숭보것네'
+  chars: ''->'님이어나는이러케밧붐니다님은나를게으르다고ᄭᅮ짓슴니다에그' | '사람들'->'것좀보아｢밧분것' | '숭보'->'게으른' | ''->'이다｣하시'
+## p180: DIFFERS
+  scan : 讀者여 나는 詩人으로 여러분의압혜 보이는것을 부ᄭᅳ러함니다
+  wiki : 讀者여 나는 詩人으로 여러분의압헤 보이는것을 부ᄭᅳ러함니다
+  chars: '혜'->'헤'
+  scan : 雪嶽山의 무거운그림자는 엷어감니다
+  wiki : 雪嶽山의 무거은그림자는 엷어감니다
+  chars: '운'->'은'
+  scan : (乙丑八月二十九日밤 ᄭᅳᆺ)
+  wiki : ::(乙丑八月二十九日밤 ᄭᅳᆺ)
+  chars: ''->'::'
