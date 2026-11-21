@@ -46,7 +46,7 @@ VARIANTS = str.maketrans(
         "强": "強", "眞": "真", "爲": "為", "靑": "青", "淸": "清", "內": "内", "卽": "即", "旣": "既",
         "敎": "教", "鎭": "鎮", "衆": "眾", "値": "值", "戶": "戸", "氷": "冰", "裏": "裡", "冊": "册",
         "槪": "概", "戾": "戻", "黃": "黄", "溫": "温", "說": "説", "勳": "勲", "歲": "歳", "者": "者",
-        "兦": "亡", "產": "産", "峯": "峰",
+        "兦": "亡", "產": "産", "峯": "峰", "祕": "秘",
     }
 )  # fmt: skip
 
@@ -175,7 +175,14 @@ def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decisi
 
 def score(items: Iterable[Item], converter: Converter) -> Tally:
     tally = Tally()
+    by_source: dict[str, list[Item]] = {}
     for item in items:
-        result = converter.convert(item.hangul)
-        score_item(item, result.text, tally, result.decisions)
+        by_source.setdefault(item.source, []).append(item)
+    for group in by_source.values():
+        # the items of one source are one document: rules that read the whole text see all of it
+        converter.set_document([i.hangul for i in group])
+        for item in group:
+            result = converter.convert(item.hangul)
+            score_item(item, result.text, tally, result.decisions)
+    converter.field_evidence = None
     return tally

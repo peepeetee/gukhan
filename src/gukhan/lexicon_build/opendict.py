@@ -59,6 +59,7 @@ from .stdict import (
     clean_headword,
     components_to_hanja,
     iter_items,
+    sense_domain,
     validate_readings,
 )
 
@@ -147,7 +148,8 @@ def parse(
         if not pos and _text(word_info, "word_unit") == "구":
             pos = "품사 없음"  # what 표준국어대사전 writes for phrases; keeps the two sources alike
         for p in expand_pos(pos, definition):
-            entries.append(Entry(hangul, mixed, p, source, sense))
+            domain = sense_domain([_text(sense_info, "cat_info/cat")])
+            entries.append(Entry(hangul, mixed, p, source, sense, domain=domain))
             stats.entries += 1
     return entries, rejects, stats
 

@@ -198,3 +198,65 @@ def test_counter_needs_a_number_when_every_reading_is_a_unit():
     assert r.text == "日"  # switched off
     # a counter whose definition does not call it a unit (前項) keeps converting without a number
     assert conv(lex, [("항", "NNB")]).convert("항").text == "項"
+
+
+def test_field_rule_drops_specialist_readings_without_evidence():
+    lex = Lexicon(
+        [
+            Entry("보살", "菩薩", "명사", "t", "", domain="불교"),
+            Entry("보살", "補殺", "명사", "t", ""),
+            Entry("임자", "壬子", "명사", "t", "", domain="민속"),
+            Entry("임자", "任者", "명사", "t", ""),
+        ]
+    )
+    # no sign of Buddhism in the text: the reading whose every sense is Buddhist terminology goes
+    c = conv(lex, [("임자", "NNG")])
+    assert c.convert("임자").text == "任者"
+    assert "specialist" in c.convert("임자").decisions[0].reason
+    # two settled Buddhist words in the document make 불교 readings believable again
+    c.field_evidence = {"민속": 2}
+    r = c.convert("임자")
+    assert r.decisions[0].kind == Kind.FLAGGED
+    # switched off, both readings remain
+    assert conv(lex, [("임자", "NNG")], use_rules=frozenset()).convert("임자").decisions[0].kind == Kind.FLAGGED
+
+
+def test_field_rule_ignores_broad_fields_and_everyday_senses():
+    lex = Lexicon(
+        [
+            Entry("음악", "音樂", "명사", "t", "", domain="음악"),
+            Entry("음악", "淫樂", "명사", "t", ""),
+            Entry("의원", "議員", "명사", "t", ""),
+            Entry("의원", "醫院", "명사", "t", "", domain="한의"),
+        ]
+    )
+    # 음악 labels everyday words too (音樂), so it never counts as a specialist field
+    assert conv(lex, [("음악", "NNG")]).convert("음악").decisions[0].kind == Kind.FLAGGED
+    assert conv(lex, [("의원", "NNG")]).convert("의원").text == "議員"
+
+
+def test_field_rule_skips_a_token_glued_to_the_one_before():
+    lex = Lexicon(
+        [
+            Entry("임자", "壬子", "명사", "t", "", domain="민속"),
+            Entry("임자", "任者", "명사", "t", ""),
+        ]
+    )
+    # 수임자 split as 수 + 임자: a fragment of a longer word is no evidence of anything
+    r = conv(lex, [("수", "NR"), ("임자", "NNG")]).convert("수임자")
+    assert r.decisions[-1].kind == Kind.FLAGGED
+
+
+def test_measured_evidence_comes_from_settled_words_only():
+    lex = Lexicon(
+        [
+            Entry("보살", "菩薩", "명사", "t", "", domain="불교"),
+            Entry("염불", "念佛", "명사", "t", "", domain="불교"),
+            Entry("임자", "壬子", "명사", "t", "", domain="불교"),
+            Entry("임자", "任者", "명사", "t", ""),
+        ]
+    )
+    c = conv(lex, [("보살", "NNG"), ("염불", "NNG"), ("임자", "NNG")])
+    c.set_document(["보살 염불 임자"])
+    assert c.field_evidence["불교"] == 2
+    assert c.convert("보살 염불 임자").decisions[-1].kind == Kind.FLAGGED

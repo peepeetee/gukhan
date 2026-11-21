@@ -42,6 +42,7 @@ class Entry:
     source: str
     sense: str = ""
     weight: int = 0
+    domain: str = ""  # field label(s) (법률, 의학 …) when every sense of the entry carries one; "" = general or unknown
 
     def tsv(self) -> str:
         return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense, str(self.weight)))
@@ -228,6 +229,32 @@ def align(hangul: str, hanja: str) -> str | None:
     return mixed
 
 
+GENERAL_CAT = "없음"
+
+
+def sense_domain(cats: Iterable[str | None]) -> str:
+    """Field label(s) of the senses of one entry, or "" when any sense is general (no label, or 없음).
+
+    An entry is a specialist word only if every sense says so; a reading with one everyday sense
+    is everyday vocabulary, whatever else it also means.
+    """
+    seen: set[str] = set()
+    for cat in cats:
+        cat = (cat or "").strip()
+        if not cat or cat == GENERAL_CAT:
+            return ""
+        seen.add(cat)
+    return ",".join(sorted(seen))
+
+
+def item_domain(item: ET.Element) -> str:
+    cats = []
+    for sense in item.iter():
+        if _local(sense.tag) == "sense_info":
+            cats.append(_find_text(sense, "cat"))
+    return sense_domain(cats)
+
+
 def validate_readings(hangul: str, mixed: str, readings: dict[str, list[str]]) -> str | None:
     """Return a reason string if a Hanja character cannot read as its syllable."""
     for syl, h in zip(hangul, mixed, strict=True):
@@ -306,6 +333,6 @@ def parse(
         pos = _find_text(item, "pos") or ""
         sense = re.sub(r"<[^>]+>", "", _find_text(item, "definition") or "")
         sense = sense.replace("\t", " ").replace("\n", " ")[:80]
-        entries.append(Entry(hangul, mixed, pos, source, sense))
+        entries.append(Entry(hangul, mixed, pos, source, sense, domain=item_domain(item)))
         stats.entries += 1
     return entries, rejects, stats
