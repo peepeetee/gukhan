@@ -397,3 +397,12 @@ def test_tsv_cells_never_contain_tabs_or_line_breaks():
     row = Entry("가", "街", "명사", "src", "a\tb\r\nc  ", 3).tsv()
     assert row == "가\t街\t명사\tsrc\ta b c\t3"
     assert len(Reject("가", "X\tY", "s", "bad\nreason").tsv().split("\t")) == 4
+
+
+def test_wiktextract_skips_lines_that_are_not_objects(tmp_path):
+    from gukhan.lexicon_build import wiktextract
+
+    path = tmp_path / "w.jsonl"
+    path.write_text('["not", "an", "object"]\n"text"\n{"word": "x", "lang_code": "en"}\n{broken\n', encoding="utf-8")
+    entries, _, stats = wiktextract.parse(path)
+    assert entries == [] and stats.items == 1 and stats.rejected == 3
