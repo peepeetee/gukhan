@@ -123,9 +123,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await until("!!document.querySelector('[data-gukhan=\"word\"]')", 'underlined words');
     assert.equal(await run("document.querySelector('pre').textContent"), '전기 연구');
     assert.equal(await run("document.querySelector('input').value"), '전기 연구');
-    await run("document.querySelector('[data-gukhan=\"word\"]').click() || true");
+    // The page ignores events a script fires (isTrusted is false), so use the browser's own input: a real click
+    // on the word, then the keyboard inside the card (ArrowDown to the candidate, Enter to choose it).
+    const word = Object.values((await send('WebDriver:FindElement', {using: 'css selector', value: '[data-gukhan="word"]'})).value)[0];
+    await send('WebDriver:ElementClick', {id: word});
     await until("!!document.querySelector('[data-gukhan=\"panel\"]')", 'candidate panel');
-    await run("[...document.querySelector('[data-gukhan=\"panel\"]').shadowRoot.querySelectorAll('button')].find(b => b.textContent.startsWith('電氣')).click() || true");
+    const press = key => send('WebDriver:PerformActions', {actions: [{type: 'key', id: 'keyboard', actions: [{type: 'keyDown', value: key}, {type: 'keyUp', value: key}]}]});
+    const focused = () => run("(document.querySelector('[data-gukhan=\"panel\"]').shadowRoot.activeElement || {textContent: ''}).textContent");
+    for (let i = 0; i < 4 && !(await focused()).includes('電氣'); i++) await press('\uE015');  // ArrowDown
+    assert.ok((await focused()).includes('電氣'), 'focus reached the 電氣 candidate');
+    await press('\uE007');  // Enter
     await until("document.querySelector('#text').textContent.includes('電氣')", 'saved choice applied');
     await send('WebDriver:Refresh');
     await until("document.querySelector('#text').textContent.includes('電氣')", 'choice kept after reload');
