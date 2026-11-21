@@ -30,6 +30,7 @@ node extension/browser-smoke.cjs                    # optional: needs Playwright
 python scripts/check_licences.py                    # what CI runs for licences
 python scripts/check_bilingual.py                   # every message needs Korean and English
 python scripts/benchmark.py                         # throughput on 1 MB (CI runs it, non-blocking)
+python scripts/release_dryrun.py                     # build both packages, twine check, clean-venv smoke test (needs build, twine)
 ```
 
 한국어: 모든 사용자 向 글에는 韓國語(國漢混用)와 英語가 함께 있어야 하며 `check_bilingual.py`가 이를 確認합니다.
