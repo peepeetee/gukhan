@@ -28,5 +28,7 @@
       site.checked = !on; status.textContent = String(e.message || e);
     } finally { site.disabled = false; }
   };
+  const capped = tab ? (await chrome.storage.session.get(`capped:${tab.id}`))[`capped:${tab.id}`] : false;
+  document.querySelector('#capped').hidden = !capped;
   document.querySelector('#options').onclick = () => chrome.runtime.openOptionsPage();
 })();

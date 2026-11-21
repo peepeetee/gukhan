@@ -7,6 +7,26 @@
   let generation = 0, timer, panel;
   const protectedSelector = 'script,style,noscript,textarea,input,select,option,pre,code,kbd,samp,a,button,[contenteditable],[role="textbox"],[data-gukhan]';
   const mine = new WeakSet();  // the plain text pieces this script created around converted words
+  // A page can hold any number of text nodes (infinite scroll, a hostile page), so the work is bounded and lazy:
+  // a text node is converted only once its element has come within `MARGIN` px of the viewport, at most
+  // `perPass` nodes per pass, and no more than `total` nodes are examined on one page. Beyond that the page
+  // is left alone and the popup says so. `limits` in storage may lower the numbers (the tests do).
+  const LIMITS = {perPass: 500, total: 20000, watch: 50000}, MARGIN = 800;
+  let examined = 0, watchedCount = 0, capped = false;
+  let checked = new WeakMap();  // text node -> the text that was sent and had nothing to convert
+  const inView = new WeakSet(), watching = new WeakSet();
+  const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
+    let any = false;
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      inView.add(entry.target); io.unobserve(entry.target); watching.delete(entry.target); any = true;
+    }
+    if (any) schedule(false);
+  }, {rootMargin: `${MARGIN}px 0px`}) : null;
+  function reportCapped(value) {
+    if (value === capped) return;
+    capped = value; chrome.runtime.sendMessage({type: 'capped', capped: value}).catch?.(() => {});
+  }
   function restoreGroup(group) {
     // Put the replaced text node back whole, so a later pass sees "전기 공학" as one text again.
     if (group.nodes.every(n => n.isConnected)) {
@@ -120,14 +140,24 @@
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); }
     });
   }
-  // Text nodes with Hangul that are not ours and not inside protected elements.
-  function freshNodes() {
+  // Text nodes with Hangul that are not ours, not inside protected elements, and near the viewport.
+  // Elements not yet near it are watched; they come back through the IntersectionObserver.
+  function freshNodes(room) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {acceptNode(node) {
-      return !mine.has(node) && node.parentElement && !node.parentElement.closest(protectedSelector) &&
+      return !mine.has(node) && checked.get(node) !== node.data && node.parentElement && !node.parentElement.closest(protectedSelector) &&
         /[가-힣]/.test(node.data) && node.data.length <= 20000 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }});
-    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-    return nodes;
+    const nodes = []; let more = false;
+    while (walker.nextNode()) {
+      const node = walker.currentNode, element = node.parentElement;
+      if (io && !inView.has(element)) {
+        if (!watching.has(element) && watchedCount < LIMITS.watch) { io.observe(element); watching.add(element); watchedCount++; }
+        continue;
+      }
+      if (nodes.length >= room) { more = true; break; }
+      nodes.push(node);
+    }
+    return {nodes, more};
   }
   async function convertAll(texts) {
     const results = [];
@@ -156,7 +186,8 @@
     groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
   }
   async function enabled() {
-    const s = await chrome.storage.local.get(['enabled', 'sites']);
+    const s = await chrome.storage.local.get(['enabled', 'sites', 'limits']);
+    for (const key of Object.keys(LIMITS)) if (Number.isInteger(s.limits?.[key]) && s.limits[key] > 0) LIMITS[key] = s.limits[key];
     return !!(s.enabled && s.sites?.[location.hostname]);
   }
   // Everything below changes the page only in one synchronous step, with the observer off, so the
@@ -165,8 +196,12 @@
     if (!document.body) return;  // an XML or SVG document has no body to convert
     const run = full ? ++generation : generation;
     if (!await enabled()) { if (run === generation) { observer.disconnect(); restoreAll(); watch(); } return; }
-    const items = freshNodes().map(node => ({node, text: node.data}));
+    if (full) checked = new WeakMap();
+    const base = full ? groups.length : examined;  // nodes already examined; a full pass converts the groups again
+    const {nodes, more} = freshNodes(Math.max(0, Math.min(LIMITS.perPass, LIMITS.total - base)));
+    const items = nodes.map(node => ({node, text: node.data}));
     if (full) for (const group of groups) items.push({group, text: group.original.data});
+    const atTotal = more && base + nodes.length >= LIMITS.total;
     const results = await convertAll(items.map(i => i.text));
     if (!results || run !== generation) return;
     observer.disconnect();
@@ -174,12 +209,16 @@
       if (full) { for (const group of groups) restoreGroup(group); groups.length = 0; closePopover(); }
       items.forEach((item, i) => {
         const node = item.group ? item.group.original : item.node;
+        if (!item.group && results[i].length === 0 && node.isConnected && node.data === item.text) checked.set(node, item.text);
         if (!results[i].length || (!item.group && (!node.isConnected || node.data !== item.text))) return;
         if (item.group && !node.isConnected) return;
         apply(node, item.text, results[i]);
       });
     } finally { watch(); }
-    if (full) schedule(false);  // pick up anything the page added while we were converting
+    examined = (full ? 0 : examined) + items.length;
+    reportCapped(atTotal || (watchedCount >= LIMITS.watch));
+    if (more && !atTotal) schedule(false);  // the next slice of nodes near the viewport
+    else if (full) schedule(false);  // pick up anything the page added while we were converting
   }
   function watch() { if (document.body) observer.observe(document.body, {childList: true, subtree: true, characterData: true}); }
   let running = false, again = false, fullPending = false;

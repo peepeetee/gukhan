@@ -34,6 +34,14 @@ site off if its layout or interaction changes.
 CLI 정확도 수치를 브라우저에 적용할 수 없습니다. 동적 페이지에서 문제가 생기면
 사이트 스위치를 끄세요. 프레임과 Shadow DOM 내부는 지원하지 않습니다.
 
+Large pages: text is converted lazily. A text node is converted once its element is within about
+800 px of the viewport (an `IntersectionObserver` watches the rest), at most 500 nodes per pass, and
+at most 20,000 nodes are examined on one page; past that the page is left as it is and the popup says
+"This page is large: only part of it was converted." A hostile or endless page therefore cannot make
+the extension work without limit. 한국어: 큰 페이지는 화면 가까이 온 글부터 바꾸며, 한 페이지에서 20,000개까지만
+살펴봅니다. 넘으면 나머지는 그대로 두고 팝업에 알립니다. (The limits are in `content.js`; a `limits` object in
+extension storage can lower them, which the browser test does.)
+
 No network requests, telemetry, remote code, or sync. `storage` saves local settings;
 `unlimitedStorage` holds the separately imported dictionary; `activeTab` identifies the
 current site for the popup; `scripting` registers the content script. The extension asks for

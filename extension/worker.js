@@ -30,6 +30,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   else if (message?.type === 'site') {
     // Only the extension's own pages (popup, settings) may change sites, never a content script on a web page.
     task = sender.url?.startsWith(chrome.runtime.getURL('')) ? siteMessage(message) : Promise.reject(new Error('refused'));
+  } else if (message?.type === 'capped' && sender.tab) {
+    // a page too large to convert whole: the popup tells the reader (per tab, forgotten when the browser closes)
+    task = chrome.storage.session.set({[`capped:${sender.tab.id}`]: message.capped === true}).then(() => ({}));
   } else task = Promise.resolve({});
   task.then(reply, e => { console.error(e); reply({error: String(e?.message || e)}); });
   return true;

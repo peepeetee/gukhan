@@ -103,6 +103,31 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await page.waitForTimeout(800);
     assert.equal(await page.locator('#text').textContent(),'전기 연구');
     assert.equal(await page.locator('[data-gukhan]').count(), 0);
+    // A large page converts lazily: only text near the viewport is converted, the rest when it scrolls into view.
+    const big = await context.newPage();
+    const paragraphs = Array.from({length: 3000}, (_, i) => `<p style="height:40px;margin:0">연구 ${i}</p>`).join('');
+    await big.route('http://big.test/**', r => r.fulfill({contentType: 'text/html', body: `<meta charset="utf-8">${paragraphs}`}));
+    await big.goto('http://big.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('big.test', true)), {ok: true});
+    await big.waitForFunction(() => document.querySelectorAll('[data-gukhan="word"]').length > 0);
+    await big.waitForTimeout(800);
+    const near = await big.locator('[data-gukhan="word"]').count();
+    assert.ok(near > 0 && near < 300, `only the text near the viewport is converted, got ${near} of 3000`);
+    assert.equal(await big.evaluate(() => document.body.lastElementChild.textContent), '연구 2999', 'far text stays Hangul');
+    await big.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await big.waitForFunction(() => document.body.lastElementChild.textContent === '研究 2999');
+    // A cap on the nodes examined per page: the rest stays Hangul and the popup is told.
+    await worker.evaluate(() => chrome.storage.local.set({limits: {total: 30, perPass: 10}}));
+    const capped = await context.newPage();
+    const spans = Array.from({length: 200}, () => '<span>연구 </span>').join('');
+    await capped.route('http://capped.test/**', r => r.fulfill({contentType: 'text/html', body: `<meta charset="utf-8"><div style="font-size:4px">${spans}</div>`}));
+    await capped.goto('http://capped.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('capped.test', true)), {ok: true});
+    await capped.waitForFunction(() => document.querySelectorAll('[data-gukhan="word"]').length >= 30);
+    await capped.waitForTimeout(1200);
+    assert.equal(await capped.locator('[data-gukhan="word"]').count(), 30, 'the cap stops conversion at 30 nodes');
+    assert.equal(await worker.evaluate(async () => Object.values(await chrome.storage.session.get(null)).includes(true)), true, 'the popup is told');
+    await worker.evaluate(() => chrome.storage.local.remove('limits'));
     console.log('PASS: real dictionary import, candidates, saved override, protected text, toggle restore, site disable');
   } finally { await context.close(); }
 })().catch(e => {console.error(e);process.exitCode=1});
