@@ -29,9 +29,10 @@
   // puts its code point in the box) the check says nothing rather than guessing. If the canvas cannot be read
   // (a privacy setting that blanks it) it also says nothing.
   const HAN = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u;
-  // Code points that are valid but unassigned, in the BMP and in planes 2 and 3. (Noncharacters such as U+FFFF are
-  // skipped by some browsers instead of drawn as a missing glyph, which made them useless as a reference.)
-  const SENTINELS = ['\u0378', '\u{2FFFD}', '\u{3FFFD}'];
+  // Reference code points that no font draws. Browsers differ: some draw a box only for an assigned character that
+  // no font has (the last characters of CJK Extensions G, H and I), some also for an unassigned BMP one, and
+  // none draw one for noncharacters like U+FFFF, so a few of each are compared and any equal picture counts.
+  const SENTINELS = ['\u0378', '\u{3134A}', '\u{323AF}', '\u{2EE5D}'];
   const glyphs = (() => {
     let ctx, usable, empties;
     const cache = new Map();
