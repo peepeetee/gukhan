@@ -3,13 +3,16 @@
 
 The decisions are written to the ordinary override file (see ``overrides.py``), one
 line each and at once, so a quit or a crash loses nothing and the next run reuses them.
-Nothing is preselected and Enter does nothing: the tool never guesses.
+Nothing is preselected and Enter does nothing: the tool never guesses. With ``--llm-url`` a local
+model may suggest one candidate per word, shown as an unconfirmed hint from the first context;
+it is used only if you answer ``y``.
 
 Answers at the prompt (a number is the candidate's number in the list)::
 
     3      use candidate 3 for this word everywhere
     n3     use candidate 3 only where this word is followed by the same next word
     p3     use candidate 3 only where this word follows the same previous word
+    y      accept the model's suggestion (only when one is shown; see below)
     k      keep Hangul everywhere          s  skip for now        u  undo the last answer
     q      save and quit                   漢字  (typed)  use exactly this Hanja
 """
@@ -25,6 +28,7 @@ from .convert import Converter, Decision, Kind, Result
 from .lexicon import Entry, _strip_spaces
 from .overrides import KEEP, Overrides
 from .report import one_line
+from .suggest import Backend, SuggestError, Suggestion, sentence_around, suggest_one
 
 SHOW_CONTEXTS = 3
 CONTEXT = 20
@@ -95,8 +99,11 @@ class Reviewer:
         input_fn: Callable[[str], str] | None = None,
         output_fn: Callable[[str], None] = print,
         include_review: bool = False,
+        backend: Backend | None = None,
     ) -> None:
         self.conv, self.text, self.path = conv, text, path
+        self.backend = backend
+        self._sugg: dict[str, Suggestion | None] = {}
         self.ask = input_fn if input_fn is not None else (lambda prompt: input(prompt))
         self.say = output_fn
         self.include_review = include_review
@@ -159,11 +166,40 @@ class Reviewer:
         if g.candidates:
             for i, c in enumerate(g.candidates, 1):
                 self.say(f"  {i}) {c.hanja}" + (f"  {c.sense}" if c.sense else ""))
+            s = self._suggestion(g)
+            if s is not None:
+                self.say(f"  提案 suggestion (unconfirmed, {s.backend}): {s.hanja}  — y to accept / y 로 受容")
         else:
             self.say("  (no candidates / 後補 없음: type the Hanja)")
 
+    def _suggestion(self, g: Group) -> Suggestion | None:
+        """The backend's hint for the first context of ``g``, asked once; a failure turns the backend off."""
+        if self.backend is None or len(g.candidates) < 2:
+            return None
+        key = _strip_spaces(g.hangul)
+        if key not in self._sugg:
+            d = g.decisions[0]
+            try:
+                self._sugg[key] = suggest_one(
+                    self.backend, sentence_around(self.text, d.start, d.end), g.hangul, g.candidates
+                )
+            except SuggestError as e:
+                self.say(f"提案 없이 繼續합니다 / continuing without suggestions: {e}")
+                self.backend = None
+                return None
+        return self._sugg[key]
+
     def apply(self, g: Group, answer: str) -> str | None:
         """Handle one answer. Returns an error message, or None when it was accepted."""
+        if answer == "y":
+            s = self._sugg.get(_strip_spaces(g.hangul))
+            if s is None:
+                return "受容할 提案이 없습니다 / no suggestion to accept"
+            if s.hanja.replace(" ", "") == _strip_spaces(g.hangul):  # the native-word candidate: keep Hangul
+                self._record(g.hangul, KEEP, f"accepted suggestion, {s.backend}")
+            else:
+                self._record(g.hangul, s.hanja, f"accepted suggestion, {s.backend}")
+            return None
         m = ANSWER.match(answer)
         if m:
             side, num = m.group(1), int(m.group(2))
