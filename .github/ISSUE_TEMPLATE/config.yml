@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability / 保安 問題
+    url: https://github.com/peepeetee/gukhan/security/advisories/new
+    about: Report vulnerabilities privately, not as a public issue.
