@@ -68,6 +68,14 @@ def version_text() -> str:
     )
 
 
+class _Version(argparse.Action):
+    """Like ``action="version"`` but keeps the line breaks (argparse would reflow them)."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        sys.stdout.write(version_text() + "\n")
+        parser.exit()
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         prog="gukhan",
@@ -111,7 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="evidence rules that narrow a flag's candidates: default, all, none, or names "
         f"({', '.join(sorted(rules.ALL))}), comma separated; see docs/PLAN.md §5",
     )
-    ap.add_argument("--version", action="version", version=version_text())
+    ap.add_argument("--version", action=_Version, nargs=0, help="show the versions of gukhan, Kiwi and the lexicon")
     return ap
 
 
