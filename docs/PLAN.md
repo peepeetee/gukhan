@@ -207,6 +207,8 @@ gukhan input.md --report flagged.tsv # flagged words and review list
 gukhan input.md --mark               # flagged words shown as 전기{電氣|傳記}
 gukhan input.md --lexicon path/      # use a built lexicon instead of the sample
 gukhan --stdin                       # read from stdin
+gukhan a.md b.md --out-dir out/       # several files into new copies (never overwrites)
+gukhan a.md b.md --in-place          # overwrite; original kept as a.md.bak (--no-backup, --backup-suffix)
 ```
 
 Exit status 0 on success, 2 on a usage or file error. Messages in Korean and
