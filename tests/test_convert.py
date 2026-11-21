@@ -256,6 +256,11 @@ def test_kiwi_analyser_selects_cong_explicitly(monkeypatch):
         ("국군 [국군](문서/국군.md) ![국군](국군.png)", ["(문서/국군.md)", "(국군.png)"]),
         ("연락처는국군@example.com 국군", []),  # non-ASCII before @ is not an address
         ("연락처 a.b@example.co.kr 국군", ["a.b@example.co.kr"]),
+        ("국군 <!-- 국군\n국군 --> 국군", ["<!-- 국군\n국군 -->"]),
+        (
+            "<style>p::after{content:'국군'}</style>국군<SCRIPT>var a='국군';\n</SCRIPT>",
+            ["<style>p::after{content:'국군'}</style>", "<SCRIPT>var a='국군';\n</SCRIPT>"],
+        ),
     ],
 )
 def test_segment_protection(text, protected):

@@ -2,7 +2,7 @@
 """Split text into convertible and protected spans.
 
 Protected: fenced code blocks (also indented ones), inline code, URLs, e-mail
-addresses, HTML tags, and Markdown link destinations. Everything else is
+addresses, HTML tags, comments, script and style blocks, and Markdown link destinations. Everything else is
 converted, including Markdown headings and links' visible text.
 """
 
@@ -12,11 +12,13 @@ import re
 from dataclasses import dataclass
 
 _PROTECTED = re.compile(
-    r"(?ms)"
+    r"(?msi)"
     # fenced code block, CommonMark style: may be indented (inside a list item), closes on a
     # fence of the same character at least as long, and runs to the end of the text when unclosed
     r"^[ \t]*(?P<bt>`{3,})[^`\n]*\n(?:.*?^[ \t]*(?P=bt)`*[ \t]*$|.*\Z)"
     r"|^[ \t]*(?P<td>~{3,})[^\n]*\n(?:.*?^[ \t]*(?P=td)~*[ \t]*$|.*\Z)"
+    r"|<!--.*?-->"  # HTML comment, possibly over several lines
+    r"|<(?P<raw>script|style)\b[^>]*>.*?</(?P=raw)\s*>"  # code and CSS in an HTML file
     r"|(?P<tick>`+)(?!`)[^\n]*?(?<!`)(?P=tick)(?!`)"  # inline code, any run of backticks
     r"|https?://\S+|www\.\S+"  # URLs
     r"|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+"  # e-mail, ASCII only
