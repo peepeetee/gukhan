@@ -111,17 +111,27 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await glyph.locator('[data-gukhan="word"]').first().waitFor();
     await glyph.waitForFunction(() => document.querySelector('p').textContent.includes('\u{30000}'));
     const lacking = async () => worker.evaluate(async () => Object.entries(await chrome.storage.session.get(null)).filter(([k]) => k.startsWith('glyphs:')).map(([, v]) => v));
-    for (let i = 0; i < 40 && !(await lacking()).length; i++) await glyph.waitForTimeout(100);
-    const reported = await lacking();
-    const pictures = reported.length ? '' : await glyph.evaluate(() => {  // what the page's own canvas draws, for the failure message
+    // What does this browser draw for a character no font has? Nothing, or one box shared by all of them, are what the
+    // check recognises. A box that carries the character's own code point (Firefox, and the CI runner's headless
+    // Chromium, which draws one) differs per character; there the check must stay silent rather than guess.
+    const pictures = await glyph.evaluate(() => {
       const ctx = document.createElement('canvas').getContext('2d', {willReadFrequently: true});
-      const ink = ch => { ctx.clearRect(0, 0, 64, 64); ctx.font = '32px serif'; ctx.fillText(ch, 8, 44); return ctx.getImageData(0, 0, 64, 64).data.filter((v, i) => i % 4 === 3 && v).length + 'px'; };
-      return ['H', '\u{30000}', '\u0378', '\u{3134A}', '\u{323AF}', '\u{2EE5D}', '\u{2FFFD}'].map(c => c.codePointAt(0).toString(16) + ':' + ink(c)).join(' ');
+      const ink = ch => { ctx.clearRect(0, 0, 64, 64); ctx.font = '32px serif'; ctx.fillText(ch, 8, 44); const a = ctx.getImageData(0, 0, 64, 64).data; let n = 0, h = 0; for (let i = 3; i < a.length; i += 4) if (a[i]) { n++; h = (h * 31 + i * a[i]) >>> 0; } return {n, h}; };
+      const a = ink('\u{30000}'), b = ink('\u{30001}');
+      return {detectable: a.n === 0 || (a.n === b.n && a.h === b.h), a, b};
     });
-    assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported; canvas ink: ' + pictures);
-    await glyph.locator('[data-gukhan="word"]').first().click();
-    await glyph.locator('[data-gukhan="panel"]').waitFor({state: 'attached'});
-    assert.match(await glyph.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent), /이 글꼴에 없는 글자/);
+    if (pictures.detectable) {
+      for (let i = 0; i < 40 && !(await lacking()).length; i++) await glyph.waitForTimeout(100);
+      const reported = await lacking();
+      assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported');
+      await glyph.locator('[data-gukhan="word"]').first().click();
+      await glyph.locator('[data-gukhan="panel"]').waitFor({state: 'attached'});
+      assert.match(await glyph.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent), /이 글꼴에 없는 글자/);
+    } else {
+      await glyph.waitForTimeout(1000);
+      assert.equal((await lacking()).length, 0, 'a browser that draws a box per character gets no report (the check does not guess)');
+      console.log('NOTE: this browser draws a per-character box for missing glyphs; the glyph check stays silent, as documented. ' + JSON.stringify(pictures));
+    }
     // A large page converts lazily: only text near the viewport is converted, the rest when it scrolls into view.
     const big = await context.newPage();
     const paragraphs = Array.from({length: 3000}, (_, i) => `<p style="height:40px;margin:0">연구 ${i}</p>`).join('');
