@@ -15,5 +15,7 @@ Each lexicon build states its licence and exact attribution in its
 manifest.json. Sources: 標準國語大辭典 and 우리말샘 (國立國語院, CC BY-SA 2.0 KR),
 English Wiktionary Korean entries via kaikki.org (CC BY-SA 4.0), 韓國語基礎辭典
 (CC BY-SA 2.0 KR) and 한국어 학습용 어휘 목록 (KOGL Type 1) for candidate
-ranking, and the Unicode Unihan database (Unicode License v3) for readings.
+ranking, Korean statutes (大韓民國 法令, public works, 저작권법 제7조; via the
+legalize-kr/legalize-kr mirror of law.go.kr) for optional legal-term glosses, and
+the Unicode Unihan database (Unicode License v3) for readings.
 See THIRD-PARTY-NOTICES.md and docs/licensing.md for details.

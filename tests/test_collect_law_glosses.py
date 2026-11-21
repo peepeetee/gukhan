@@ -32,3 +32,20 @@ def test_clean_and_extract_limit_per_pair():
     assert cl.clean("**제1조** \\(목적\\)") == "제1조 (목적)"
     text = "\n".join(f"{i}번 자(子)이다." for i in range(5))
     assert len(cl.extract(text)) == cl.PER_PAIR
+
+
+def test_split_is_by_pair_and_stable():
+    assert cl.half(("작전", "作戰")) == cl.half(("작전", "作戰"))
+    halves = {cl.half((w, w)) for w in ["가나", "다라", "마바", "사아", "자차", "카타", "파하", "거너"]}
+    assert halves == {"tuning", "heldout"}
+
+
+def test_committed_halves_share_no_pair():
+    root = Path(__file__).parent / "regression"
+    from gukhan.lexicon_build import lawgloss
+
+    tuning = lawgloss.pairs_in_items(root / "modern-law-tuning.tsv")
+    heldout = lawgloss.pairs_in_items(root / "modern-law-heldout.tsv")
+    assert tuning and heldout and not (tuning & heldout)
+    assert all(cl.half(p) == "tuning" for p in tuning)
+    assert all(cl.half(p) == "heldout" for p in heldout)

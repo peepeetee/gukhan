@@ -9,6 +9,7 @@ import zipfile
 from pathlib import Path
 
 from . import kowiki as kowiki_mod
+from . import lawgloss as law_mod
 from . import opendict as opendict_mod
 from . import stdict as stdict_mod
 from . import unihan as unihan_mod
@@ -148,6 +149,21 @@ def _build(argv: list[str] | None) -> int:
         metavar="P####",
         help="Wikidata statement property that holds the Hanja form (from the survey); repeatable",
     )
+    ap.add_argument(
+        "--law-glosses",
+        type=Path,
+        help=(
+            "legalize-kr checkout (kr/<법령명>/*.md): Hanja the statutes gloss as 분사무소(分事務所). "
+            "Optional; adds only words no other source has, and writes law-glosses.tsv and law-overrides.txt"
+        ),
+    )
+    ap.add_argument(
+        "--law-glosses-exclude",
+        type=Path,
+        action="append",
+        default=[],
+        help="regression items TSV whose gold pairs are left out of the law glosses (keeps it unseen); repeatable",
+    )
     ap.add_argument("--unihan", type=Path, help="Unihan.zip or directory with Unihan_Readings.txt (validates readings)")
     ap.add_argument("-o", "--out", required=True, type=Path, help="output directory")
     ap.add_argument("--krdict", type=Path, help="한국어기초사전 XML vocabulary levels / candidate tie-breaker")
@@ -160,9 +176,30 @@ def _build(argv: list[str] | None) -> int:
             file=sys.stderr,
         )
         return 2
-    for p in [
-        p for p in (args.stdict, args.opendict, args.kowiki, args.wikidata_lexemes, args.krdict, args.learner_list) if p
-    ] + args.wiktextract:
+    if args.law_glosses and not (args.stdict or args.opendict or args.wiktextract or args.kowiki):
+        print(
+            "法律 註釋만으로는 辭典을 만들 수 없습니다 / --law-glosses supplements a dictionary source; "
+            "give --stdict, --opendict, --wiktextract or --kowiki too",
+            file=sys.stderr,
+        )
+        return 2
+    for p in (
+        [
+            p
+            for p in (
+                args.stdict,
+                args.opendict,
+                args.kowiki,
+                args.wikidata_lexemes,
+                args.krdict,
+                args.learner_list,
+                args.law_glosses,
+            )
+            if p
+        ]
+        + args.wiktextract
+        + args.law_glosses_exclude
+    ):
         if not p.exists():
             print(f"入力 file을 찾을 수 없습니다 / input not found: {p}", file=sys.stderr)
             return 2
@@ -257,6 +294,31 @@ def _build(argv: list[str] | None) -> int:
 
     args.out.mkdir(parents=True, exist_ok=True)
     merged = merge_entries(entries)
+    law_stats = None
+    if args.law_glosses:
+        excluded: set[tuple[str, str]] = set()
+        for path in args.law_glosses_exclude:
+            excluded |= law_mod.pairs_in_items(path)
+        law_entries, law_rejects, law_stats = law_mod.parse(args.law_glosses, readings, excluded)
+        print(
+            f"law glosses: statutes={law_stats.items} (repealed {law_stats.repealed}, "
+            f"with glosses {law_stats.glossed}) "
+            f"gloss-tokens={law_stats.tokens} pairs={len(law_stats.pairs)} rejected={law_stats.rejected} "
+            f"excluded={law_stats.excluded}"
+        )
+        if law_stats.items == 0:
+            print("法令 Markdown을 찾지 못했습니다 / no statute .md files found in --law-glosses", file=sys.stderr)
+            return 2
+        known = {e.hangul for e in merged}
+        added = [e for e in law_entries if e.hangul not in known]
+        merged = sorted(merged + added, key=lambda e: (e.hangul, e.hanja, e.pos))
+        rejects += law_rejects
+        counts.update(
+            law_statutes=law_stats.items,
+            law_pairs=len(law_stats.pairs),
+            law_entries_added=len(added),
+            law_overrides=len(law_mod.override_lines(law_stats)),
+        )
     # A native word with the same sound as a Sino-Korean entry becomes a candidate whose Hanja
     # column repeats the Hangul, so the converter flags 안 (案 or inside?) instead of guessing.
     sino_words = {e.hangul for e in merged}
@@ -296,6 +358,20 @@ def _build(argv: list[str] | None) -> int:
             fh.write(r.tsv() + "\n")
     outputs["rejects"] = rej_path
 
+    if law_stats is not None:
+        pairs_path = args.out / "law-glosses.tsv"
+        pairs_path.write_text(law_mod.pairs_tsv(law_stats), encoding="utf-8", newline="")
+        outputs["law_glosses"] = pairs_path
+        ov_path = args.out / "law-overrides.txt"
+        ov_path.write_text(
+            "# 法律 註釋에서 얻은 우선 規則 / readings the statutes gloss one way\n"
+            "# opt-in, for legal text only: gukhan --overrides law-overrides.txt\n"
+            + "".join(line + "\n" for line in law_mod.override_lines(law_stats)),
+            encoding="utf-8",
+            newline="",
+        )
+        outputs["law_overrides"] = ov_path
+
     if readings:
         chars_path = args.out / "chars.tsv"
         with chars_path.open("w", encoding="utf-8", newline="\n") as fh:
@@ -311,6 +387,7 @@ def _build(argv: list[str] | None) -> int:
         wiktextract=args.wiktextract,
         kowiki=args.kowiki,
         wikidata_lexemes=args.wikidata_lexemes,
+        law_glosses=args.law_glosses,
         unihan=args.unihan,
         unihan_version=unihan_version,
         licence=licence,

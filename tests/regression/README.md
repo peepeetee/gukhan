@@ -27,21 +27,29 @@ the legal basis. Add a row there before adding items.
 
 ## Modern statutes / 現行 法律 (2026-11-21)
 
-`modern-law.tsv` (1218 items) tests homograph choice on current statutes. Current
-法律 are written in Hangul, but the plain-language rewrites of the 2000s–2020s put
-the Hanja after a legal term on first use: `분사무소(分事務所)`, `의사(意思)`. That
-annotation is the lawmaker's own Hanja for the word, so it is gold.
+`modern-law-tuning.tsv` (547 items) and `modern-law-heldout.tsv` (649) test homograph choice on
+current statutes. Current 法律 are written in Hangul, but the plain-language rewrites of the
+2000s–2020s put the Hanja after a legal term on first use: `분사무소(分事務所)`, `의사(意思)`.
+That annotation is the lawmaker's own Hanja for the word, so it is gold.
 
-- Source: `legalize-kr/legalize-kr` on GitHub, a mirror of law.go.kr; 40 statutes,
-  listed with 公布日 / 施行日 / 法令MST in `modern-law-laws.tsv`. Statutes are free
-  of copyright (저작권법 제7조); the mirror's own structure and metadata are MIT.
-- Only annotated words are Hanja in the gold text; every other word stays Hangul.
-  So read `right`, `flagged` and `wrong`; `over` counts every un-annotated word
-  the converter writes in Hanja and means nothing here.
-- At most two sentences per distinct (word, Hanja) pair, so `자(子)` does not
-  dominate. Readings were checked by eye, not against Unihan.
+- Source: `legalize-kr/legalize-kr` on GitHub, a mirror of law.go.kr, at commit `8df03e4`; 40
+  statutes, listed with 公布日 / 施行日 / 法令MST in `modern-law-laws.tsv`. Statutes are free of
+  copyright (저작권법 제7조); the mirror's own structure and metadata are MIT.
+- Only annotated words are Hanja in the gold text; every other word stays Hangul. So read `right`,
+  `flagged` and `wrong`; `over` counts every un-annotated word the converter writes in Hanja and
+  means nothing here.
+- At most two sentences per distinct (word, Hanja) pair, so `자(子)` does not dominate. Readings
+  were checked by eye, not against Unihan.
+- **Split.** A pair goes to the tuning or the held-out half by a hash of the pair itself, so no
+  word is in both, and a sentence whose words fall in both halves is dropped (101 of them). Fit
+  and inspect rules on tuning only; quote held-out figures, and look at its errors only to report
+  them. Fixing a held-out error turns it into tuning data: say so when you do.
+- **Circularity.** The set's gold is the same kind of data as the `--law-glosses` source of
+  `gukhan-lexicon-build`. Score it only with a lexicon built without `--law-glosses`, or build
+  with `--law-glosses-exclude tests/regression/modern-law-heldout.tsv` (and the tuning file when
+  scoring that) so the pairs under test are not in the lexicon.
 - Rebuild: `python scripts/collect_law_glosses.py --out build/laws` then
-  `--from build/laws --items tests/regression/modern-law.tsv`.
+  `--from build/laws --items tests/regression/modern-law`.
 
 ## How to add a text
 
