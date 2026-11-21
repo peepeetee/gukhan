@@ -1,0 +1,12 @@
+# 님의 沈黙 1926 batch 12: scan vs ko.wikisource divergences (PDF pp.131-136)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p131: DIFFERS
+  scan : 나는 눈물로裝飾한玉珮를 보지못하얏슴니다
+  wiki : 나는 눈물로裝飾한玉佩를 보지못하얏슴니다
+  chars: '珮'->'佩'
+## p133: DIFFERS
+  scan : 아츰에 이러나서 세수하랴고 대야에 물을ᄯᅥ다노으면 당신은 대야안의 잔은물ㅅ결이 되야서 나의얼골그림자를 불상한아기처럼 얼너줌니다
+  wiki : 아츰에 이러나서 세수하랴고 대야에 물을ᄯᅥ다노으면 당신은 대야 안의 간은물ㅅ결이 되야서 나의얼골그림자를 불샹한아기처럼 얼너줌니다
+  chars: '잔'->'간' | '상'->'샹'
