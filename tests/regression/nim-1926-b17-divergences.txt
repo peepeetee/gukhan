@@ -1,0 +1,23 @@
+# 님의 沈黙 1926 batch 17: scan vs ko.wikisource divergences (PDF pp.158-164)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p158: DIFFERS
+  scan : 당신이 ᄯᅥ나시랴고 나의큰보석반지를 주머니에너실ᄯᅢ에 당신의마음이 보석반지넘어로 얼골을가리고 숨은것을 분명히보앗슴니다
+  wiki : 당신이 ᄯᅥ나시랴고 나의큰보석반지를 주머니에너실ᄯᅢ에 당신의마음이 보석반지넘어로 얼골을가리고 숨는것을 분명히보앗슴니다
+  chars: '은'->'는'
+## p159: DIFFERS
+  scan : 긴밤은 근심바다의첫물ㅅ결에서 나와서 슯은音樂이되고 아득한沙漠이되더니 필경 絶望의城넘어로가서 惡魔의우슴속으로 드려감니다
+  wiki : 긴밤은 근심바다의첫물ㅅ결에서 나와서 슯은音樂이되고 아득한沙漠이되더니 필경 絶望의城넘어로가서 惡魔의우슴속으로 드러감니다
+  chars: '려'->'러'
+  scan : 당신이기실ᄯᅢ는 겨을밤이ᄶᅥ르더니 당신이가신뒤는 여름밤이기러요
+  wiki : 당신이기실ᄯᅢ는 겨울밤이ᄶᅥ르더니 당신이가신뒤는 여름밤이기러요
+  chars: '을'->'울'
+## p163: DIFFERS
+  scan : 그들은 갈닙으로 배를만들고 그배에다 무슨글을써서 물에ᄯᅴ우고 입김으로부러서 서로보냄니다 그러고 서로글을보고 理解하지못하는것처
+  wiki : 그들은 갈닙으로 배를만들고 그배에다 무슨글을써서 물에ᄯᅴ우고 입김으로부러서 서로보냄니다 그러고 서로글을보고 理解하지못하는것처럼
+  chars: ''->'럼'
+## p164: DIFFERS
+  scan : 럼 잠자코잇슴니다
+  wiki : 잠자코잇슴니다
+  chars: '럼'->''
