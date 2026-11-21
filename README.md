@@ -50,6 +50,15 @@ for d in result.of(Kind.FLAGGED):  # homographs left in Hangul, with candidates
     print(d.hangul, [c.hanja for c in d.candidates])
 ```
 
+Other formats / 다른 形式: HTML, Word (`.docx`), EPUB and subtitles (`.srt`, `.vtt`) are chosen by file
+extension (`--format` overrides it). Only the text is converted; tags, styles, timing and every other part of the
+file are copied unchanged, and the tests check that for each format: `docs/formats.md`.
+
+```
+gukhan page.html -o page.hanja.html
+gukhan thesis.docx --in-place      # the original is kept as thesis.docx.bak
+```
+
 Speed: about 0.36 MB/s on 4 cores (`--workers N` sets Kiwi's threads, `--jobs N` splits several files over
 processes; the output never changes); numbers and method in `docs/performance.md` (處理 速度).
 

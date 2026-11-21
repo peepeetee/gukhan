@@ -13,7 +13,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from . import __version__, console, report, rules, suggest
+from . import __version__, console, formats, report, rules, suggest
 from .analyser import KiwiAnalyser, default_workers
 from .convert import Converter, Result
 from .lexicon import Lexicon
@@ -31,8 +31,17 @@ def _read(path: Path) -> str:
         return fh.read()
 
 
-def _write(path: Path, text: str, *, exclusive: bool = False) -> None:
-    """Write UTF-8 text. ``exclusive`` refuses an existing path (a symlink included) instead of following it."""
+def _read_input(path: Path, fmt: str) -> str | bytes:
+    """A file's content for its format: text exactly as written, or the raw bytes of a .docx or .epub."""
+    return path.read_bytes() if formats.is_binary(fmt) else _read(path)
+
+
+def _write(path: Path, text: str | bytes, *, exclusive: bool = False) -> None:
+    """Write UTF-8 text or bytes. ``exclusive`` refuses an existing path (a symlink too) instead of following it."""
+    if isinstance(text, bytes):
+        with path.open("xb" if exclusive else "wb") as raw:
+            raw.write(text)
+        return
     with path.open("x" if exclusive else "w", encoding="utf-8", newline="") as fh:
         fh.write(text)
 
@@ -127,8 +136,16 @@ def build_parser() -> argparse.ArgumentParser:
         "input",
         nargs="*",
         type=Path,
-        help="入力 file (Markdown 또는 平文); 여러 개는 --in-place나 --out-dir 필요, --stdin이면 생략 / "
-        "input file (Markdown or plain text); several need --in-place or --out-dir; omit with --stdin",
+        help="入力 file (Markdown, 平文, HTML, .docx, .epub, .srt, .vtt); 여러 개는 --in-place나 --out-dir 필요, "
+        "--stdin이면 생략 / input file (Markdown, plain text, HTML, .docx, .epub, .srt, .vtt); several need "
+        "--in-place or --out-dir; omit with --stdin",
+    )
+    ap.add_argument(
+        "--format",
+        choices=("auto", *formats.FORMATS),
+        default="auto",
+        help="入力 形式 (기본 auto: 확장자로 判斷, 그 밖은 text) / input format (default auto: by file extension, "
+        "anything else is text); needed with --stdin for html, docx, epub, srt, vtt",
     )
     ap.add_argument("--stdin", action="store_true", help="read text from standard input / 標準 入力에서 읽기")
     ap.add_argument(
@@ -252,6 +269,11 @@ def review_main(argv: list[str]) -> int:
 
     if not args.input.is_file():
         return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
+    if formats.detect_format(args.input) != "text":
+        return _err(
+            "review는 平文·Markdown file에서만 됩니다 / review works on plain text and Markdown files only; "
+            "convert HTML, .docx, .epub or subtitles with plain `gukhan` and --report"
+        )
     try:
         text = _read(args.input)
     except (OSError, UnicodeDecodeError) as e:
@@ -281,16 +303,28 @@ def main(argv: list[str] | None = None) -> int:
     jobs = _plan(args)
     if isinstance(jobs, int):
         return jobs
-    texts: dict[Path | None, str] = {}
+    texts: dict[Path | None, str | bytes] = {}
+    fmts: dict[Path | None, str] = {}
     reading = Path("<stdin>")
     try:
         if args.stdin:
-            texts[None] = sys.stdin.buffer.read().decode("utf-8") if hasattr(sys.stdin, "buffer") else sys.stdin.read()
+            fmts[None] = "text" if args.format == "auto" else args.format
+            if formats.is_binary(fmts[None]):
+                texts[None] = sys.stdin.buffer.read()
+            else:
+                texts[None] = (
+                    sys.stdin.buffer.read().decode("utf-8") if hasattr(sys.stdin, "buffer") else sys.stdin.read()
+                )
         else:
             for src, _ in jobs:
                 reading = src
-                texts[src] = _read(src)
-    except (OSError, UnicodeDecodeError) as e:
+                fmts[src] = formats.detect_format(src) if args.format == "auto" else args.format
+                texts[src] = _read_input(src, fmts[src])
+        for key, fmt in fmts.items():  # every input is checked before anything is written
+            if fmt != "text":
+                reading = key or Path("<stdin>")
+                formats.load(fmt, texts[key])
+    except (OSError, UnicodeDecodeError, formats.FormatError) as e:
         return _err(_read_error(reading, e))
 
     try:
@@ -319,6 +353,11 @@ def main(argv: list[str] | None = None) -> int:
         backend = _make_backend(args)
     except ValueError as e:
         return _err(str(e))
+    if backend is not None and any(f != "text" for f in fmts.values()):
+        return _err(
+            "局所 모델 提案은 平文·Markdown에서만 쓸 수 있습니다 / local-model suggestions work on plain text "
+            "and Markdown only, not on HTML, .docx, .epub or subtitles"
+        )
     if args.llm_apply and backend is None:
         return _err("--llm-apply 에는 --llm-url 이 必要합니다 / --llm-apply needs --llm-url")
     if args.llm_apply and args.mark:
@@ -343,10 +382,9 @@ def main(argv: list[str] | None = None) -> int:
     status = 0
     plan: list[tuple[Path | None, Path | None]] = [(None, args.output)] if args.stdin else list(jobs)
     spec = _WorkerSpec(args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers)
-    for path, target, out_text, s, result in _convert_stream(conv, plan, texts, args.mark, n_jobs, spec):
-        text = texts[path]
+    for path, target, out_text, s, result, text in _convert_stream(conv, plan, texts, fmts, args.mark, n_jobs, spec):
         suggestions = None
-        if backend is not None and result is not None:  # a backend forces one process, so result exists
+        if backend is not None and result is not None and isinstance(out_text, str):  # one process: result exists
             suggestions = suggest.collect_suggestions(
                 backend,
                 text,
@@ -368,6 +406,9 @@ def main(argv: list[str] | None = None) -> int:
                 if args.out_dir:
                     target.parent.mkdir(parents=True, exist_ok=True)
                 _write(target, out_text, exclusive=bool(args.out_dir))
+            elif isinstance(out_text, bytes):
+                sys.stdout.buffer.write(out_text)
+                sys.stdout.buffer.flush()
             else:
                 sys.stdout.write(out_text)
             if args.report and result is not None:
@@ -427,21 +468,34 @@ def _init_worker(spec: _WorkerSpec, jobs: int) -> None:
     )
 
 
-def _convert_in_worker(job: tuple[str, bool]) -> tuple[str, dict[str, int]]:
-    text, mark = job
-    result = _WORKER["conv"].convert(text, mark=mark)
-    return result.text, report.summary(result)
+def _convert_one(
+    conv: Converter, fmt: str, data: str | bytes, mark: bool
+) -> tuple[str | bytes, dict[str, int], Result, str]:
+    """Convert one input of any format: ``(output, summary, result, the text the result's offsets refer to)``."""
+    if fmt == "text":
+        assert isinstance(data, str)
+        result = conv.convert(data, mark=mark)
+        return result.text, report.summary(result), result, data
+    done = formats.convert_document(formats.load(fmt, data), conv, mark=mark)
+    return done.output, report.summary(done.result), done.result, done.source_text
+
+
+def _convert_in_worker(job: tuple[str | bytes, str, bool]) -> tuple[str | bytes, dict[str, int]]:
+    data, fmt, mark = job
+    out, summary, _, _ = _convert_one(_WORKER["conv"], fmt, data, mark)
+    return out, summary
 
 
 def _convert_stream(
     conv: Converter,
     plan: list[tuple[Path | None, Path | None]],
-    texts: dict[Path | None, str],
+    texts: dict[Path | None, str | bytes],
+    fmts: dict[Path | None, str],
     mark: bool,
     n_jobs: int,
     spec: _WorkerSpec,
-) -> Iterator[tuple[Path | None, Path | None, str, dict[str, int], Result | None]]:
-    """Yield ``(path, target, converted text, summary, result)`` in input order.
+) -> Iterator[tuple[Path | None, Path | None, str | bytes, dict[str, int], Result | None, str]]:
+    """Yield ``(path, target, converted text or bytes, summary, result, source text)`` in input order.
 
     One process by default; with ``n_jobs`` > 1 the files are split over that many worker processes
     (started with ``spawn``, so Kiwi's threads are never forked), each building its own Converter. The
@@ -449,8 +503,8 @@ def _convert_stream(
     """
     if n_jobs <= 1:
         for path, target in plan:
-            result = conv.convert(texts[path], mark=mark)
-            yield path, target, result.text, report.summary(result), result
+            out, summary, result, source = _convert_one(conv, fmts[path], texts[path], mark)
+            yield path, target, out, summary, result, source
         return
     import multiprocessing
     from concurrent.futures import ProcessPoolExecutor
@@ -461,9 +515,9 @@ def _convert_stream(
         initializer=_init_worker,
         initargs=(spec, n_jobs),
     ) as pool:
-        outputs = pool.map(_convert_in_worker, [(texts[path], mark) for path, _ in plan])
+        outputs = pool.map(_convert_in_worker, [(texts[path], fmts[path], mark) for path, _ in plan])
         for (path, target), (out_text, summary) in zip(plan, outputs, strict=True):
-            yield path, target, out_text, summary, None
+            yield path, target, out_text, summary, None, ""
 
 
 def _backup_path(path: Path, suffix: str) -> Path:
@@ -478,7 +532,7 @@ def _backup(path: Path, dest: Path) -> None:
     shutil.copystat(path, dest)
 
 
-def _write_atomic(path: Path, text: str) -> None:
+def _write_atomic(path: Path, text: str | bytes) -> None:
     """Replace ``path`` in one step, so an interrupted run never leaves half a file.
 
     A symlink is followed, so the link stays a link and its target is what changes; the new file keeps the
@@ -489,8 +543,12 @@ def _write_atomic(path: Path, text: str) -> None:
     fd, name = tempfile.mkstemp(prefix=f".{real.name}.", suffix=".gukhan-tmp", dir=real.parent)
     tmp = Path(name)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
-            fh.write(text)
+        if isinstance(text, bytes):
+            with os.fdopen(fd, "wb") as raw:
+                raw.write(text)
+        else:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
+                fh.write(text)
         shutil.copymode(real, tmp)
         os.replace(tmp, real)
     finally:
