@@ -13,7 +13,7 @@ published. Words that are not annotated stay Hangul in the gold text, so ``over`
 for this set; read right / flagged / wrong.
 
     python scripts/collect_law_glosses.py --out build/laws          # fetch (needs network), cache
-    python scripts/collect_law_glosses.py --from build/laws --items tests/regression/modern-law.tsv
+    python scripts/collect_law_glosses.py --from build/laws --items tests/regression/modern-law
 
 Source: the legalize-kr/legalize-kr repository, which mirrors law.go.kr (the state's 국가법령정보센터)
 as one Markdown file per statute (its own metadata and structure are MIT; the statute text is a
@@ -23,8 +23,10 @@ public work).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
+import unicodedata
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -46,6 +48,12 @@ PER_PAIR = 2  # sentences kept per distinct (word, Hanja): 자(子) alone occurs
 MAX_CHARS = 240
 
 
+def half(pair: tuple[str, str]) -> str:
+    """``tuning`` or ``heldout``, fixed by the pair alone, so no word is in both halves and the split never moves."""
+    digest = hashlib.sha256(f"{pair[0]}\t{pair[1]}".encode()).digest()
+    return "heldout" if digest[0] % 2 else "tuning"
+
+
 def fetch(name: str, kind: str = "법률") -> str:
     url = RAW.format(name=urllib.parse.quote(name), kind=urllib.parse.quote(kind))
     req = urllib.request.Request(url, headers={"User-Agent": UA})
@@ -64,6 +72,7 @@ def frontmatter(text: str) -> dict[str, str]:
 
 
 def clean(line: str) -> str:
+    line = unicodedata.normalize("NFC", line)  # folds Korean compatibility ideographs (U+F98B 曆) to the unified form
     line = re.sub(r"^\s*#+\s*", "", line)
     line = re.sub(r"\\([.\-()\[\]*])", r"\1", line)
     line = line.replace("**", "").replace("\u3000", " ")
@@ -129,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, help="fetch the statutes into this folder")
     ap.add_argument("--from", dest="src", type=Path, help="read cached statutes from this folder")
-    ap.add_argument("--items", type=Path, help="write the items TSV here")
+    ap.add_argument("--items", type=Path, help="items file prefix: writes <prefix>-tuning.tsv, -heldout.tsv, -laws.tsv")
     args = ap.parse_args(argv)
     if args.out:
         args.out.mkdir(parents=True, exist_ok=True)
@@ -140,32 +149,40 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{name}: {e}", file=sys.stderr)
     if args.src and args.items:
         seen: dict[tuple[str, str], int] = {}
-        rows, laws, n = [], [], 0
+        rows: dict[str, list[tuple[str, str]]] = {"tuning": [], "heldout": []}
+        laws, dropped = [], 0
         for name in LAWS:
             path = args.src / f"{name}.md"
             if not path.is_file():
                 continue
             text = path.read_text(encoding="utf-8")
             meta = frontmatter(text)
-            found = extract(text, seen)
-            laws.append((name, meta.get("공포일자", ""), meta.get("시행일자", ""), meta.get("법령MST", ""), len(found)))
-            for h, x, _ in found:
-                n += 1
-                rows.append(f"modern-law-{n:04d}\tmodern-law\t{h}\t{x}\t# {name}")
-        with args.items.open("w", encoding="utf-8", newline="\n") as fh:
-            fh.write(
-                "# gukhan regression items from modern statutes: the lawmakers' own Hanja glosses, see "
-                "scripts/collect_law_glosses.py\n"
+            count = {"tuning": 0, "heldout": 0}
+            for h, x, pairs in extract(text, seen):
+                halves = {half(p) for p in pairs}
+                if len(halves) != 1:
+                    dropped += 1  # its words fall in both halves: keep neither
+                    continue
+                (which,) = halves
+                rows[which].append((h, x))
+                count[which] += 1
+            laws.append(
+                (name, meta.get("공포일자", ""), meta.get("시행일자", ""), meta.get("법령MST", ""), *count.values())
             )
-            fh.write("# id\tsource\thangul\tmixed\n")
-            for r in rows:
-                fh.write(r.rsplit("\t", 1)[0] + "\n")
-        laws_path = args.items.with_name(args.items.stem + "-laws.tsv")
+        for which, items in rows.items():
+            path = args.items.with_name(f"{args.items.name}-{which}.tsv")
+            with path.open("w", encoding="utf-8", newline="\n") as fh:
+                fh.write(f"# gukhan {which} items from modern statutes: the lawmakers' own Hanja glosses\n")
+                fh.write("# built by scripts/collect_law_glosses.py; see tests/regression/README.md for the split\n")
+                fh.write("# id\tsource\thangul\tmixed\n")
+                for n, (h, x) in enumerate(items, 1):
+                    fh.write(f"modern-law-{which}-{n:04d}\tmodern-law-{which}\t{h}\t{x}\n")
+        laws_path = args.items.with_name(args.items.name + "-laws.tsv")
         with laws_path.open("w", encoding="utf-8", newline="\n") as fh:
-            fh.write("# law\t공포일자\t시행일자\t법령MST\titems\n")
+            fh.write("# law\t공포일자\t시행일자\t법령MST\ttuning\theldout\n")
             for law in laws:
                 fh.write("\t".join(map(str, law)) + "\n")
-        print(f"{len(rows)} items from {len(laws)} statutes → {args.items}")
+        print(f"{len(rows['tuning'])} tuning, {len(rows['heldout'])} held-out items, {dropped} straddling dropped")
     return 0
 
 
