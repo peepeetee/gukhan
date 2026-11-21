@@ -7,12 +7,12 @@ import argparse
 import os
 import shutil
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
-from . import __version__, report, rules
+from . import __version__, report, rules, suggest
 from .analyser import KiwiAnalyser, default_workers
-from .convert import Converter
+from .convert import Converter, Result
 from .lexicon import Lexicon
 from .overrides import Overrides
 
@@ -76,6 +76,44 @@ class _Version(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         sys.stdout.write(version_text() + "\n")
         parser.exit()
+
+
+def _add_llm_options(ap: argparse.ArgumentParser, *, apply: bool) -> None:
+    g = ap.add_argument_group(
+        "局所 모델 提案 (選擇) / local-model suggestions (optional)",
+        "기본은 꺼져 있고 網路에 아무것도 보내지 않습니다 / "
+        "Off by default; nothing is sent anywhere unless --llm-url is given.",
+    )
+    g.add_argument(
+        "--llm-url",
+        metavar="URL",
+        help="OpenAI 互換 localhost 서버 (llama.cpp, Ollama), 예: http://127.0.0.1:11434/v1 . flag된 낱말마다 "
+        "그 文章과 辭典 後補만 보내 하나를 고르게 합니다 / OpenAI-compatible localhost server (llama.cpp, Ollama); "
+        "it is sent the sentence and the dictionary candidates of each flagged word and picks one or abstains",
+    )
+    g.add_argument("--llm-model", default="", help="model 이름 / model name (Ollama needs one)")
+    g.add_argument("--llm-timeout", type=float, default=60.0, help="要請當 秒 / seconds per request (default 60)")
+    g.add_argument(
+        "--llm-allow-remote",
+        action="store_true",
+        help="localhost 아닌 주소 許容: 文章이 그곳으로 보내집니다 / "
+        "allow a non-localhost URL: sentences are sent there",
+    )
+    if apply:
+        g.add_argument(
+            "--llm-apply",
+            action="store_true",
+            help="모델의 提案을 結果 file에 實際로 씀 (기본은 報告에만 표시) / write the model's picks into the output "
+            "(default: suggestions appear only in the report, marked unconfirmed)",
+        )
+
+
+def _make_backend(args: argparse.Namespace) -> suggest.Backend | None:
+    if not args.llm_url:
+        return None
+    return suggest.OpenAIChatBackend(
+        args.llm_url, args.llm_model, timeout=args.llm_timeout, allow_remote=args.llm_allow_remote
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -177,6 +215,7 @@ def build_parser() -> argparse.ArgumentParser:
         nargs=0,
         help="gukhan·Kiwi·辭典의 版本 표시 / show the versions of gukhan, Kiwi and the lexicon",
     )
+    _add_llm_options(ap, apply=True)
     return ap
 
 
@@ -205,6 +244,7 @@ def review_main(argv: list[str]) -> int:
         action="store_true",
         help="辭典에 없는 낱말도 물음 (漢字를 직접 입력) / also ask about words with no entry (type the Hanja)",
     )
+    _add_llm_options(ap, apply=False)
     args = ap.parse_args(argv)
     from .review import Reviewer
 
@@ -220,8 +260,12 @@ def review_main(argv: list[str]) -> int:
         use_rules = rules.parse_rules(args.rules)
     except (OSError, ValueError) as e:
         return _err(str(e))
+    try:
+        backend = _make_backend(args)
+    except ValueError as e:
+        return _err(str(e))
     conv = Converter(lexicon, overrides, use_rules=use_rules)
-    return Reviewer(conv, text, args.overrides, include_review=args.include_review).run()
+    return Reviewer(conv, text, args.overrides, include_review=args.include_review, backend=backend).run()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -269,12 +313,22 @@ def main(argv: list[str] | None = None) -> int:
         use_rules = rules.parse_rules(args.rules)
     except ValueError as e:
         return _err(str(e))
+    try:
+        backend = _make_backend(args)
+    except ValueError as e:
+        return _err(str(e))
+    if args.llm_apply and backend is None:
+        return _err("--llm-apply 에는 --llm-url 이 必要합니다 / --llm-apply needs --llm-url")
+    if args.llm_apply and args.mark:
+        return _err("--llm-apply 와 --mark 는 함께 쓸 수 없습니다 / --llm-apply cannot be combined with --mark")
     if args.workers is not None and args.workers < 1 or args.jobs < 0:
         return _err("--workers는 1 이상, --jobs는 0 이상이어야 합니다 / --workers must be 1 or more, --jobs 0 or more")
     n_jobs = (
         1 if args.stdin or len(jobs) < 2 else (min(os.cpu_count() or 1, len(jobs)) if args.jobs == 0 else args.jobs)
     )
     n_jobs = min(n_jobs, len(jobs)) if not args.stdin else 1
+    if backend is not None:
+        n_jobs = 1  # suggestions need the decisions, which exist only in this process
     conv = Converter(
         lexicon,
         overrides if args.overrides else None,
@@ -289,6 +343,20 @@ def main(argv: list[str] | None = None) -> int:
     spec = _WorkerSpec(args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers)
     for path, target, out_text, s, result in _convert_stream(conv, plan, texts, args.mark, n_jobs, spec):
         text = texts[path]
+        suggestions = None
+        if backend is not None:
+            suggestions = suggest.collect_suggestions(
+                backend,
+                text,
+                result,
+                on_error=lambda m: print(
+                    f"gukhan: 提案 없이 繼續합니다 / continuing without suggestions: {m}", file=sys.stderr
+                ),
+            )
+            if args.llm_apply and suggestions:
+                suggestions = {k: replace(v, applied=True) for k, v in suggestions.items()}
+                result = Result(suggest.apply_suggestions(text, result, suggestions), result.decisions)
+                out_text, s = result.text, report.summary(result)
         try:
             if args.in_place and path is not None:
                 if not args.no_backup:
@@ -302,7 +370,11 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stdout.write(out_text)
             if args.report and result is not None:
                 suffix = args.report.suffix.lower()
-                body = report.to_markdown(text, result) if suffix == ".md" else report.to_tsv(text, result)
+                body = (
+                    report.to_markdown(text, result, suggestions)
+                    if suffix == ".md"
+                    else report.to_tsv(text, result, suggestions)
+                )
                 _write(args.report, body)
         except OSError as e:
             print(f"gukhan: 쓸 수 없습니다 / cannot write: {e.filename or path} {e.strerror or e}", file=sys.stderr)
@@ -311,6 +383,11 @@ def main(argv: list[str] | None = None) -> int:
         print(
             (f"{path}: " if len(jobs) > 1 else "")
             + f"變換 {s['converted']} · flag {s['flagged']} · 檢討 {s['review']} · 維持 {s['kept']}"
+            + (
+                f" · 提案 suggestions {len(suggestions)}" + (" (applied)" if args.llm_apply else "")
+                if suggestions
+                else ""
+            )
             + (f" → {args.report}" if args.report else ""),
             file=sys.stderr,
         )

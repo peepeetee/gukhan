@@ -196,6 +196,33 @@ All sets: `over` 223 → 123, wrong 50 → 50, right 3586 → 3541 (−45). The 
 words that have a native twin (e.g. 시내, 생각, 도막) instead of writing the Sino-Korean one;
 that costs 45 right words and removes 100 words written in Hanja where the author kept Hangul.
 
+## Frequency signal: measured, not adopted (2026-11-21)
+
+Question: can a word-frequency signal built from free data tell a lone dictionary entry from a gap,
+or pick between homograph readings? Corpus: the statutes of `legalize-kr/legalize-kr` at commit
+`8df03e4` (5,775 files, 280 MB, 1,457,660 distinct lines), tagged with Kiwi 0.24.1 `cong`: 49,061
+(form, tag) pairs. Scored on the tuning half of modern-law and the older sets, never on the
+held-out half. Lexicon: 標準國語大辭典 + 우리말샘.
+
+- **Gloss counts** (`word(漢字)`, 8,067 distinct pairs, 26,364 uses) say nothing about common
+  words: lawmakers gloss only what they find ambiguous. 議員, 議決, 國家 and 事項 are never glossed.
+  They are attestations, not frequencies, and they are the same data as the `--law-glosses` source.
+- **Lemma frequency** is per Hangul form, so it is identical for every reading of a homograph and
+  cannot choose between them. As a gap detector it fails too: of 7,000+ lone-entry conversions
+  with a known answer, those whose word never occurs in the corpus are 30 wrong and 486 right
+  (6% wrong); the other wrong words occur as often as the right ones. Flagging every lone entry
+  below a frequency cutoff loses about 16 right words for each wrong word it removes.
+- **Per-reading signal** (corpus frequency of lexicon compounds that contain the reading, e.g.
+  議員 inside 國會議員): picking the top reading when it leads by a factor R, on flagged words
+  whose answer is Hanja and offered: R=1 73% right (2,475 right, 898 wrong); R=5 71/28; R=10
+  35 right / 16 wrong; R=30 24 right / 5 wrong. Never safe: 以上 → 異常 (52), 決定 → 潔淨, 項 → 港.
+
+So none of these is adopted and no frequency table is shipped. The remaining errors are
+dictionary gaps and words the author kept in Hangul, which no frequency of Korean text separates.
+Other free corpora looked at: `earm-eas/bbij` (白凡逸志) is a modern 2016 annotated edition with no
+licence and a machine-generated mixed-script version, so it is not gold; `masoris/hanja_hangul`
+(CC0) converts Hanja to Hangul and holds no mixed-script text.
+
 ## Combined dictionary measurement / 통합 사전 측정
 
 2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.

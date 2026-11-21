@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import bisect
 import re
+from collections.abc import Mapping
 
 from .convert import Decision, Kind, Result
+from .suggest import Suggestion, describe
 
 CONTEXT = 12
 
@@ -42,23 +44,28 @@ def _candidates(d: Decision) -> str:
     return " | ".join(f"{c.hanja}" + (f" ({one_line(c.sense)})" if c.sense else "") for c in d.candidates)
 
 
-def rows(source_text: str, result: Result) -> list[dict[str, str]]:
+Suggestions = Mapping[tuple[int, int], Suggestion]
+
+
+def rows(source_text: str, result: Result, suggestions: Suggestions | None = None) -> list[dict[str, str]]:
     starts = _line_starts(source_text)
     out = []
     for d in result.decisions:
         if d.kind not in (Kind.FLAGGED, Kind.REVIEW):
             continue
         line, col = _line_col(starts, d.start)
-        out.append(
-            {
-                "kind": d.kind.value,
-                "line": str(line),
-                "col": str(col),
-                "hangul": d.hangul,
-                "candidates": _candidates(d),
-                "context": _context(source_text, d),
-            }
-        )
+        row = {
+            "kind": d.kind.value,
+            "line": str(line),
+            "col": str(col),
+            "hangul": d.hangul,
+            "candidates": _candidates(d),
+            "context": _context(source_text, d),
+        }
+        if suggestions is not None:
+            # a model's hint, not a decision: the column says so and is empty when it abstained
+            row["suggestion"] = describe(suggestions.get((d.start, d.end)))
+        out.append(row)
     return out
 
 
@@ -66,15 +73,16 @@ def summary(result: Result) -> dict[str, int]:
     return {k.value: len(result.of(k)) for k in Kind}
 
 
-def to_tsv(source_text: str, result: Result) -> str:
-    header = "# kind\tline\tcol\thangul\tcandidates\tcontext\n"
-    body = "".join("\t".join(r.values()) + "\n" for r in rows(source_text, result))
+def to_tsv(source_text: str, result: Result, suggestions: Suggestions | None = None) -> str:
+    header = "# kind\tline\tcol\thangul\tcandidates\tcontext" + ("\tsuggestion" if suggestions is not None else "")
+    header += "\n"
+    body = "".join("\t".join(r.values()) + "\n" for r in rows(source_text, result, suggestions))
     s = summary(result)
     foot = "# " + " ".join(f"{k}={v}" for k, v in s.items()) + "\n"
     return header + body + foot
 
 
-def to_markdown(source_text: str, result: Result) -> str:
+def to_markdown(source_text: str, result: Result, suggestions: Suggestions | None = None) -> str:
     s = summary(result)
     lines = [
         "# gukhan 報告 / report",
@@ -82,11 +90,13 @@ def to_markdown(source_text: str, result: Result) -> str:
         f"變換 converted: {s['converted']} · flag된 同音異義語 flagged: {s['flagged']} · "
         f"檢討 review: {s['review']} · 維持 kept: {s['kept']}",
         "",
-        "| kind | line:col | 한글 | 候補 candidates | 文脈 context |",
-        "| --- | --- | --- | --- | --- |",
+        "| kind | line:col | 한글 | 候補 candidates | 文脈 context |"
+        + (" 提案 suggestion (unconfirmed) |" if suggestions is not None else ""),
+        "| --- | --- | --- | --- | --- |" + (" --- |" if suggestions is not None else ""),
     ]
-    for r in rows(source_text, result):
+    for r in rows(source_text, result, suggestions):
         cands = r["candidates"].replace(" | ", " · ").replace("|", "\\|")
         ctx = r["context"].replace("|", "\\|")
-        lines.append(f"| {r['kind']} | {r['line']}:{r['col']} | {r['hangul']} | {cands} | {ctx} |")
+        extra = f" {r['suggestion'].replace('|', chr(92) + '|')} |" if "suggestion" in r else ""
+        lines.append(f"| {r['kind']} | {r['line']}:{r['col']} | {r['hangul']} | {cands} | {ctx} |{extra}")
     return "\n".join(lines) + "\n"

@@ -253,8 +253,11 @@ crash loses nothing and every later run, in the CLI or the extension, reuses it.
   example `국가 안전 = 國家 安全`. The tool re-converts the text and keeps the line only
   if the phrase really applies at that place.
 - No default, no preselected candidate, Enter is ignored: the tool never guesses.
-- Deferred: the same decisions in the extension popup; an optional local-model
-  suggester that may only highlight a candidate for the human to confirm.
+- Deferred: the same decisions in the extension popup.
+- Optional local-model suggester (`gukhan.suggest`, `--llm-url`): see docs/local-model.md. It
+  sees one sentence and the dictionary's candidates, must pick one or abstain, its picks are
+  labelled suggestions in reports and in `gukhan review` (`y` to accept), and are written into the
+  output only with `--llm-apply`. Standard library only, localhost only, off by default.
 
 ## 5a. Evidence rules: fewer flags without guessing
 

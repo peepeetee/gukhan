@@ -35,6 +35,7 @@ READER_DOCS = (
     "SECURITY.md",
     "CODE_OF_CONDUCT.md",
     "docs/privacy.md",
+    "docs/local-model.md",
     "docs/overrides-and-review.md",
     "extension/README.md",
     "tests/regression/README.md",
