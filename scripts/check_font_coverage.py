@@ -4,6 +4,7 @@
     pip install fonttools          # MIT, needed only for this script
     python scripts/check_font_coverage.py NotoSerifKR-Regular.otf --lexicon build/lexicon
     python scripts/check_font_coverage.py a.otf b.ttf --lexicon build/lexicon --list-missing 30
+    python scripts/check_font_coverage.py a.otf --items tests/regression/*.tsv    # Hanja the gold texts use
 
 Reads every Hanja character that occurs in the Hanja column of ``lexicon.tsv`` (the characters gukhan
 can output) and reports, per font file, how many the font maps to a glyph. It looks only at the font's
@@ -19,6 +20,12 @@ import sys
 from pathlib import Path
 
 
+def is_ideograph(ch: str) -> bool:
+    """CJK Unified Ideographs (with Extensions A-G) and Compatibility Ideographs: Hanja, not punctuation or jamo."""
+    o = ord(ch)
+    return 0x3400 <= o <= 0x4DBF or 0x4E00 <= o <= 0x9FFF or 0xF900 <= o <= 0xFAFF or 0x20000 <= o <= 0x3134F
+
+
 def lexicon_hanja(path: Path) -> collections.Counter:
     """Count Hanja characters in the hanja column (the second) of a lexicon.tsv or its directory."""
     if path.is_dir():
@@ -32,8 +39,23 @@ def lexicon_hanja(path: Path) -> collections.Counter:
             if len(cols) < 2:
                 continue
             for ch in cols[1]:
-                if ch != " " and not ("가" <= ch <= "힣") and ord(ch) >= 0x2E80:
+                if is_ideograph(ch):
                     counts[ch] += 1
+    return counts
+
+
+def items_hanja(paths: list[Path]) -> collections.Counter:
+    """Count Hanja characters in the gold text (fourth column) of regression ``items`` files."""
+    counts: collections.Counter = collections.Counter()
+    for path in paths:
+        with path.open(encoding="utf-8-sig") as fh:
+            for line in fh:
+                parts = line.rstrip("\n").split("\t")
+                if line.startswith("#") or len(parts) < 4:
+                    continue
+                for ch in parts[3]:
+                    if is_ideograph(ch):
+                        counts[ch] += 1
     return counts
 
 
@@ -51,7 +73,10 @@ def font_cmap(path: Path) -> set[int]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("fonts", nargs="+", type=Path)
-    ap.add_argument("--lexicon", type=Path, required=True, help="lexicon.tsv or its directory")
+    ap.add_argument("--lexicon", type=Path, help="lexicon.tsv or its directory (the Hanja gukhan can write)")
+    ap.add_argument(
+        "--items", type=Path, nargs="+", help="regression items TSV files (the Hanja the gold texts actually use)"
+    )
     ap.add_argument("--list-missing", type=int, default=0, metavar="N", help="show the N commonest missing characters")
     args = ap.parse_args(argv)
     try:
@@ -59,10 +84,14 @@ def main(argv: list[str] | None = None) -> int:
     except ImportError:
         print("fontTools is required: pip install fonttools", file=sys.stderr)
         return 2
-    counts = lexicon_hanja(args.lexicon)
+    if bool(args.lexicon) == bool(args.items):
+        print("give --lexicon or --items", file=sys.stderr)
+        return 2
+    counts = lexicon_hanja(args.lexicon) if args.lexicon else items_hanja(args.items)
     total_chars = len(counts)
     total_uses = sum(counts.values())
-    print(f"{args.lexicon}: {total_chars} distinct Hanja, {total_uses} occurrences")
+    source = args.lexicon or f"{len(args.items)} items files"
+    print(f"{source}: {total_chars} distinct Hanja, {total_uses} occurrences")
     for font in args.fonts:
         cmap = font_cmap(font)
         have = {c for c in counts if ord(c) in cmap}

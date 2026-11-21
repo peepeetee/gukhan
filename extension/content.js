@@ -23,6 +23,53 @@
     }
     if (any) schedule(false);
   }, {rootMargin: `${MARGIN}px 0px`}) : null;
+  // --- Missing glyphs. A Hanja the page's font lacks shows as an empty space or a box (tofu). The check draws the
+  // character on a canvas in the element's own font: no ink at all, or the same picture as a character that no
+  // font has (U+FFFF, U+10FFFF), means missing. Where the browser draws something else for a missing glyph (Firefox
+  // puts its code point in the box) the check says nothing rather than guessing. If the canvas cannot be read
+  // (a privacy setting that blanks it) it also says nothing.
+  const HAN = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u;
+  const glyphs = (() => {
+    let ctx, usable, empties;
+    const cache = new Map();
+    const draw = (ch, font) => {
+      ctx.clearRect(0, 0, 64, 64); ctx.font = font; ctx.fillText(ch, 8, 44);
+      const data = ctx.getImageData(0, 0, 64, 64).data; let n = 0, hash = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i]) { n++; hash = (hash * 31 + i * data[i]) >>> 0; }
+      return {n, hash};
+    };
+    return function missing(ch, element) {
+      try {
+        if (usable === undefined) {
+          const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
+          ctx = canvas.getContext('2d', {willReadFrequently: true});
+          usable = !!ctx && draw('H', '32px sans-serif').n > 0;  // a blanked canvas would call everything missing
+        }
+        if (!usable) return false;
+        const style = getComputedStyle(element), font = `${style.fontStyle} ${style.fontWeight} 32px ${style.fontFamily}`;
+        const key = `${font}|${ch}`;
+        if (!cache.has(key)) {
+          const sentinels = ['\uFFFF', '\u{10FFFF}'].map(c => draw(c, font));
+          const mine = draw(ch, font);
+          cache.set(key, mine.n === 0 || sentinels.some(s => s.n > 0 && s.hash === mine.hash && s.n === mine.n));
+        }
+        return cache.get(key);
+      } catch { usable = false; return false; }
+    };
+  })();
+  const toCheck = [];  // {span, text} for words just converted
+  const missingChars = new Set();
+  let reportedMissing = 0;
+  function checkGlyphs() {
+    let budget = 300;
+    for (const {span, text} of toCheck.splice(0)) {
+      for (const ch of text) if (HAN.test(ch) && budget-- > 0 && glyphs(ch, span)) missingChars.add(ch);
+    }
+    if (missingChars.size !== reportedMissing) {
+      reportedMissing = missingChars.size;
+      chrome.runtime.sendMessage({type: 'glyphs', count: missingChars.size, sample: [...missingChars].slice(0, 8)}).catch?.(() => {});
+    }
+  }
   function reportCapped(value) {
     if (value === capped) return;
     capped = value; chrome.runtime.sendMessage({type: 'capped', capped: value}).catch?.(() => {});
@@ -106,6 +153,11 @@
       button.onclick = async e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
       box.append(button);
     }
+    if (choices.some(c => c.form !== '-' && [...c.form].some(ch => HAN.test(ch) && glyphs(ch, span)))) {
+      const note = style(document.createElement('div'), `padding:4px 8px 2px;font-size:12px;color:${accent};white-space:normal`);
+      note.textContent = '□ 이 글꼴에 없는 글자가 있습니다. Noto Serif/Sans CJK KR 같은 글꼴을 설치해 보세요. / Some characters are missing from this font and show as boxes; try a font such as Noto Serif or Noto Sans CJK KR.';
+      box.append(note);
+    }
     box.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
     box.addEventListener('pointerleave', () => { if (!pinned) leaveTimer = setTimeout(() => closePopover(), 250); });
     shadow.append(box); document.documentElement.append(panel);
@@ -180,7 +232,7 @@
       span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
       span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
       attach(span, decision);
-      wrappers.add(span); fragment.append(span); end = decision.end;
+      wrappers.add(span); toCheck.push({span, text: decision.text}); fragment.append(span); end = decision.end;
     }
     plain(text.slice(end));
     groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
@@ -216,6 +268,7 @@
       });
     } finally { watch(); }
     examined = (full ? 0 : examined) + items.length;
+    checkGlyphs();
     reportCapped(atTotal || (watchedCount >= LIMITS.watch));
     if (more && !atTotal) schedule(false);  // the next slice of nodes near the viewport
     else if (full) schedule(false);  // pick up anything the page added while we were converting

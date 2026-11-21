@@ -11,7 +11,7 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
 (async () => {
   const fixture = path.resolve('build/browser-fixture');
   fs.mkdirSync(fixture, {recursive:true});
-  const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n';
+  const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n희귀\t\u{30000}\u{30001}\n';  // the last two are CJK Extension G: no ordinary font has them
   fs.writeFileSync(path.join(fixture,'lexicon.tsv'), lexicon);
   fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:crypto.createHash('sha256').update(lexicon).digest('hex')}}}));
   // GUKHAN_EXT: an unpacked store build. Tested through a copy that declares the hosts as granted (see smoke-helpers).
@@ -103,6 +103,20 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await page.waitForTimeout(800);
     assert.equal(await page.locator('#text').textContent(),'전기 연구');
     assert.equal(await page.locator('[data-gukhan]').count(), 0);
+    // A Hanja the page's font cannot draw is noticed: the popup is told and the candidate card says so.
+    const glyph = await context.newPage();
+    await glyph.route('http://glyph.test/**', r => r.fulfill({contentType: 'text/html', body: '<meta charset="utf-8"><p>희귀 연구</p>'}));
+    await glyph.goto('http://glyph.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('glyph.test', true)), {ok: true});
+    await glyph.locator('[data-gukhan="word"]').first().waitFor();
+    await glyph.waitForFunction(() => document.querySelector('p').textContent.includes('\u{30000}'));
+    const lacking = async () => worker.evaluate(async () => Object.entries(await chrome.storage.session.get(null)).filter(([k]) => k.startsWith('glyphs:')).map(([, v]) => v));
+    for (let i = 0; i < 40 && !(await lacking()).length; i++) await glyph.waitForTimeout(100);
+    const reported = await lacking();
+    assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported');
+    await glyph.locator('[data-gukhan="word"]').first().click();
+    await glyph.locator('[data-gukhan="panel"]').waitFor({state: 'attached'});
+    assert.match(await glyph.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent), /이 글꼴에 없는 글자/);
     // A large page converts lazily: only text near the viewport is converted, the rest when it scrolls into view.
     const big = await context.newPage();
     const paragraphs = Array.from({length: 3000}, (_, i) => `<p style="height:40px;margin:0">연구 ${i}</p>`).join('');
