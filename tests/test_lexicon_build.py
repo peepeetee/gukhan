@@ -482,3 +482,26 @@ def test_stdict_native_headwords_are_recorded_for_homograph_flags(tmp_path):
     rows = {(ln[0], ln[1]): ln[3] for ln in lines}
     assert rows[("사랑", "舍廊")] == "stdict:2"
     assert rows[("사랑", "사랑")] == "stdict:1"  # the native word of the same sound is a candidate
+
+
+def test_stdict_native_homographs_keep_every_part_of_speech(tmp_path):
+    def item(code, word, wtype, pos, hanja=""):
+        orig = (
+            f"<original_language_info><original_language>{hanja}</original_language>"
+            "<language_type>한자</language_type></original_language_info>"
+            if hanja
+            else ""
+        )
+        return (
+            f"<item><target_code>{code}</target_code><word_info><word>{word}</word><word_unit>단어</word_unit>"
+            f"<word_type>{wtype}</word_type>{orig}<pos_info><pos>{pos}</pos></pos_info></word_info></item>"
+        )
+
+    xml = "<channel>" + item(1, "조01", "고유어", "명사") + item(2, "조02", "고유어", "관형사")
+    xml += item(3, "조03", "한자어", "관형사", "兆") + "</channel>"
+    f = tmp_path / "s.xml"
+    f.write_text(xml, encoding="utf-8")
+    out = tmp_path / "out"
+    assert main(["--stdict", str(f), "-o", str(out)]) == 0
+    lines = [ln.split("\t") for ln in (out / "lexicon.tsv").read_text(encoding="utf-8").splitlines() if ln[0] != "#"]
+    assert {(ln[1], ln[2]) for ln in lines if ln[0] == "조"} == {("兆", "관형사"), ("조", "명사"), ("조", "관형사")}

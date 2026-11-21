@@ -216,7 +216,7 @@ def _build(argv: list[str] | None) -> int:
     entries, rejects = [], []
     counts: dict[str, int] = {}
     native: dict[str, tuple[str, str, int]] = {}
-    native_source: dict[str, str] = {}
+    native_pos: dict[tuple[str, str], tuple[str, str]] = {}
     if args.stdict:
         e, r, stats = stdict_mod.parse(args.stdict, readings)
         print(f"stdict: items={stats.items} sino={stats.sino} entries={stats.entries} rejected={stats.rejected}")
@@ -230,8 +230,7 @@ def _build(argv: list[str] | None) -> int:
             return 2
         entries += e
         rejects += r
-        native.update(stats.native)
-        native_source.update(stats.native_source)
+        native_pos.update(stats.native_pos)
         counts["stdict_items"], counts["stdict_entries"] = stats.items, stats.entries
     if args.opendict:
         e, r, stats = opendict_mod.parse(args.opendict, readings)
@@ -287,7 +286,6 @@ def _build(argv: list[str] | None) -> int:
         for w, v in stats.native.items():
             if w not in native or v[2] > native[w][2]:
                 native[w] = v
-                native_source.pop(w, None)
         counts["wiktextract_lines"] = counts.get("wiktextract_lines", 0) + stats.items
         counts["wiktextract_entries"] = counts.get("wiktextract_entries", 0) + stats.entries
     licence = "CC-BY-SA-2.0-KR" if not (args.wiktextract or args.kowiki) else "CC-BY-SA-4.0"
@@ -325,9 +323,15 @@ def _build(argv: list[str] | None) -> int:
     # column repeats the Hangul, so the converter flags 안 (案 or inside?) instead of guessing.
     sino_words = {e.hangul for e in merged}
     natives = [
-        stdict_mod.Entry(w, w, pos, native_source.get(w, f"enwikt:{w}"), gloss, weight)
+        stdict_mod.Entry(w, w, pos, f"enwikt:{w}", gloss, weight)
         for w, (pos, gloss, weight) in sorted(native.items())
         if w in sino_words
+    ]
+    have = {(e.hangul, e.pos) for e in natives}
+    natives += [
+        stdict_mod.Entry(w, w, pos, source, gloss, 0)
+        for (w, pos), (gloss, source) in sorted(native_pos.items())
+        if w in sino_words and (w, pos) not in have
     ]
     merged = sorted(merged + natives, key=lambda e: (e.hangul, e.hanja, e.pos))
     counts["native_homographs"] = len(natives)
