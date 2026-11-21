@@ -92,7 +92,7 @@ def write_manifest(
     outputs: dict[str, Path],
     ranking_sources: dict[str, Path] | None = None,
 ) -> Path:
-    manifest = {
+    manifest: dict[str, Any] = {
         "format": "gukhan-lexicon-manifest/1",
         "builder": {"package": "gukhan", "version": __version__},
         "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),

@@ -25,6 +25,8 @@ python -m venv .venv && . .venv/bin/activate        # Windows: .venv\Scripts\act
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
 python -m pytest -q                                 # about 30 s; tests marked kiwi need kiwipiepy
+python -m mypy                                      # strict type check of src/gukhan (CI runs it)
+pip install -e ".[docs]" && mkdocs build --strict  # static docs site into build/site (CI builds it, never deploys)
 node --test extension/engine.test.mjs               # extension engine (Node 22)
 node extension/browser-smoke.cjs                    # optional: needs Playwright + Chromium
 python scripts/check_licences.py                    # what CI runs for licences

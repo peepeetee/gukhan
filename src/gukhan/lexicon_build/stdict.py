@@ -26,6 +26,7 @@ import zipfile
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import IO
 from xml.etree import ElementTree as ET
 
 from .hangul import initial_sound_variants, is_cjk, is_syllable
@@ -309,7 +310,7 @@ def iter_items(path: Path) -> Iterator[ET.Element]:
             raise InputError(f"{name}: XML이 온전하지 않습니다 / not well-formed XML ({e})") from e
 
 
-def _open_all(path: Path) -> Iterable[tuple[str, object]]:
+def _open_all(path: Path) -> Iterable[tuple[str, IO[bytes]]]:
     if path.is_dir():
         for p in sorted(q for q in path.rglob("*") if q.suffix.lower() == ".xml"):
             with p.open("rb") as fh:

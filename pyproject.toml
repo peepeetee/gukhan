@@ -30,9 +30,16 @@ Issues = "https://github.com/peepeetee/gukhan/issues"
 [project.optional-dependencies]
 lexicon = ["gukhan-lexicon"]
 dev = [
+    "mypy>=1.10",
     "pip-licenses>=5.0",
     "pytest>=8",
     "ruff>=0.6",
+]
+
+docs = [
+    "mkdocs>=1.6",
+    "mkdocstrings-python>=1.10",
+    "pymdown-extensions>=10",
 ]
 
 [project.scripts]
@@ -44,7 +51,7 @@ gukhan-regress = "gukhan.regress.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-gukhan = ["data/*.tsv"]
+gukhan = ["data/*.tsv", "py.typed"]
 
 [tool.ruff]
 line-length = 120
@@ -55,3 +62,13 @@ select = ["E", "F", "I", "W", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src/gukhan"]
+
+[[tool.mypy.overrides]]
+# kiwipiepy ships no type information; gukhan-lexicon is an optional separate package.
+module = ["kiwipiepy", "kiwipiepy.*", "gukhan_lexicon", "gukhan_lexicon.*"]
+ignore_missing_imports = true

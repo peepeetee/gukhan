@@ -23,6 +23,8 @@ KEEP = "-"
 
 @dataclass
 class Overrides:
+    """The reader's decisions from an override file (docs/overrides-and-review.md); they beat every rule."""
+
     decisions: dict[str, Entry | None] = field(default_factory=dict)  # None = keep Hangul
     max_key_len: int = 0
 
@@ -70,3 +72,6 @@ class Overrides:
     def update(self, other: Overrides) -> None:
         self.decisions.update(other.decisions)
         self.max_key_len = max(self.max_key_len, other.max_key_len)
+
+
+__all__ = ["Overrides"]

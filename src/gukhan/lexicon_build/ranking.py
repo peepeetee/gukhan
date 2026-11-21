@@ -10,7 +10,7 @@ from .stdict import align_with_suffix, clean_hanja, clean_headword
 
 
 def krdict_levels(path: Path) -> dict[tuple[str, str], int]:
-    result = {}
+    result: dict[tuple[str, str], int] = {}
     for file in sorted(path.glob("*.xml")) if path.is_dir() else [path]:
         # The mirror contains U+0008 in some translations. Remove only XML 1.0
         # forbidden control bytes; keep the original input intact for hashing.
@@ -20,7 +20,7 @@ def krdict_levels(path: Path) -> dict[tuple[str, str], int]:
                 continue
             features = {e.get("att"): e.get("val", "") for e in entry.findall("feat")}
             lemma = entry.find("Lemma/feat[@att='writtenForm']")
-            level = {"초급": 3, "중급": 2, "고급": 1}.get(features.get("vocabularyLevel"), 0)
+            level = {"초급": 3, "중급": 2, "고급": 1}.get(features.get("vocabularyLevel", ""), 0)
             if lemma is not None and level:
                 word = clean_headword(lemma.get("val", ""))
                 form = align_with_suffix(word, clean_hanja(features.get("origin", "")))
@@ -36,7 +36,7 @@ def learner_ranks(path: Path) -> dict[tuple[str, str], int]:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
         text = data.decode("cp949")
-    result = {}
+    result: dict[tuple[str, str], int] = {}
     for line in text.splitlines():
         fields = line.split("\t")
         if len(fields) != 5 or not fields[0].isdigit():

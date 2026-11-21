@@ -58,8 +58,9 @@ def _open(path: Path) -> io.BufferedIOBase:
     return path.open("rb")
 
 
-def _template(match: re.Match) -> str:
-    parts = [p.strip() for p in match.group(1).split("|")]
+def _template(match: re.Match[str]) -> str:
+    inner: str = match.group(1)
+    parts = [p.strip() for p in inner.split("|")]
     if parts[0].lower() not in HANJA_TEMPLATES:
         return ""
     for arg in reversed(parts[1:]):
@@ -127,7 +128,8 @@ def iter_pages(path: Path) -> Iterator[tuple[str, str]]:
                     text = child.text or ""
             if ns == "0" and not redirect and text:
                 yield title, text
-            root.clear()
+            if root is not None:
+                root.clear()
 
 
 def parse(

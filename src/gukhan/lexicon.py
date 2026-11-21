@@ -13,6 +13,8 @@ COLUMNS = ("hangul", "hanja", "pos", "source", "sense", "weight", "level", "lear
 
 @dataclass(frozen=True)
 class Entry:
+    """One lexicon line: a Hangul headword, its Hanja reading and the facts the converter ranks by."""
+
     hangul: str  # as written, may contain spaces for phrases
     hanja: str  # same length as hangul; Hangul kept where no Hanja exists
     pos: str = ""
@@ -162,3 +164,6 @@ class Lexicon:
         """The small hand-written lexicon bundled for development and tests."""
         text = resources.files("gukhan").joinpath("data/sample_lexicon.tsv").read_text(encoding="utf-8")
         return cls.from_lines(text.splitlines())
+
+
+__all__ = ["Entry", "Lexicon"]

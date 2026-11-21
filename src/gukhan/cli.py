@@ -8,8 +8,10 @@ import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any
 
 from . import __version__, console, report, rules, suggest
 from .analyser import KiwiAnalyser, default_workers
@@ -38,7 +40,7 @@ def _write(path: Path, text: str, *, exclusive: bool = False) -> None:
 def _read_error(path: Path, e: Exception) -> str:
     if isinstance(e, UnicodeDecodeError):
         return f"{path}: UTF-8이 아닙니다 / not UTF-8 text; save it as UTF-8 (for CP949: iconv -f cp949 -t utf-8)"
-    return f"{path}: {e.strerror or e}"
+    return f"{path}: {getattr(e, 'strerror', None) or e}"
 
 
 _utf8_streams = console.utf8_streams
@@ -67,7 +69,13 @@ def version_text() -> str:
 class _Version(argparse.Action):
     """Like ``action="version"`` but keeps the line breaks (argparse would reflow them)."""
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
         sys.stdout.write(version_text() + "\n")
         parser.exit()
 
@@ -279,9 +287,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.stdin:
             texts[None] = sys.stdin.buffer.read().decode("utf-8") if hasattr(sys.stdin, "buffer") else sys.stdin.read()
         else:
-            for path, _ in jobs:
-                reading = path
-                texts[path] = _read(path)
+            for src, _ in jobs:
+                reading = src
+                texts[src] = _read(src)
     except (OSError, UnicodeDecodeError) as e:
         return _err(_read_error(reading, e))
 
@@ -333,12 +341,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     status = 0
-    plan = jobs if not args.stdin else [(None, args.output)]
+    plan: list[tuple[Path | None, Path | None]] = [(None, args.output)] if args.stdin else list(jobs)
     spec = _WorkerSpec(args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers)
     for path, target, out_text, s, result in _convert_stream(conv, plan, texts, args.mark, n_jobs, spec):
         text = texts[path]
         suggestions = None
-        if backend is not None:
+        if backend is not None and result is not None:  # a backend forces one process, so result exists
             suggestions = suggest.collect_suggestions(
                 backend,
                 text,
@@ -425,7 +433,14 @@ def _convert_in_worker(job: tuple[str, bool]) -> tuple[str, dict[str, int]]:
     return result.text, report.summary(result)
 
 
-def _convert_stream(conv, plan, texts, mark, n_jobs, spec):
+def _convert_stream(
+    conv: Converter,
+    plan: list[tuple[Path | None, Path | None]],
+    texts: dict[Path | None, str],
+    mark: bool,
+    n_jobs: int,
+    spec: _WorkerSpec,
+) -> Iterator[tuple[Path | None, Path | None, str, dict[str, int], Result | None]]:
     """Yield ``(path, target, converted text, summary, result)`` in input order.
 
     One process by default; with ``n_jobs`` > 1 the files are split over that many worker processes
