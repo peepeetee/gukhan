@@ -67,6 +67,18 @@ The upstream file is regenerated about weekly without versioned URLs, so a
 reproducible build needs the exact copy pinned: hence the release-asset
 recommendation.
 
+### 法令 註釋 / statute glosses (legalize-kr)
+
+Optional source (`gukhan-lexicon-build --law-glosses`): the Hanja that statutes print after a term, such as
+`분사무소(分事務所)`, read from `legalize-kr/legalize-kr`, a mirror of 국가법령정보센터. Statute text is outside
+copyright (저작권법 제7조 1호) and the mirror's README calls it a freely usable public work; the mirror's own
+structure and metadata are MIT. No share-alike term, so a build that includes it keeps the licence of its other
+sources. Terms read 2026-11-21; the repository is pinned at commit `8df03e4bb52f4764903515d0bc5e42ff604c1729`.
+Only (Hangul, Hanja) pairs and counts are distributed, in the lexicon (words no other source has), in
+`law-glosses.tsv` and in the opt-in `law-overrides.txt`. The raw statutes are not redistributed; the regression
+sets quote reviewed sentences, which are public works too. Credit text: `NOTICE_LAW` in
+`lexicon_build/manifest.py`.
+
 ### Unicode Unihan
 
 Unicode License v3: permissive, requires only that the copyright and

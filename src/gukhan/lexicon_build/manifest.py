@@ -18,6 +18,9 @@ NOTICE_WIKT = (
 )
 NOTICE_KOWIKI = "한국어 위키백과 기여자들의 문서 첫 문단 (ko.wikipedia.org, CC BY-SA 4.0)"
 NOTICE_WIKIDATA = "Wikidata 어휘소 (www.wikidata.org, CC0 1.0)"
+NOTICE_LAW = (
+    "大韓民國 法令(국가법령정보센터 law.go.kr; legalize-kr 저장소 사본). 法令 原文은 公共著作物(저작권법 제7조)"
+)
 NOTICE_UNIHAN = "漢字 讀音은 Unicode Unihan database(Unicode License v3)를 사용하였습니다."
 
 
@@ -30,6 +33,7 @@ def licence_notice(
     opendict: bool = False,
     kowiki: bool = False,
     wikidata: bool = False,
+    law: bool = False,
 ) -> str:
     parts = [
         n
@@ -39,6 +43,7 @@ def licence_notice(
             (NOTICE_WIKT, wiktextract),
             (NOTICE_KOWIKI, kowiki),
             (NOTICE_WIKIDATA, wikidata),
+            (NOTICE_LAW, law),
         )
         if used
     ]
@@ -79,6 +84,7 @@ def write_manifest(
     opendict: Path | None = None,
     kowiki: Path | None = None,
     wikidata_lexemes: Path | None = None,
+    law_glosses: Path | None = None,
     unihan: Path | None,
     unihan_version: str | None,
     licence: str,
@@ -97,6 +103,7 @@ def write_manifest(
             wiktextract=bool(wiktextract),
             kowiki=bool(kowiki),
             wikidata=bool(wikidata_lexemes),
+            law=bool(law_glosses),
             unihan=bool(unihan),
             licence=licence,
         ),
@@ -136,6 +143,15 @@ def write_manifest(
             "wikidata_lexemes": (
                 {"name": "Wikidata lexeme dump", "licence": "CC0-1.0", **describe_input(wikidata_lexemes)}
                 if wikidata_lexemes
+                else None
+            ),
+            "law_glosses": (
+                {
+                    "name": "legalize-kr/legalize-kr statutes (mirror of law.go.kr), Hanja glosses of legal terms",
+                    "licence": "public work (저작권법 제7조); mirror structure and metadata MIT",
+                    **describe_input(law_glosses),
+                }
+                if law_glosses
                 else None
             ),
             "unihan": (
