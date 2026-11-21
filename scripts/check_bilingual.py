@@ -143,6 +143,8 @@ def find_gaps(root: Path = ROOT) -> list[str]:
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):  # a Windows console is cp1252 by default
+        stream.reconfigure(encoding="utf-8")
     gaps = find_gaps()
     for g in gaps:
         print(g)
