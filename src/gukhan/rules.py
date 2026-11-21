@@ -21,6 +21,9 @@ The evidence used:
 - ``field``: the dictionary labels every sense of a reading as terminology of one field (한의, 식물,
   불교 …) and the text shows no sign of that field: fewer than two words that gukhan could settle
   elsewhere in the same text carry that label. Readings with any everyday sense are never dropped.
+- ``sense``: one reading's definition contains at least two different common nouns of the
+  same sentence and at least two more than any other reading's definition
+  does (議決 「의논하여 결정함」 beside 「의안」…, not 疑結 「…번뇌」).
 - ``verb``: the noun is followed by 하/되 …, and only some of its readings exist
   as that dictionary verb with the matching part of speech (命하다, not 名하다).
 - ``attested compound``: the whole stretch occurs inside longer headwords with
@@ -48,7 +51,7 @@ PROPER_SENSE = re.compile(
 # it because the other readings are *missing* from a dictionary verb; absence from a dictionary is
 # weaker than a statement in it (the dictionary has 妨害하다 but not 防害하다, which the 1948 text
 # writes), and measured on the regression sets it adds wrong words, so it is opt-in.
-DEFAULT = frozenset({"name", "ordinal", "division", "counter", "compound", "field"})
+DEFAULT = frozenset({"name", "ordinal", "division", "counter", "compound", "field", "sense"})
 OPT_IN = frozenset({"verb"})
 ALL = DEFAULT | OPT_IN
 
@@ -138,3 +141,26 @@ def drop_unevidenced_fields(cands: list[Entry], evidence: Mapping[str, int]) -> 
             keep.add(form)
     kept = keep_forms(cands, keep)
     return kept if kept else cands
+
+
+SENSE_MIN = 2  # distinct nouns of the text that one reading's definition must contain
+SENSE_MARGIN = 2  # and by how many more than the runner-up
+
+
+def by_context_words(cands: list[Entry], nouns: set[str]) -> list[Entry]:
+    """The readings whose definition shares clearly the most nouns with the sentence around the word.
+
+    Only a reading that has at least ``SENSE_MIN`` and beats every other reading by
+    ``SENSE_MARGIN`` is kept; otherwise nothing is narrowed. Definitions are the first 80
+    characters the builder stores.
+    """
+    text: dict[str, str] = {}
+    for c in cands:
+        text[c.hanja.replace(" ", "")] = text.get(c.hanja.replace(" ", ""), "") + " " + c.sense
+    if len(text) < 2 or not nouns:
+        return cands
+    score = sorted(((sum(1 for n in nouns if n in t), f) for f, t in text.items()), reverse=True)
+    (top, form), runner = score[0], score[1][0]
+    if top >= SENSE_MIN and top - runner >= SENSE_MARGIN:
+        return keep_forms(cands, {form})
+    return cands

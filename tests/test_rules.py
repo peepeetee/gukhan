@@ -260,3 +260,26 @@ def test_measured_evidence_comes_from_settled_words_only():
     c.set_document(["보살 염불 임자"])
     assert c.field_evidence["불교"] == 2
     assert c.convert("보살 염불 임자").decisions[-1].kind == Kind.FLAGGED
+
+
+SENSE_LEX = Lexicon(
+    [
+        Entry("의결", "議決", "명사", "t", "의논하여 결정함. 의안이나 안건을 토의하여 결정함"),
+        Entry("의결", "疑結", "명사", "t", "인과를 의심하는 마음에서 일어나는 번뇌."),
+    ]
+)
+
+
+def test_sense_rule_needs_two_shared_nouns_and_a_margin():
+    toks = [("의안", "NNG"), ("안건", "NNG"), ("의결", "NNG"), (".", "SF")]
+    r = conv(SENSE_LEX, toks).convert("의안 안건 의결.")
+    assert "議決" in r.text and "definition shares" in r.decisions[-1].reason
+    # one shared noun is not enough
+    r = conv(SENSE_LEX, [("의안", "NNG"), ("의결", "NNG")]).convert("의안 의결")
+    assert r.decisions[-1].kind == Kind.FLAGGED
+    # the noun must be in the same sentence
+    r = conv(SENSE_LEX, [("의안", "NNG"), ("안건", "NNG"), (".", "SF"), ("의결", "NNG")]).convert("의안 안건. 의결")
+    assert r.decisions[-1].kind == Kind.FLAGGED
+    # switched off
+    r = conv(SENSE_LEX, toks, use_rules=frozenset()).convert("의안 안건 의결.")
+    assert r.decisions[-1].kind == Kind.FLAGGED
