@@ -1,0 +1,129 @@
+name: accuracy
+
+# Scores every regression set on a lexicon built from the NIKL dumps (fetched here, never committed or shipped),
+# once with this change and once with the base branch, and shows the difference in the job summary.
+# The job fails when a held-out set gets more wrong words than the threshold. Figures are for comparing two
+# versions of the code; the README's accuracy table comes from the full lexicon (docs/accuracy-ci.md).
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/regression/**"
+      - "scripts/accuracy.py"
+      - "pyproject.toml"
+      - ".github/workflows/accuracy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: accuracy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The mirror of the NIKL dumps (CC BY-SA 2.0 KR) at a pinned commit; change it deliberately, and the cache key follows.
+  NIKL_REPO: https://github.com/spellcheck-ko/korean-dict-nikl
+  NIKL_COMMIT: 42c0d01889f34536e9cf94fe57f62bd2055b1bde
+  MAX_WRONG_INCREASE: "2"
+
+jobs:
+  accuracy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      # The built lexicon is cached by the mirror commit and the builder's own code: the same builder on the
+      # same dumps always gives the same lexicon, so a change to anything else reuses it.
+      - name: Restore the lexicon for this change
+        id: head-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: lexicon-head
+          key: nikl-lexicon-${{ env.NIKL_COMMIT }}-${{ hashFiles('src/gukhan/lexicon_build/**/*.py') }}
+      - name: Restore the lexicon for the base
+        id: base-cache
+        if: github.event_name == 'pull_request' && hashFiles('base/src/gukhan/lexicon_build/**/*.py') != hashFiles('src/gukhan/lexicon_build/**/*.py')
+        uses: actions/cache/restore@v4
+        with:
+          path: lexicon-base
+          key: nikl-lexicon-${{ env.NIKL_COMMIT }}-${{ hashFiles('base/src/gukhan/lexicon_build/**/*.py') }}
+
+      - name: Fetch the NIKL dumps (only when a lexicon must be built)
+        if: steps.head-cache.outputs.cache-hit != 'true' || (steps.base-cache.conclusion == 'success' && steps.base-cache.outputs.cache-hit != 'true')
+        run: |
+          set -e
+          mkdir nikl && cd nikl && git init -q .
+          git remote add origin "$NIKL_REPO"
+          for attempt in 1 2 3; do
+            git fetch -q --depth 1 --filter=blob:none origin "$NIKL_COMMIT" && break
+            echo "fetch attempt $attempt failed; retrying" >&2; sleep $((attempt * 20))
+          done
+          git sparse-checkout init --cone
+          git sparse-checkout set stdict opendict
+          git checkout -q FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$NIKL_COMMIT"
+      - name: Build the lexicon for this change
+        if: steps.head-cache.outputs.cache-hit != 'true'
+        run: python -m gukhan.lexicon_build.cli --stdict nikl/stdict --opendict nikl/opendict -o lexicon-head
+      - name: Build the lexicon for the base
+        if: steps.base-cache.conclusion == 'success' && steps.base-cache.outputs.cache-hit != 'true'
+        run: PYTHONPATH="$PWD/base/src" python -m gukhan.lexicon_build.cli --stdict nikl/stdict --opendict nikl/opendict -o lexicon-base
+      - name: Save the lexicons
+        if: steps.head-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: lexicon-head
+          key: nikl-lexicon-${{ env.NIKL_COMMIT }}-${{ hashFiles('src/gukhan/lexicon_build/**/*.py') }}
+      - name: Save the base lexicon
+        if: steps.base-cache.conclusion == 'success' && steps.base-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: lexicon-base
+          key: nikl-lexicon-${{ env.NIKL_COMMIT }}-${{ hashFiles('base/src/gukhan/lexicon_build/**/*.py') }}
+
+      - name: Score this change
+        run: python scripts/accuracy.py score lexicon-head -o head.json
+      - name: Score the base (same regression items, the base's code)
+        if: github.event_name == 'pull_request'
+        run: |
+          lexicon=lexicon-head
+          if [ "${{ steps.base-cache.conclusion }}" = "success" ]; then lexicon=lexicon-base; fi
+          PYTHONPATH="$PWD/base/src" python scripts/accuracy.py score "$lexicon" -o base.json
+          python - <<'PY'
+          import json
+          path = json.load(open("base.json"))["gukhan"]
+          assert "/base/src/" in path, f"the base run imported {path}, not the base checkout"
+          PY
+      - name: Compare with the base
+        if: github.event_name == 'pull_request'
+        run: python scripts/accuracy.py compare base.json head.json --max-wrong-increase "$MAX_WRONG_INCREASE" --summary "$GITHUB_STEP_SUMMARY"
+      - name: Scores only (manual run)
+        if: github.event_name != 'pull_request'
+        run: |
+          echo '### Accuracy scores (no base) / 基準 없는 點數' >> "$GITHUB_STEP_SUMMARY"
+          python -c "import json; d=json.load(open('head.json')); [print(f'- {k}: {v}') for k, v in d['sets'].items()]" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: accuracy-scores
+          path: |
+            head.json
+            base.json
+          if-no-files-found: ignore

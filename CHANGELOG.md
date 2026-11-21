@@ -59,6 +59,7 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Modern-law regression set from statutory Hanja glosses, split into halves (#54, #55).
 - Resumable literature collection with revision and scan checksums (#8).
 - Non-blocking 1 MB throughput benchmark in CI (#60).
+- Accuracy job: a lexicon built in CI from the NIKL mirror at a pinned commit (cached by builder hash), every regression set scored with the change and with the base, a right/wrong/flagged table against main in the job summary, and a failure when a held-out set gains more than 2 wrong words (`docs/accuracy-ci.md`, #80).
 - Test coverage measured with coverage.py (line and branch) in CI, with a floor at the level reached (#77); edge-case tests for console set-up, archive limits, Unihan inputs and the manifest.
 
 #### Browser extension / 확장 프로그램
