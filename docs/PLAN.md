@@ -127,6 +127,8 @@ Builder: `gukhan-lexicon-build [--stdict <zip|dir>] [--opendict <zip|dir>]
   headwords. The file is sorted and deterministic, so two builds of the same
   input give the same bytes.
 - `chars.tsv` (if Unihan given): `hanja  readings`.
+- `variants.tsv` (if Unihan has `Unihan_Variants.txt`): `hanja  variant  kind`, for `gukhan-regress --variants`
+  (not shipped in the Python package; see `docs/variants.md`).
 - `manifest.json`: builder version, source file names, sizes and SHA-256,
   Unihan version, entry counts, build time, the resulting licence and the
   attribution notice to display.
@@ -327,7 +329,8 @@ in `tests/regression/sources.tsv`; `gukhan-regress prepare` derives the
 Hangul input from the gold text with Unihan readings (頭音法則 at the start of
 each Hanja run, a preference table for 不/金/樂…, everything else guessed is
 marked CHECK for a person); `gukhan-regress score` reports right / flagged /
-wrong / over per Hanja run. See tests/regression/README.md.
+wrong / over per Hanja run. See tests/regression/README.md and, for glyph variants such as 絕/絶,
+`docs/variants.md`.
 
 ## 7. Deferred to the Chrome extension (milestone 5)
 

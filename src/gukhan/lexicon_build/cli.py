@@ -396,6 +396,20 @@ def _build(argv: list[str] | None) -> int:
         outputs["chars"] = chars_path
 
     if readings:
+        # Glyph/semantic variants (絕 絶, 歎 嘆) for gukhan-regress --variants; none without Unihan_Variants.txt.
+        variant_pairs = unihan_mod.read_variants(args.unihan)
+        if variant_pairs:
+            variants_path = args.out / "variants.tsv"
+            with variants_path.open("w", encoding="utf-8", newline="\n") as fh:
+                fh.write(
+                    "# hanja\tvariant\tkind (z = glyph form, semantic = looser; Unihan kZVariant / kSemanticVariant)\n"
+                )
+                for a, b, kind in variant_pairs:
+                    fh.write(f"{a}\t{b}\t{kind}\n")
+            outputs["variants"] = variants_path
+            counts["variant_pairs"] = len(variant_pairs)
+
+    if readings:
         # What the browser extension's candidate card shows for each Hanja of the lexicon: the usual reading
         # first (the education-set one), then others, Unihan's English meaning and, if --wiktextract is given,
         # the Korean 訓 (물 for 水) from Wiktionary's ko-hanja entries; the card prefers the 訓.

@@ -33,7 +33,8 @@ SHIP = ("lexicon.tsv", "chars.tsv", "manifest.json")
 IGNORED = {
     "rejects.tsv",
     "char-info.tsv",
-}  # not shipped in the Python package (the browser extension imports char-info.tsv)
+    "variants.tsv",
+}  # not shipped in the Python package (the extension imports char-info.tsv; variants.tsv is for gukhan-regress)
 LICENCES = {"CC-BY-SA-4.0", "CC-BY-SA-2.0-KR"}
 MAX_SENSE = 200
 MARKUP = re.compile(r"</?[A-Za-z][^>]*>")

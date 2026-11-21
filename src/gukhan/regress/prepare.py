@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from gukhan.lexicon_build.hangul import compose, decompose, is_cjk, is_syllable
+from gukhan.regress.variants import Variants
 
 # Reading preferences for common multi-reading characters: (default, {next-initial → reading}).
 # 不 reads 부 before ㄷ/ㅈ (不動 부동, 不正 부정) and 불 otherwise.
@@ -195,7 +196,20 @@ NUMERALS = frozenset("零〇一二三四五六七八九十百千萬万億兆壹�
 READING_VARIANTS = {"兦": "亡", "產": "産", "强": "強", "內": "内", "靑": "青", "淸": "清"}
 
 
-def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, str] | None = None) -> Prepared:
+def fold_words(words: dict[str, str], variants: Variants) -> dict[str, str]:
+    """``words`` keyed by the folded Hanja, so 絕對 finds the entry 絶對; the first entry wins."""
+    out: dict[str, str] = {}
+    for hanja, hangul in words.items():
+        out.setdefault(variants.fold(hanja), hangul)
+    return out
+
+
+def prepare(
+    mixed: str,
+    chars: Chars | dict[str, list[str]],
+    words: dict[str, str] | None = None,
+    variants: Variants | None = None,
+) -> Prepared:
     """Hangul for ``mixed``.
 
     Each run of Hanja is first segmented by longest match against ``words``
@@ -203,6 +217,9 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
     and the 頭音法則 inside compounds (强制勞役 → 강제노역). Characters not
     covered by a word get their per-character reading, with the initial-sound
     rule at the start of each segment.
+
+    With ``variants``, ``words`` must be keyed by ``fold_words`` and a run in another glyph form (絕對 for 絶對,
+    痛歎 for 痛嘆) matches its word; a character without a reading takes the reading of a variant of it.
     """
     out: list[str] = []
     flags: list[Flag] = []
@@ -225,8 +242,9 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
         matched = False
         for n in range(MAX_WORD, 1, -1):
             cand = mixed[i : i + n]
-            if len(cand) == n and all(is_cjk(c) for c in cand) and cand in words:
-                out.append(words[cand])
+            key = variants.fold(cand) if variants else cand
+            if len(cand) == n and all(is_cjk(c) for c in cand) and key in words:
+                out.append(words[key])
                 i += n
                 seg_start = True
                 after_numeral = cand[-1] in NUMERALS  # 三十 + 里: the counter is not word-initial
@@ -235,6 +253,8 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
         if matched:
             continue
         readings = chars.get(ch) or chars.get(READING_VARIANTS.get(ch, ch))
+        if not readings and variants:
+            readings = next((r for v in variants.group(ch)[1:] if (r := chars.get(v))), None)
         if not readings:
             unknown.append(ch)
             out.append(ch)
