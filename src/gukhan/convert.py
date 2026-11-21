@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field, replace
 from enum import Enum
@@ -64,6 +65,39 @@ class Result:
 
     def of(self, kind: Kind) -> list[Decision]:
         return [d for d in self.decisions if d.kind == kind]
+
+
+_JAMO_SYLLABLE = re.compile("[\u1100-\u1112][\u1161-\u1175][\u11a8-\u11c2]?")
+_IGNORABLE = "\u200b\u200c\u200d\u2060\ufeff\u00ad"
+_NEEDS_NORMALISING = re.compile("[\u1100-\u11ff" + _IGNORABLE + "]")
+
+
+def _normalise(text: str) -> tuple[str, list[int], list[int]] | None:
+    """``text`` with jamo composed and zero-width characters dropped, plus each kept character's
+    original start and end offsets; None when there is nothing to change."""
+    if not _NEEDS_NORMALISING.search(text):
+        return None
+    plain: list[str] = []
+    starts: list[int] = []
+    ends: list[int] = []
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch in _IGNORABLE:
+            i += 1
+            continue
+        m = _JAMO_SYLLABLE.match(text, i)
+        if m:
+            plain.append(unicodedata.normalize("NFC", m.group()))
+            starts.append(i)
+            ends.append(m.end())
+            i = m.end()
+        else:
+            plain.append(ch)
+            starts.append(i)
+            ends.append(i + 1)
+            i += 1
+    return "".join(plain), starts, ends
 
 
 def chunk_bounds(s: str, limit: int | None = None) -> list[tuple[int, int]]:
@@ -287,7 +321,21 @@ class Converter:
 
     # -- main pipeline --------------------------------------------------
     def convert_span(self, text: str, base: int = 0) -> list[Decision]:
-        """Decisions for one convertible span; offsets are relative to ``base``."""
+        """Decisions for one convertible span; offsets are relative to ``base`` and point into ``text``.
+
+        Decomposed (NFD) Hangul is read as the syllables it composes to and zero-width characters
+        inside a word are ignored for matching; the decisions still cover the original characters.
+        """
+        norm = _normalise(text)
+        if norm is None:
+            return self._convert_span(text, base)
+        plain, starts, ends = norm
+        out = []
+        for d in self._convert_span(plain, 0):
+            out.append(replace(d, start=base + starts[d.start], end=base + ends[d.end - 1]))
+        return out
+
+    def _convert_span(self, text: str, base: int = 0) -> list[Decision]:
         toks = self.analyser.tokenize(text)
         toks = [replace(t, idx=i) for i, t in enumerate(toks)]
         cands = self._candidate_tokens(text, toks)

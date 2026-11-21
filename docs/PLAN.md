@@ -224,6 +224,10 @@ of about 2000 characters (cut at a line break, else a sentence end, else a space
 because Kiwi's running time grows faster than linearly with the length of one call;
 a phrase never spans a line break, so the result does not depend on the cut.
 
+Decomposed (NFD) Hangul, as macOS file names and some pastes produce, is read as the syllables it
+composes to, and zero-width characters inside a word are ignored for matching; the output still
+keeps every character the conversion did not replace.
+
 Flagged-word report columns: `line  col  hangul  candidates  context`. The
 review list (names and unknown words) follows with the same columns and
 `candidates` empty.
