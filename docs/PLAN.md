@@ -156,7 +156,8 @@ prints which fields it found and fails loudly if the expected ones are absent.
 
 ## 4. Data formats
 
-Lexicon TSV (UTF-8, `#` comments, tab separated):
+Lexicon TSV (UTF-8, `#` comments, tab separated; columns `hangul hanja pos source sense weight level
+learner_rank domain`, all after `hanja` optional):
 
 ```
 # gukhan lexicon  licence=CC-BY-SA-2.0-KR  manifest=manifest.json
@@ -270,6 +271,7 @@ Implementation: `src/gukhan/rules.py`, wiring in `convert.py`.
 | `division` | in the frame 「제 N X」 the word X is an ordinal-numbered part, so only a reading whose definition says it divides or orders qualifies (條 「나누어 구분하는 단위」, 號 「순서를 매겨」), not 組 | on |
 | `counter` | a counter whose every reading is defined as a 「… 단위」 (日 「날을 세는 단위」) is converted only after a number; alone, 일 and 시 are native words | on |
 | `compound` | a compact run of two or more tokens, at least four syllables, that is not a headword but occurs inside longer headwords with exactly one Hanja form (國務委員 inside 國務委員會 and 國務委員長) | on |
+| `field` | a reading whose every sense the dictionary labels as terminology of one narrow field (역사, 불교, 민속, 한의, 식물, 생명, 인명, 지명) is dropped when fewer than two words that the converter settled elsewhere in the same text carry that label, the token is not glued to a word before it, and a reading with an everyday sense survives (菩薩 「불교」 goes in a text with no Buddhist words, 壬子 and 妊子 go from 임자 in a legal text) | on |
 | `verb` | the noun is followed by 하/되 …, and only some readings exist as that dictionary verb with the matching part of speech (重要하다 형용사, not 中夭하다). One-syllable words stay flagged | off |
 
 Two further changes work together with these. The builder now keeps one lexicon
@@ -278,6 +280,15 @@ a Kiwi adverb or counter finds its own part-of-speech line (일절 as 부사, �
 as 의존 명사); bound forms such as 년 are no longer dropped by the initial-sound
 filter. And a compact stretch of text, without spaces, may match a headword that
 contains numerals or counters (삼일운동 → 三一運動); a spaced stretch still may not.
+
+`field` uses the dictionary's own field label (`cat` in 標準國語大辭典 and 우리말샘), kept in the
+ninth lexicon column `domain`. An entry has a domain only when *every* sense carries a label; one
+everyday sense makes it everyday vocabulary. Only the narrow fields above count: 음악, 법률, 경제,
+의학 and 동물 also label ordinary words (音樂, 寶石), and dropping them added wrong words in the
+regression sets. Evidence is per document: `gukhan file` and `Converter.set_document` take it from the
+whole text, a single call from that call's text. The rule never counts how common a word is, but it does
+rest on an assumption: that a text without Buddhist vocabulary does not mean the Buddhist reading.
+A literary text that mentions a bodhisattva once breaks it (님의 沈黙: 菩薩 → 補殺).
 
 `verb` is opt-in because it removes readings for what is *missing* from a
 dictionary entry, which is weaker than a statement in it: the dictionary has

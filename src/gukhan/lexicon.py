@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
-COLUMNS = ("hangul", "hanja", "pos", "source", "sense", "weight", "level", "learner_rank")
+COLUMNS = ("hangul", "hanja", "pos", "source", "sense", "weight", "level", "learner_rank", "domain")
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class Entry:
     weight: int = 0  # higher = more likely reading; from the builder, see docs/PLAN.md §4
     level: int = 0
     learner_rank: int = 0
+    domain: str = ""  # field label(s) (법률, 의학 …) when every sense of the entry has one; "" = general or unknown
 
 
 def _strip_spaces(s: str) -> str:
@@ -134,7 +135,7 @@ class Lexicon:
                 raise ValueError(
                     f"line {n}: level and learner_rank must be integers / 整數여야 합니다: {parts[6:8]!r}"
                 ) from None
-            lex.add(Entry(hangul, hanja, pos, source, sense, w, level, rank))
+            lex.add(Entry(hangul, hanja, pos, source, sense, w, level, rank, parts[8].strip()))
         return lex
 
     @classmethod

@@ -391,6 +391,35 @@ def test_cli_names_sources_set_licence_and_manifest(tmp_path):
     assert json.loads((wd_only / "manifest.json").read_text(encoding="utf-8"))["licence"] == "CC0-1.0"
 
 
+def test_sense_domain_is_set_only_when_every_sense_is_specialist():
+    from gukhan.lexicon_build.stdict import sense_domain
+
+    assert sense_domain(["불교"]) == "불교"
+    assert sense_domain(["불교", "민속"]) == "민속,불교"
+    assert sense_domain(["불교", None]) == ""  # one everyday sense: everyday word
+    assert sense_domain(["불교", "없음"]) == ""
+    assert sense_domain([]) == ""
+
+
+def test_merge_keeps_domain_only_when_all_entries_have_one():
+    from gukhan.lexicon_build.cli import merge_entries
+    from gukhan.lexicon_build.stdict import Entry as E
+
+    out = merge_entries([E("보살", "菩薩", "명사", "a", "x", domain="불교"), E("보살", "菩薩", "명사", "b", "y")])
+    assert [e.domain for e in out] == [""]
+    out = merge_entries(
+        [E("보살", "菩薩", "명사", "a", "x", domain="불교"), E("보살", "菩薩", "명사", "b", "y", domain="민속")]
+    )
+    assert [e.domain for e in out] == ["민속,불교"]
+
+
+def test_lexicon_reads_the_domain_column():
+    from gukhan.lexicon import Lexicon
+
+    lex = Lexicon.from_lines(["보살\t菩薩\t명사\tt\t\t0\t0\t0\t불교", "보살\t補殺\t명사\tt\t\t0\t0\t0\t"])
+    assert {e.hanja: e.domain for e in lex.candidates("보살")} == {"菩薩": "불교", "補殺": ""}
+
+
 def test_tsv_cells_never_contain_tabs_or_line_breaks():
     from gukhan.lexicon_build.stdict import Entry, Reject
 

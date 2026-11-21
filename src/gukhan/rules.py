@@ -18,6 +18,9 @@ The evidence used:
 - ``numbered division``: in the frame 「제 N X」 the word X is an ordinal-numbered
   part, so only a reading whose definition says it divides or orders (條: 「나누어 구분하는
   단위」; 號: 「순서를 매겨」), not one that counts sets (組), qualifies.
+- ``field``: the dictionary labels every sense of a reading as terminology of one field (한의, 식물,
+  불교 …) and the text shows no sign of that field: fewer than two words that gukhan could settle
+  elsewhere in the same text carry that label. Readings with any everyday sense are never dropped.
 - ``verb``: the noun is followed by 하/되 …, and only some of its readings exist
   as that dictionary verb with the matching part of speech (命하다, not 名하다).
 - ``attested compound``: the whole stretch occurs inside longer headwords with
@@ -27,6 +30,7 @@ The evidence used:
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 
 from .lexicon import Entry
 
@@ -44,7 +48,7 @@ PROPER_SENSE = re.compile(
 # it because the other readings are *missing* from a dictionary verb; absence from a dictionary is
 # weaker than a statement in it (the dictionary has 妨害하다 but not 防害하다, which the 1948 text
 # writes), and measured on the regression sets it adds wrong words, so it is opt-in.
-DEFAULT = frozenset({"name", "ordinal", "division", "counter", "compound"})
+DEFAULT = frozenset({"name", "ordinal", "division", "counter", "compound", "field"})
 OPT_IN = frozenset({"verb"})
 ALL = DEFAULT | OPT_IN
 
@@ -95,4 +99,42 @@ def drop_proper_names(cands: list[Entry]) -> list[Entry]:
         if all(PROPER_SENSE.search(c.sense or "") for c in cands if c.hanja.replace(" ", "") == form)
     }
     kept = [c for c in cands if c.hanja.replace(" ", "") not in names]
+    return kept if kept else cands
+
+
+# Fields whose label marks vocabulary a reader meets only in texts about that subject: historical
+# institutions, Buddhist and folk terms, traditional medicine, plants and organisms, personal and place
+# names. Everyday words are not labelled with these. Fields such as 음악, 법률, 경제, 의학 or 동물 also
+# label ordinary words (音樂, 寶石 …); measured on the regression sets, dropping them added wrong words
+# (docs/STATUS.md), so they are not used.
+NARROW_FIELDS = frozenset({"역사", "불교", "민속", "한의", "식물", "생명", "인명", "지명"})
+
+# Words of one field a text must settle before readings from that field are believed in it.
+FIELD_EVIDENCE_MIN = 2
+
+
+def entry_fields(cands: list[Entry], form: str) -> set[str]:
+    """Fields of one Hanja form; empty when any of its entries is general (or the lexicon has no labels)."""
+    fields: set[str] = set()
+    for c in cands:
+        if c.hanja.replace(" ", "") != form:
+            continue
+        if not c.domain:
+            return set()
+        fields.update(c.domain.split(","))
+    return fields if fields <= NARROW_FIELDS else set()
+
+
+def drop_unevidenced_fields(cands: list[Entry], evidence: Mapping[str, int]) -> list[Entry]:
+    """Remove readings that are terminology of a field the text gives no sign of.
+
+    Keeps every reading with an everyday sense, and every reading of a field the text evidences;
+    keeps all candidates when that would remove every reading.
+    """
+    keep: set[str] = set()
+    for form in _forms(cands):
+        fields = entry_fields(cands, form)
+        if not fields or any(evidence.get(f, 0) >= FIELD_EVIDENCE_MIN for f in fields):
+            keep.add(form)
+    kept = keep_forms(cands, keep)
     return kept if kept else cands
