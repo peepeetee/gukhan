@@ -152,6 +152,7 @@ the published text; `over` is Hanja written where the published text has Hangul.
 | 大韓民國臨時憲章 1919 | 22 | 133 | 36.1% | 2 (1.5%) | 0 | 83 |
 | 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 4 | 338 |
 | 님의 沈黙 1926, batches b1–b19 and preface (poetry) | 418 | 943 | 27.6% | 11 (1.2%) | 84 | 672 |
+| 金剛山遊記 1924, sets k1–k5 (李光洙, prose; scan proofread by one reader) | 1639 | 8202 | 22.2% | 327 (4.0%) | 448 | 6054 |
 | 現行 法令 modern-law-heldout (held out; `over` not meaningful, only glossed words are Hanja) | 649 | 723 | 23.4% | 9 (1.2%) | n/a | 545 |
 | 現行 法令 modern-law-tuning (rules were fitted on it; `over` not meaningful) | 547 | 592 | 23.1% | 7 (1.2%) | n/a | 448 |
 | 舊 法令 old-law-heldout (drafters' own Hanja in 1970–1999 statutes; held out) | 5246 | 13250 | 35.7% | 109 (0.8%) | 782 | 8417 |
@@ -164,6 +165,12 @@ the exclusion is for: the pairs under test are not in the lexicon, and the extra
 anything else. The tuning half rises from 23.1% to 40.4% right (7 to 5 wrong) because its own pairs
 are now in the lexicon; that number is circular and measures nothing. Excluding both halves gives the
 no-gloss figures again (23.1% and 23.4%). The constitutions gain at most 3 words (1948: 49.6%).
+
+金剛山遊記 was scored on a lexicon without statute glosses and without Wikidata lexemes. Its `wrong` rate is the
+highest in the table because print spellings differ from the dictionary form (絶壁 for 絕壁, 萬物肖 for 萬物草). Passing
+`--variants variants.tsv` (Unihan variant pairs) to `gukhan-regress score` counts a variant glyph as right:
+with `z` variants only the set scores 22.8% right with 277 wrong (3.4%); with every variant kind, 23.0% and 260 wrong (3.2%).
+Variants explain about a fifth of the 327 wrong words; the rest are real misses or the author's own spelling.
 
 On the 1948 text, 81.4% of the gold words are among the candidates the tool wrote or offered.
 Full tables, `over` lists and per-rule effects are in tests/regression/README.md.
