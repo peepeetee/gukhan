@@ -149,8 +149,9 @@
     let info = {};
     const showDetail = candidate => {
       const lines = [...(candidate?.form === '-' ? '' : candidate?.form || '')].filter(ch => info[ch]).map(ch => {
-        const {readings = [], meaning = ''} = info[ch];
-        return `${ch} ${readings.join('/')}${meaning ? ' · ' + meaning.slice(0, 40) : ''}`;
+        const {readings = [], meaning = '', hun = ''} = info[ch];
+        // the Korean 訓 (물 수) when the list has one; the English meaning otherwise
+        return hun ? `${ch} ${hun} ${readings.join('/')}` : `${ch} ${readings.join('/')}${meaning ? ' · ' + meaning.slice(0, 40) : ''}`;
       });
       detail.textContent = lines.join('\n'); detail.style.whiteSpace = 'pre-line'; detail.style.display = lines.length ? 'block' : 'none';
     };

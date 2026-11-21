@@ -10,3 +10,6 @@
 {"word": "안", "lang_code": "ko", "lang": "Korean", "pos": "noun", "forms": [{"form": "案", "tags": ["hanja"]}], "senses": [{"glosses": ["plan, proposal"]}, {"glosses": ["bill"]}]}
 {"word": "안", "lang_code": "ko", "lang": "Korean", "pos": "noun", "etymology_text": "From Middle Korean 안ㅎ.", "senses": [{"glosses": ["inside, interior"]}, {"glosses": ["within"]}]}
 {"word": "배", "lang_code": "ko", "lang": "Korean", "pos": "noun", "senses": [{"glosses": ["boat"]}]}
+{"word": "電", "lang_code": "ko", "lang": "Korean", "pos": "character", "head_templates": [{"name": "ko-hanja", "args": {"1": "번개", "2": "전"}, "expansion": "電 (eumhun 번개 전 (beongae jeon))"}], "senses": [{"glosses": ["lightning"]}]}
+{"word": "氣", "lang_code": "ko", "lang": "Korean", "pos": "character", "head_templates": [{"name": "ko-hanja", "args": {"1": "기운/기", "2": "기"}, "expansion": "氣 (eumhun)"}], "senses": [{"glosses": ["energy"]}]}
+{"word": "記", "lang_code": "ko", "lang": "Korean", "pos": "character", "head_templates": [{"name": "ko-hanja", "args": {"1": "기"}, "expansion": "記 (reading only)"}], "senses": [{"glosses": ["record"]}]}

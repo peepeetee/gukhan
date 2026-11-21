@@ -52,7 +52,10 @@ Besides the styles, the card can show each Hanja's reading and English meaning (
 `char-info.tsv` is imported. See `extension/README.md`. 확장 프로그램의 팝업에도 같은 네 가지 形式이 있습니다.
 
 Unihan has no Korean 訓 (meaning-reading like 나라 국), so the character list gives the reading (音) and the English
-meaning only; a source for 訓 would need its own licence check first. Unihan에는 한국어 訓이 없어 英語 뜻을 보입니다.
+meaning from Unihan. When the dictionary is built with `--wiktextract`, `char-info.tsv` gets a fourth column with the
+訓 from Wiktionary's `ko-hanja` entries (물 for 水, 3,000 characters in the 2026-10-01 extract; contributors of
+CC BY-SA 4.0, already credited in the build's notice), and the extension card shows `水 물 수` instead of the English
+meaning for those characters. Unihan에는 한국어 訓이 없어 Wiktionary의 `ko-hanja` 項目에서 訓을 읽습니다.
 
 ### Korean 訓 sources checked (2026-11-21) / 訓 出處 調査
 
@@ -61,8 +64,5 @@ The NIKL dumps (標準國語大辭典, 우리말샘, 韓國語基礎辭典; CC B
 not 訓 (귤 귤). Turning definitions into 訓 would be a guess, so it is not done. Unihan `kHangul` gives 音 only.
 標準國語大辭典·우리말샘·韓國語基礎辭典에는 訓音 欄이 없고, 漢字 한 글자 標題語는 낱말 뜻풀이일 뿐 訓이 아닙니다.
 
-Not usable yet: the en.wiktionary Hanja entries (`ko-hanja` template carries 訓 and 音; CC BY-SA 4.0, same licence as the
-Wiktionary-including build) are the one candidate with a clear licence, but the kaikki.org extract is not reachable from the
-cloud build environment, so its shape could not be checked there. A builder input for it is a follow-up once someone has
-inspected a real extract. 國漢混用은 확인하지 못한 資料를 추측으로 넣지 않습니다.
+Now used: the en.wiktionary Hanja entries (`ko-hanja` carries 訓 and 音; CC BY-SA 4.0) are read from a real kaikki extract, whose shape was checked on 2026-11-21 (3,057 of 10,280 character entries have both), through `--wiktextract` as above. 國漢混用은 확인하지 못한 資料를 추측으로 넣지 않습니다.
 

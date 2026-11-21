@@ -71,8 +71,8 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     info = (out1 / "char-info.tsv").read_text(encoding="utf-8").splitlines()
     assert info[0].startswith("# hanja")
     rows = {line.split("\t")[0]: line.split("\t")[1:] for line in info[1:]}
-    assert rows["電"] == ["전", "electricity, electric; lightning"]  # two senses kept, the third dropped
-    assert rows["氣"] == ["기", "air, gas, vapor; breath"] and rows["記"] == ["기", ""]
+    assert rows["電"] == ["전", "electricity, electric; lightning", ""]  # two senses kept; no 訓 without --wiktextract
+    assert rows["氣"] == ["기", "air, gas, vapor; breath", ""] and rows["記"] == ["기", "", ""]
     assert m["outputs"]["char_info"]["sha256"]
     assert (out1 / "char-info.tsv").read_bytes() == (out2 / "char-info.tsv").read_bytes()
 
@@ -95,7 +95,7 @@ def test_wiktextract_fixture():
     assert ("공부하다", "工夫하다", "동사") not in forms  # 工/夫 not in fixture
     assert not any(e.hangul == "전" for e in entries)  # character pages skipped
     assert not any(e.hangul == "사과" for e in entries)  # no hanja form
-    assert stats.items == 12
+    assert stats.items == 15  # 12 words and the three Hanja character entries
     assert any(r.hangul == "오류" and "reads" in r.reason for r in rejects)
     assert stats.native["안"][0] == "명사" and stats.native["안"][1] == "inside, interior"
     assert "배" in stats.native  # native with no Sino entry; the CLI only keeps those with one
@@ -513,3 +513,29 @@ def test_stdict_native_homographs_keep_every_part_of_speech(tmp_path):
     assert main(["--stdict", str(f), "-o", str(out)]) == 0
     lines = [ln.split("\t") for ln in (out / "lexicon.tsv").read_text(encoding="utf-8").splitlines() if ln[0] != "#"]
     assert {(ln[1], ln[2]) for ln in lines if ln[0] == "조"} == {("兆", "관형사"), ("조", "명사"), ("조", "관형사")}
+
+
+def test_hun_table_from_wiktextract(tmp_path):
+    from gukhan.lexicon_build import wiktextract
+
+    # ko-hanja gives 訓 and 音; an entry with only a reading has no 訓 and is skipped
+    assert wiktextract.read_hun(FIX / "wiktextract_sample.jsonl") == {"電": "번개", "氣": "기운/기"}
+    out = tmp_path / "h"
+    rc = main(
+        [
+            "--stdict",
+            str(FIX / "stdict_sample.xml"),
+            "--wiktextract",
+            str(FIX / "wiktextract_sample.jsonl"),
+            "--unihan",
+            str(FIX / "Unihan_Readings.txt"),
+            "-o",
+            str(out),
+        ]
+    )
+    assert rc == 0
+    lines = (out / "char-info.tsv").read_text(encoding="utf-8").splitlines()[1:]
+    rows = {ln.split("	")[0]: ln.split("	")[1:] for ln in lines}
+    assert rows["電"][-1] == "번개" and rows["氣"][-1] == "기운/기" and rows["記"][-1] == ""
+    m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert m["counts"]["char_hun"] == 2 and "Wiktionary" in m["notice"]
