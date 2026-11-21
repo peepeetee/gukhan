@@ -1,6 +1,6 @@
 # Privacy policy / 個人情報 處理方針 (개인정보 처리방침)
 
-Effective 2026-11-05 · 施行 2026年 11月 5日 · Applies to the gukhan 國漢混用 browser extension (Chrome and Firefox).
+Effective 2026-11-05 (reviewed 2026-11-21, no change in behaviour) · 施行 2026年 11月 5日 · Applies to the gukhan 國漢混用 browser extension (Chrome and Firefox).
 
 ## English
 
@@ -12,7 +12,8 @@ no advertising, no crash reporting and no sync. The authors never receive any da
   browser*. The page text is not stored and does not leave your device. With either switch off, the
   content script returns at once and does not read the page.
 - **Dictionary.** The dictionary you import (or the one bundled in the package) is kept in your
-  browser's IndexedDB on your device.
+  browser's IndexedDB on your device. It holds only word lists (Korean headwords, Hanja, labels and
+  credits taken from public dictionaries and statutes), never anything about you.
 - **Your choices.** Picks, overrides, the switches and the site list are saved in the browser's
   extension storage (`chrome.storage.local`) on your device. Hostnames appear in that list only
   where you turned a site on.
@@ -42,7 +43,7 @@ for creditworthiness or lending.
 - **페이지 글.** 全體(전체) 스위치와 해당 사이트 스위치를 둘 다 켰을 때에만, 읽고 있는 페이지의 글을
   *브라우저 안에서* 사전과 대조합니다. 페이지 글은 저장되지 않고 기기 밖으로 나가지 않습니다.
   어느 하나라도 꺼져 있으면 페이지를 읽지 않습니다.
-- **사전.** 가져온 사전(또는 패키지에 들어 있는 사전)은 기기의 브라우저 IndexedDB에 보관합니다.
+- **사전.** 가져온 사전(또는 패키지에 들어 있는 사전)은 기기의 브라우저 IndexedDB에 보관합니다. 사전에는 公開(공개) 辭典·法令에서 가져온 낱말·漢字·표지·出處만 들어 있고, 사용자에 관한 內容(내용)은 없습니다.
 - **선택.** 고른 漢字(한자), 사용자 지정, 스위치, 사이트 목록은 기기의 확장 프로그램 저장소에 보관합니다.
   사이트 이름은 사용자가 켠 경우에만 목록에 들어갑니다.
 - **네트워크.** 네트워크 要請(요청)을 하지 않습니다. 원격 코드나 글꼴도 불러오지 않습니다.

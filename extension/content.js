@@ -66,7 +66,8 @@
     const head = style(document.createElement('div'), `padding:2px 8px 4px;font-size:12px;color:${accent}`);
     head.textContent = decision.word; box.append(head);
     const seen = new Set(), choices = [];
-    for (const c of decision.candidates) if (!seen.has(c.form)) { seen.add(c.form); choices.push(c); }
+    // a native-word twin (form equal to the headword) is "Keep Hangul", listed once below
+    for (const c of decision.candidates) if (c.form !== decision.word && !seen.has(c.form)) { seen.add(c.form); choices.push(c); }
     choices.push({form: '-', sense: '한글 유지 / Keep Hangul'});
     for (const candidate of choices) {
       const current = candidate.form === (decision.text === decision.word ? '-' : decision.text);
@@ -74,8 +75,9 @@
         `all:unset;box-sizing:border-box;display:block;width:100%;padding:5px 8px;border-radius:5px;cursor:pointer;` +
         `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${fg};font-weight:${current ? 600 : 400}`);
       const form = candidate.form === '-' ? '' : candidate.form;
-      button.textContent = `${current ? '✓ ' : ''}${form}${form && candidate.sense ? '  ' : ''}${(candidate.sense || '').slice(0, 40)}`;
-      button.title = candidate.sense || '';
+      const note = `${candidate.domain ? `[${candidate.domain}] ` : ''}${candidate.sense || ''}`;  // [법률] for statute terms
+      button.textContent = `${current ? '✓ ' : ''}${form}${form && note ? '  ' : ''}${note.slice(0, 40)}`;
+      button.title = note;
       button.onpointerenter = button.onfocus = () => { button.style.background = hover; };
       button.onpointerleave = button.onblur = () => { button.style.background = ''; };
       button.onclick = async e => { e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };

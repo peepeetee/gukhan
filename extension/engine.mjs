@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
+// Columns: hangul, form, pos, source, sense, weight, level, learner rank, domain (法律 …; "" = general).
+// A native-word twin is a line whose form equals its headword (사랑 / 사랑): it makes the word
+// ambiguous, so it stays Hangul instead of becoming 舍廊, and the card does not list it twice.
 export function parseLexicon(text) {
   const index = new Map();
   for (const line of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
     if (!line || line.startsWith('#')) continue;
-    const [word, form, pos = '', source = '', sense = '', weight = '0', level = '0', rank = '0'] = line.split('\t');
+    const [word, form, pos = '', source = '', sense = '', weight = '0', level = '0', rank = '0', domain = ''] = line.split('\t');
     if (!word || !form || [...word].length !== [...form].length) throw new Error('Invalid lexicon / 사전 형식 오류');
     const numbers = [weight, level, rank].map(Number);
     if (!numbers.every(Number.isFinite)) throw new Error('Invalid ranking / 순위 오류');
     const entries = index.get(word) || [];
-    entries.push({form, pos, source, sense, weight: numbers[0], level: numbers[1], rank: numbers[2]});
+    entries.push({form, pos, source, sense, domain, weight: numbers[0], level: numbers[1], rank: numbers[2]});
     index.set(word, entries);
   }
   for (const entries of index.values()) entries.sort((a, b) =>
