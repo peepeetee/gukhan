@@ -6,6 +6,8 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections import Counter
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
@@ -258,6 +260,7 @@ class Converter:
         self.min_weight = min_weight
         # Words per dictionary field that the text settled without the ``field`` rule; None = not computed yet.
         self.field_evidence = field_evidence
+        self._markdown = True  # False while converting prose taken out of HTML, Word, EPUB or subtitles
         self._tok_cache: dict[str, list[Token]] = {}
         self._tok_cache_chars = 0
 
@@ -291,7 +294,7 @@ class Converter:
     def _chunks(self, text: str) -> list[tuple[int, int]]:
         """``(start, end)`` of every piece of ``text`` that is converted: unprotected segments, in chunks."""
         out = []
-        for seg in segment(text):
+        for seg in segment(text, markdown=self._markdown):
             if seg.protected:
                 continue
             for a, b in chunk_bounds(text[seg.start : seg.end]):
@@ -502,7 +505,15 @@ class Converter:
                 i += 1
         return decisions
 
-    def measure_fields(self, texts: list[str]) -> Counter[str]:
+    @contextmanager
+    def _prose(self, markdown: bool) -> Iterator[None]:
+        saved, self._markdown = self._markdown, markdown
+        try:
+            yield
+        finally:
+            self._markdown = saved
+
+    def measure_fields(self, texts: list[str], *, markdown: bool = True) -> Counter[str]:
         """Count, per dictionary field, the words of ``texts`` that settle on one reading of that field.
 
         This is the evidence of the ``field`` rule; it runs the converter with that rule off, so a
@@ -513,7 +524,9 @@ class Converter:
         counts: Counter[str] = Counter()
         try:
             for text in texts:
-                for d in self._spans_decisions(text):
+                with self._prose(markdown):
+                    found = self._spans_decisions(text)
+                for d in found:
                     if d.kind == Kind.CONVERTED and d.candidates and d.reason != "override":
                         fields = rules.entry_fields(list(d.candidates), (d.hanja or "").replace(" ", ""))
                         counts.update(fields)
@@ -521,18 +534,20 @@ class Converter:
             self.field_evidence = saved
         return counts
 
-    def set_document(self, texts: list[str]) -> None:
+    def set_document(self, texts: list[str], *, markdown: bool = True) -> None:
         """Take the ``field`` rule's evidence from all of ``texts`` (one document), not from each call."""
-        self.field_evidence = self.measure_fields(texts) if "field" in self.rules else None
+        self.field_evidence = self.measure_fields(texts, markdown=markdown) if "field" in self.rules else None
 
-    def convert(self, text: str, *, mark: bool = False) -> Result:
+    def convert(self, text: str, *, mark: bool = False, markdown: bool = True) -> Result:
+        """Convert ``text``. ``markdown=False`` says it is plain prose (no code spans or link syntax to protect)."""
         if "field" in self.rules and self.field_evidence is None:
-            self.field_evidence = self.measure_fields([text])
+            self.field_evidence = self.measure_fields([text], markdown=markdown)
             try:
-                return self.convert(text, mark=mark)
+                return self.convert(text, mark=mark, markdown=markdown)
             finally:
                 self.field_evidence = None
-        decisions = self._spans_decisions(text)
+        with self._prose(markdown):
+            decisions = self._spans_decisions(text)
         out, pos = [], 0
         for d in decisions:
             out.append(text[pos : d.start])

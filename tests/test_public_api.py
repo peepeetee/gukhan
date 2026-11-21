@@ -12,7 +12,7 @@ import pytest
 import gukhan
 
 ROOT = Path(__file__).resolve().parent.parent
-MODULES = ["convert", "lexicon", "overrides", "analyser", "report", "review", "suggest"]
+MODULES = ["convert", "lexicon", "overrides", "analyser", "report", "review", "suggest", "formats"]
 
 
 def test_top_level_names_exist() -> None:

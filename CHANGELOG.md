@@ -28,6 +28,11 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
   kept), and handling of decomposed Hangul and zero-width characters (#35, #39, #46, #47).
 - `--jobs` / `--workers` for parallel analysis; conversion of long text in pieces (#37, #64).
 - Korean and English in every user-facing message, enforced by `scripts/check_bilingual.py` (#59).
+- Input formats beyond plain text and Markdown: HTML and XHTML (text nodes only), Word `.docx` (runs, headers,
+  footers, footnotes, endnotes and comments; a word split over runs is converted whole and formatting is kept),
+  EPUB (chapters and table of contents) and SRT/WebVTT subtitles (cue text only, timing untouched), chosen by
+  extension or `--format`, with `gukhan.formats` for Python and round-trip tests that check nothing but the
+  converted words changes (`docs/formats.md`).
 - Full type annotations, a `py.typed` marker, `mypy --strict` in CI, a public API defined by `__all__`
   (`docs/api-policy.md`) and an API reference; a static documentation site built from `docs/` in CI (not deployed).
 

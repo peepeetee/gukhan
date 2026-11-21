@@ -40,6 +40,12 @@ re-exported at package level so that the name `gukhan.convert` stays the module.
 ::: gukhan.ListAnalyser
 ::: gukhan.Token
 
+## Input formats / 入力 形式
+
+See [Input formats](formats.md) for what each format converts and keeps.
+
+::: gukhan.formats
+
 ## Reports / 報告
 
 ::: gukhan.report

@@ -27,6 +27,11 @@ _PROTECTED = re.compile(
 )
 
 
+# Prose that came out of a structured file (HTML text nodes, Word runs, subtitle cues): there is no Markdown to
+# protect, so a backtick or a bracket is just a character; only addresses stay untouched.
+_PROTECTED_PROSE = re.compile(r"(?i)https?://\S+|www\.\S+|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+
+
 @dataclass(frozen=True)
 class Segment:
     start: int
@@ -34,10 +39,11 @@ class Segment:
     protected: bool
 
 
-def segment(text: str) -> list[Segment]:
+def segment(text: str, *, markdown: bool = True) -> list[Segment]:
+    """Alternate convertible and protected spans; ``markdown=False`` protects only URLs and e-mail addresses."""
     out: list[Segment] = []
     pos = 0
-    for m in _PROTECTED.finditer(text):
+    for m in (_PROTECTED if markdown else _PROTECTED_PROSE).finditer(text):
         if m.start() > pos:
             out.append(Segment(pos, m.start(), False))
         out.append(Segment(m.start(), m.end(), True))
