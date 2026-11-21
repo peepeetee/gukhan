@@ -40,7 +40,7 @@ def test_python_gaps(tmp_path, monkeypatch):
         "    ap.add_argument('--x', help='only an English help text')\n"
         "    raise ValueError('빈 파일입니다 비어 있는 파일은 안 됩니다')\n",
     )
-    gaps = cb.python_gaps(p)
+    gaps = sorted(cb.python_gaps(p), key=lambda g: int(g.split(":")[1].split()[0]))
     assert len(gaps) == 3
     assert "[stderr] no Korean" in gaps[0] and "[help] no Korean" in gaps[1] and "[raise] no English" in gaps[2]
 
