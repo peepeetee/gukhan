@@ -26,6 +26,10 @@ PHRASE_TAGS = frozenset({"NNG", "NNP", "NR", "XR", "XPN", "XSN"})
 # for a 16 times longer text), so long spans are analysed in pieces of about this many characters.
 # Pieces end at a line break, else after a sentence, else at a space; a phrase never spans one.
 CHUNK_CHARS = 2000
+# Pieces handed to the analyser together (it analyses a batch on several threads), and the most text
+# whose analysis is kept so a second pass over the same text (the evidence pass, then the real one) is free.
+BATCH_CHUNKS = 32
+TOKEN_CACHE_CHARS = 3_000_000
 _SENTENCE_END = re.compile(r"[.!?。…][\"'”’)\]]*\s")
 
 
@@ -233,6 +237,56 @@ class Converter:
         self.min_weight = min_weight
         # Words per dictionary field that the text settled without the ``field`` rule; None = not computed yet.
         self.field_evidence = field_evidence
+        self._tok_cache: dict[str, list[Token]] = {}
+        self._tok_cache_chars = 0
+
+    # -- analysis ---------------------------------------------------------
+    def _remember(self, text: str, tokens: list[Token]) -> None:
+        if self._tok_cache_chars + len(text) > TOKEN_CACHE_CHARS:
+            self._tok_cache.clear()
+            self._tok_cache_chars = 0
+        self._tok_cache[text] = tokens
+        self._tok_cache_chars += len(text)
+
+    def _tokens(self, text: str) -> list[Token]:
+        """The analyser's tokens for ``text``, from the cache when the same text was analysed before."""
+        tokens = self._tok_cache.get(text)
+        if tokens is None:
+            tokens = self.analyser.tokenize(text)
+            self._remember(text, tokens)
+        return tokens
+
+    def _prefetch(self, spans: list[str]) -> None:
+        """Analyse ``spans`` together (in parallel when the analyser can) so ``_tokens`` finds them."""
+        many = getattr(self.analyser, "tokenize_many", None)
+        if many is None:
+            return
+        plain = [(_normalise(s) or (s,))[0] for s in spans]
+        todo = list(dict.fromkeys(p for p in plain if p not in self._tok_cache))
+        if len(todo) > 1:
+            for p, tokens in zip(todo, many(todo), strict=True):
+                self._remember(p, tokens)
+
+    def _chunks(self, text: str) -> list[tuple[int, int]]:
+        """``(start, end)`` of every piece of ``text`` that is converted: unprotected segments, in chunks."""
+        out = []
+        for seg in segment(text):
+            if seg.protected:
+                continue
+            for a, b in chunk_bounds(text[seg.start : seg.end]):
+                out.append((seg.start + a, seg.start + b))
+        return out
+
+    def _spans_decisions(self, text: str) -> list[Decision]:
+        """Decisions for all convertible pieces of ``text``, analysing them in batches."""
+        decisions: list[Decision] = []
+        chunks = self._chunks(text)
+        for i in range(0, len(chunks), BATCH_CHUNKS):
+            group = chunks[i : i + BATCH_CHUNKS]
+            self._prefetch([text[a:b] for a, b in group])
+            for a, b in group:
+                decisions.extend(self.convert_span(text[a:b], a))
+        return decisions
 
     # -- lookup helpers -------------------------------------------------
     def _max_key_len(self) -> int:
@@ -348,8 +402,7 @@ class Converter:
         return out
 
     def _convert_span(self, text: str, base: int = 0) -> list[Decision]:
-        toks = self.analyser.tokenize(text)
-        toks = [replace(t, idx=i) for i, t in enumerate(toks)]
+        toks = [t if t.idx == i else replace(t, idx=i) for i, t in enumerate(self._tokens(text))]
         cands = self._candidate_tokens(text, toks)
         decisions: list[Decision] = []
         max_len = self._max_key_len()
@@ -439,13 +492,10 @@ class Converter:
         counts: Counter[str] = Counter()
         try:
             for text in texts:
-                for seg in segment(text):
-                    if seg.protected:
-                        continue
-                    for d in self.convert_span(text[seg.start : seg.end], seg.start):
-                        if d.kind == Kind.CONVERTED and d.candidates and d.reason != "override":
-                            fields = rules.entry_fields(list(d.candidates), d.hanja.replace(" ", ""))
-                            counts.update(fields)
+                for d in self._spans_decisions(text):
+                    if d.kind == Kind.CONVERTED and d.candidates and d.reason != "override":
+                        fields = rules.entry_fields(list(d.candidates), d.hanja.replace(" ", ""))
+                        counts.update(fields)
         finally:
             self.field_evidence = saved
         return counts
@@ -461,12 +511,7 @@ class Converter:
                 return self.convert(text, mark=mark)
             finally:
                 self.field_evidence = None
-        decisions: list[Decision] = []
-        for seg in segment(text):
-            if seg.protected:
-                continue
-            for a, b in chunk_bounds(text[seg.start : seg.end]):
-                decisions.extend(self.convert_span(text[seg.start + a : seg.start + b], seg.start + a))
+        decisions = self._spans_decisions(text)
         out, pos = [], 0
         for d in decisions:
             out.append(text[pos : d.start])

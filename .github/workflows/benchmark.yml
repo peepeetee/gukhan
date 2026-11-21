@@ -31,8 +31,8 @@ jobs:
           import json
           r = json.load(open("benchmark.json", encoding="utf-8"))
           print("### Throughput on 1 MB / 1 MB 處理 速度\n")
-          print("| MB/s | chars/s | seconds | lexicon entries | Kiwi load (s) |\n| --- | --- | --- | --- | --- |")
-          print(f"| {r['mb_per_s']} | {r['chars_per_s']} | {r['convert_s']} | {r['lexicon_entries']} | {r['model_load_s']} |")
+          print("| MB/s | chars/s | seconds | Kiwi threads | lexicon entries | Kiwi load (s) |\n| --- | --- | --- | --- | --- | --- |")
+          print(f"| {r['mb_per_s']} | {r['chars_per_s']} | {r['convert_s']} | {r['workers']} | {r['lexicon_entries']} | {r['model_load_s']} |")
           PY
       - uses: actions/upload-artifact@v4
         with:

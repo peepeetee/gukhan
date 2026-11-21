@@ -202,3 +202,28 @@ def test_version_names_the_analyser_and_lexicon(capsys):
     out = capsys.readouterr().out.splitlines()
     assert out[0].startswith("gukhan ") and out[1].startswith("kiwipiepy ") and "model cong" in out[1]
     assert out[2].startswith("gukhan-lexicon ")
+
+
+def test_jobs_gives_the_same_files_as_one_process(tmp_path, capsys):
+    many = []
+    for i in range(3):
+        p = tmp_path / f"in{i}.md"
+        p.write_text("대한민국 헌법 제" + str(i + 1) + "조\n```\n전기\n```\n", encoding="utf-8", newline="")
+        many.append(str(p))
+    one, two = tmp_path / "one", tmp_path / "two"
+    assert main([*many, "--out-dir", str(one), "--lexicon", MINI]) == 0
+    capsys.readouterr()
+    assert main([*many, "--out-dir", str(two), "--lexicon", MINI, "--jobs", "2", "--workers", "1"]) == 0
+    err = capsys.readouterr().err
+    for i in range(3):
+        assert (one / f"in{i}.md").read_bytes() == (two / f"in{i}.md").read_bytes()
+        assert f"in{i}.md: 變換" in err  # the per-file summary line, in input order
+    assert err.index("in0.md") < err.index("in1.md") < err.index("in2.md")
+    assert "大韓民國 憲法" in (two / "in0.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("extra", [["--workers", "0"], ["--jobs", "-1"]])
+def test_bad_worker_counts_are_refused(tmp_path, capsys, extra):
+    a, _ = _files(tmp_path)
+    assert main([str(a), "--lexicon", MINI, *extra]) == 2
+    assert "--workers" in capsys.readouterr().err
