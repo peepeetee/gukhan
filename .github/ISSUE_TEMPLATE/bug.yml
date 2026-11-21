@@ -1,5 +1,5 @@
 name: Bug / 오류
-description: A crash, a wrong file, or behaviour that contradicts the docs.
+description: A crash, a wrong file, or behaviour that contradicts the docs. / 中斷, 잘못된 結果, 文書와 다른 동작
 labels: ["bug"]
 body:
   - type: textarea
@@ -17,4 +17,4 @@ body:
     id: env
     attributes:
       label: Environment / 環境
-      description: OS, Python (or browser) version, `gukhan --version`.
+      description: OS, Python (or browser) version, `gukhan --version`. / 運營體制와 版本

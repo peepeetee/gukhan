@@ -22,13 +22,13 @@ def _open_readings(path: Path) -> tuple[io.TextIOBase, str | None]:
     if path.is_dir():
         candidates = sorted(path.glob("Unihan_Readings*.txt"))
         if not candidates:
-            raise FileNotFoundError(f"Unihan_Readings.txt not found in {path}")
+            raise FileNotFoundError(f"Unihan_Readings.txt를 찾을 수 없습니다 / Unihan_Readings.txt not found in {path}")
         return candidates[0].open(encoding="utf-8"), None
     if zipfile.is_zipfile(path):
         zf = zipfile.ZipFile(path)
         names = [n for n in zf.namelist() if n.startswith("Unihan_Readings")]
         if not names:
-            raise FileNotFoundError(f"Unihan_Readings.txt not found in {path}")
+            raise FileNotFoundError(f"Unihan_Readings.txt를 찾을 수 없습니다 / Unihan_Readings.txt not found in {path}")
         return io.TextIOWrapper(zf.open(names[0]), encoding="utf-8"), None
     return path.open(encoding="utf-8"), None
 

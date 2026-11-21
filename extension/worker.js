@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     const settings = await chrome.storage.local.get(['enabled', 'sites', 'overrides']);
     if (!settings.enabled || !settings.sites?.[site]) return {disabled: true};
     if (message.texts.length > 100 || message.texts.some(t => typeof t !== 'string' || t.length > 20000)) {
-      throw new Error('Page batch too large');
+      throw new Error('한 번에 보낸 글이 너무 큽니다 / Page batch too large');
     }
     const index = await pageIndex(message.texts);
     return {results: message.texts.map(t => convert(t, index, settings.overrides || {}))};

@@ -17,9 +17,9 @@ Hanja choice is the author's, not ours:
 `sources.tsv` lists each text with its URL, the markers that delimit it and
 the legal basis. Add a row there before adding items.
 
-## Files
+## Files / 파일
 
-- `sources.tsv`: provenance.
+- `sources.tsv`: provenance / 出處 目錄.
 - `<id>.tsv`: items, tab separated: `id  source  hangul  mixed`. The `mixed`
   column is the gold answer exactly as published. A trailing ` # CHECK …`
   note marks readings `gukhan-regress prepare` had to guess; remove the note

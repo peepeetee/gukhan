@@ -1,5 +1,5 @@
 name: Idea / 提案
-description: A feature or a change in behaviour.
+description: A feature or a change in behaviour. / 새 機能이나 동작 變更
 labels: ["enhancement"]
 body:
   - type: textarea
@@ -12,4 +12,4 @@ body:
     id: idea
     attributes:
       label: What you would like gukhan to do / 바라는 동작
-      description: gukhan never guesses an ambiguous word; ideas that keep to that are easiest to accept.
+      description: gukhan never guesses an ambiguous word; ideas that keep to that are easiest to accept. / gukhan은 애매한 낱말을 추측하지 않습니다. 이 原則에 맞는 提案이 받아들이기 쉽습니다.

@@ -1,12 +1,12 @@
 name: Wrong conversion / 誤變換
-description: gukhan wrote the wrong Hanja, or left a word that should convert.
+description: gukhan wrote the wrong Hanja, or left a word that should convert. / 漢字가 틀렸거나 바뀌어야 할 낱말이 그대로임
 labels: ["conversion"]
 body:
   - type: textarea
     id: sentence
     attributes:
       label: Sentence (Hangul) / 文章
-      description: Only text you may share.
+      description: Only text you may share. / 公開해도 되는 글만 적어 주세요.
     validations:
       required: true
   - type: textarea
@@ -19,11 +19,11 @@ body:
     id: expected
     attributes:
       label: What it should be, and the source / 期待 結果과 出處
-      description: A dictionary entry or a printed edition (title, year, page) is best.
+      description: A dictionary entry or a printed edition (title, year, page) is best. / 辭典 項目이나 刊行本(題目, 年度, 쪽)이 좋습니다.
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Version and lexicon / 版本
-      description: Output of `gukhan --version`, and the gukhan-lexicon version or the --lexicon you used.
+      description: Output of `gukhan --version`, and the gukhan-lexicon version or the --lexicon you used. / `gukhan --version` 出力과 辭典 版本
