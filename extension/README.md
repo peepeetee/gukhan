@@ -25,6 +25,18 @@ particle stays in Hangul (`전기가` → 電氣가 once 전기 is decided). Any
 ending stays unchanged. Phrase entries (`전기 공학 = 電氣 工學`, in the dictionary or in your
 choices) match words separated by one space. Ambiguous words and single-syllable words stay
 Hangul until the user chooses. CLI regression scores do not apply.
+Output style, for Hanja learners / 學習者용 出力 方式: the popup's *Output style* chooses how a converted word is
+written, on every enabled site and live: `mixed` 國軍 (default), `gloss` 국군(國軍), `hanja-gloss` 國軍(국군) or
+`ruby` (HTML `<ruby>`, the Hangul reading above each Hanja). It is the CLI's `--style` (docs/styles.md). The choice
+is stored in the browser and changes nothing about which words are converted. 팝업에서 고르며 바로 적용됩니다.
+
+Hanja readings and meanings on the candidate card / 候補 카드의 漢字 풀이: if you also import `char-info.tsv`
+(written next to `lexicon.tsv` by `gukhan-lexicon-build --unihan …`), the card shows the reading and the English
+meaning of each Hanja of the candidate under the pointer, e.g. `電 전 · electricity`. It comes from Unicode's Unihan
+(`kHangul`, `kDefinition`); Unihan has no Korean 訓 (meaning-reading such as 나라 국), so the meaning is English.
+Without the file the card is as before. `char-info.tsv` is checked against `manifest.json` like the lexicon,
+and `--dictionary` bundles it when it is in the folder.
+
 Code, links, controls and editable regions are skipped. Cross-frame and shadow-root
 content is not supported. Dynamic pages may conflict with DOM rewriting; turn the
 site off if its layout or interaction changes.

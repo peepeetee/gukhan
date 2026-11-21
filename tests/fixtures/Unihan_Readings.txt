@@ -17,3 +17,5 @@ U+8A08	kHangul	계:0E
 U+5283	kHangul	획:0E
 U+52A0	kHangul	가:0E
 U+6E1B	kHangul	감:0E
+U+96FB	kDefinition	electricity, electric; lightning; to telegraph; a third sense
+U+6C23	kDefinition	air, gas, vapor; breath

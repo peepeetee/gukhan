@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import {convert, neededKeys} from './engine.mjs';
-import {readKeys} from './lexstore.js';
+import {convert, neededKeys, styleParts} from './engine.mjs';
+import {readChars, readKeys} from './lexstore.js';
 
 // A small index with just the headwords (and phrase lists) the given texts can need.
 async function pageIndex(texts) {
@@ -14,19 +14,30 @@ async function pageIndex(texts) {
 async function convertMessage(message, sender) {
   if (!sender.tab || !Array.isArray(message.texts)) return {};
   const site = new URL(sender.url).hostname;
-  const settings = await chrome.storage.local.get(['enabled', 'sites', 'overrides']);
+  const settings = await chrome.storage.local.get(['enabled', 'sites', 'overrides', 'style']);
   if (!settings.enabled || !settings.sites?.[site]) return {disabled: true};
   if (message.texts.length > 100 || message.texts.some(t => typeof t !== 'string' || t.length > 20000)) {
     throw new Error('한 번에 보낸 글이 너무 큽니다 / Page batch too large');
   }
   const index = await pageIndex(message.texts);
-  return {results: message.texts.map(t => convert(t, index, settings.overrides || {}))};
+  // `parts` says how the page writes each converted word (gloss, ruby ...); null means just its text.
+  const style = settings.style || 'mixed';
+  return {results: message.texts.map(t => convert(t, index, settings.overrides || {}).map(d => ({...d, parts: styleParts(d.word, d.text, style)})))};
+}
+// Reading and meaning of some Hanja for the candidate card: single characters only, at most 200, and only for a
+// page the reader turned the extension on for.
+async function charsMessage(message, sender) {
+  if (!sender.tab || !Array.isArray(message.chars)) return {};
+  const settings = await chrome.storage.local.get(['enabled', 'sites']);
+  if (!settings.enabled || !settings.sites?.[new URL(sender.url).hostname]) return {};
+  return {info: await readChars(message.chars.filter(c => typeof c === 'string' && [...c].length === 1).slice(0, 200))};
 }
 // One listener: a second one would race the first for the reply.
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (sender.id !== chrome.runtime.id) return;
   let task;
   if (message?.type === 'convert') task = convertMessage(message, sender);
+  else if (message?.type === 'chars') task = charsMessage(message, sender);
   else if (message?.type === 'site') {
     // Only the extension's own pages (popup, settings) may change sites, never a content script on a web page.
     task = sender.url?.startsWith(chrome.runtime.getURL('')) ? siteMessage(message) : Promise.reject(new Error('refused'));

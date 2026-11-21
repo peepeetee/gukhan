@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseLexicon, convert} from './engine.mjs';
+import {parseLexicon, convert, styleParts, parseChars, STYLES} from './engine.mjs';
 const lex = parseLexicon('연구\t研究\n전기\t傳記\t명사\tt\tstory\t10\t0\t0\n전기\t電氣\t명사\tt\tpower\t10\t3\t10\n안\t案\n안\t안');
 test('exact words; endings and ambiguous words preserved', () => {
   assert.deepEqual(convert('연구 전기는 전기 안', lex).map(x => x.text), ['研究', '전기', '전기', '안']);
@@ -59,4 +59,23 @@ test('a native-word twin keeps the word in Hangul and stays a candidate', () => 
   assert.deepEqual(d.candidates.map(c => c.form).sort(), ['舍廊', '사랑']);
   assert.equal(convert('사랑에서', l)[0].text, '사랑'); // through a particle, too
   assert.equal(convert('사랑', l, {사랑: '舍廊'})[0].text, '舍廊'); // a saved choice still wins
+});
+
+test('output styles', () => {
+  assert.deepEqual(STYLES, ['mixed', 'gloss', 'ruby', 'hanja-gloss']);
+  assert.equal(styleParts('국군', '國軍', 'mixed'), null);
+  assert.equal(styleParts('국군', '國軍', 'nonsense'), null);
+  assert.equal(styleParts('전기', '전기', 'gloss'), null);  // kept in Hangul: nothing to gloss
+  assert.deepEqual(styleParts('국군', '國軍', 'gloss'), {text: '국군(國軍)'});
+  assert.deepEqual(styleParts('국군', '國軍', 'hanja-gloss'), {text: '國軍(국군)'});
+  assert.deepEqual(styleParts('국군', '國軍', 'ruby'), {ruby: [['國', '국'], ['軍', '군']]});
+  assert.deepEqual(styleParts('작전 계획', '作戰 計劃', 'ruby').ruby.map(x => x[1]).join(''), '작전계획');
+  assert.deepEqual(styleParts('가나', '家나', 'ruby'), {ruby: [['家', '가'], ['나', '']]});
+  assert.deepEqual(styleParts('국군', '國軍的', 'ruby'), {ruby: [['國軍的', '국군']]});
+});
+test('character list', () => {
+  const chars = parseChars('# char\treadings\tmeaning\n國\t국\tcountry, nation\n行\t행,항\tgo, walk\n');
+  assert.deepEqual(chars.get('國'), {readings: ['국'], meaning: 'country, nation'});
+  assert.deepEqual(chars.get('行').readings, ['행', '항']);
+  assert.throws(() => parseChars('國家\t국가\tx'));
 });

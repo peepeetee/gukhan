@@ -43,6 +43,27 @@ def test_package_with_dictionary(tmp_path):
     assert "omits" in meta["notice"]
 
 
+def test_package_with_character_list(tmp_path):
+    d = make_dictionary(tmp_path)
+    (d / "char-info.tsv").write_text("# hanja\treadings\tmeaning\n國\t국\tcountry, nation\n", encoding="utf-8")
+    out = tmp_path / "x.xpi"
+    assert pkg.main([str(out), "--dictionary", str(d)]) == 0
+    with zipfile.ZipFile(out) as z:
+        info = z.read("dictionary/char-info.tsv")
+        meta = json.loads(z.read("dictionary/manifest.json"))
+    assert meta["outputs"]["char_info"] == {
+        "name": "char-info.tsv",
+        "bytes": len(info),
+        "sha256": hashlib.sha256(info).hexdigest(),  # what the options page checks before importing it
+    }
+    plain = tmp_path / "y.xpi"
+    (d / "char-info.tsv").unlink()
+    assert pkg.main([str(plain), "--dictionary", str(d)]) == 0
+    with zipfile.ZipFile(plain) as z:
+        assert "dictionary/char-info.tsv" not in z.namelist()
+        assert "char_info" not in json.loads(z.read("dictionary/manifest.json"))["outputs"]
+
+
 def test_package_without_dictionary(tmp_path):
     out = tmp_path / "x.xpi"
     assert pkg.main([str(out)]) == 0

@@ -13,7 +13,11 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
   fs.mkdirSync(fixture, {recursive:true});
   const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n희귀\t\u{30000}\u{30001}\n';  // the last two are CJK Extension G: no ordinary font has them
   fs.writeFileSync(path.join(fixture,'lexicon.tsv'), lexicon);
-  fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:crypto.createHash('sha256').update(lexicon).digest('hex')}}}));
+  // The character list (reading, English meaning) the candidate card shows; its hash is in the manifest, like the lexicon's.
+  const charInfo = '# hanja\treadings\tmeaning\n電\t전\telectricity\n氣\t기\tair, gas; breath\n傳\t전,촌\tpass on; biography\n記\t기\trecord\n';
+  fs.writeFileSync(path.join(fixture,'char-info.tsv'), charInfo);
+  const sha = text => crypto.createHash('sha256').update(text).digest('hex');
+  fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:sha(lexicon)},char_info:{sha256:sha(charInfo)}}}));
   // GUKHAN_EXT: an unpacked store build. Tested through a copy that declares the hosts as granted (see smoke-helpers).
   const extension = copyWithHosts(path.resolve(process.env.GUKHAN_EXT || 'extension'), path.resolve('build/browser-ext'));
   fs.rmSync(path.resolve('build/browser-profile'), {recursive: true, force: true}); // a stale profile keeps the previous extension copy
@@ -26,7 +30,7 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     const id = new URL(worker.url()).host;
     const options = await context.newPage();
     await options.goto(`chrome-extension://${id}/options.html`);
-    await options.locator('#files').setInputFiles([path.join(fixture,'lexicon.tsv'),path.join(fixture,'manifest.json')]);
+    await options.locator('#files').setInputFiles([path.join(fixture,'lexicon.tsv'),path.join(fixture,'manifest.json'),path.join(fixture,'char-info.tsv')]);
     await options.locator('#import').click();
     await options.locator('#status').filter({hasText:'headwords imported'}).waitFor({timeout:60000});
     await worker.evaluate(() => chrome.storage.local.set({enabled:true}));
@@ -103,6 +107,35 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await page.waitForTimeout(800);
     assert.equal(await page.locator('#text').textContent(),'전기 연구');
     assert.equal(await page.locator('[data-gukhan]').count(), 0);
+    // Output styles: the reader's choice applies live to every converted word. (The override above makes 전기 = 傳記.)
+    assert.deepEqual(await options.evaluate(siteMessage('fixture.test', true)), {ok: true});
+    const more = () => page.evaluate(() => document.querySelector('#more').textContent);
+    await page.waitForFunction(() => document.querySelector('#more').textContent === '研究가 傳記 工學이');
+    const style = async (value, expected) => {
+      await worker.evaluate(v => chrome.storage.local.set({style: v}), value);
+      await page.waitForFunction(e => document.querySelector('#more').textContent === e, expected);
+    };
+    await style('gloss', '연구(研究)가 전기(傳記) 공학(工學)이');
+    await style('hanja-gloss', '研究(연구)가 傳記(전기) 工學(공학)이');
+    await style('ruby', '研(연)究(구)가 傳(전)記(기) 工(공)學(학)이');  // <rp> brackets show where ruby is not supported
+    assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('#more ruby rt')].map(x => x.textContent)), ['연', '구', '전', '기', '공', '학']);
+    assert.equal(await page.locator('#more [data-gukhan="word"]').first().evaluate(w => w.dataset.original), '연구', 'a styled word is still the word the card is about');
+    await style('mixed', '研究가 傳記 工學이');
+    assert.equal(await page.locator('#more ruby').count(), 0, 'going back to mixed leaves no ruby');
+    // The card shows each Hanja's reading and meaning from the imported character list.
+    await page.locator('#more [data-gukhan="word"]').nth(1).click();
+    await panel.waitFor({state: 'attached'});
+    const card = () => page.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent);
+    for (let i = 0; i < 40 && !(await card()).includes('傳 전/촌 · pass on; biography'); i++) await page.waitForTimeout(100);
+    assert.match(await card(), /傳 전\/촌 · pass on; biography/);
+    await page.getByRole('button', {name: /^電氣/}).hover();
+    assert.match(await card(), /電 전 · electricity/);
+    assert.match(await card(), /氣 기 · air, gas; breath/);
+    await page.keyboard.press('Escape'); await panel.waitFor({state: 'detached'});
+    await worker.evaluate(() => chrome.storage.local.set({enabled:false}));
+    await page.waitForFunction(() => !document.querySelector('[data-gukhan="word"]'));
+    await worker.evaluate(() => chrome.storage.local.set({enabled:true}));
+    assert.deepEqual(await options.evaluate(siteMessage('fixture.test', false)), {ok: true});
     // A Hanja the page's font cannot draw is noticed: the popup is told and the candidate card says so.
     const glyph = await context.newPage();
     await glyph.route('http://glyph.test/**', r => r.fulfill({contentType: 'text/html', body: '<meta charset="utf-8"><p>희귀 연구</p>'}));

@@ -2,12 +2,14 @@
 // The imported dictionary lives in IndexedDB, one record per headword, so the background page
 // never has to re-parse it when it wakes: it reads only the words a page needs.
 // Keys starting with a space ("<space>전기") list the phrase headwords that begin with that word.
-const NAME = 'gukhan-lexicon', STORE = 'words';
+const NAME = 'gukhan-lexicon', STORE = 'words', CHARS = 'chars';  // CHARS: one record per Hanja (reading, meaning)
 
 function open() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(NAME, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE);
+    const request = indexedDB.open(NAME, 2);
+    request.onupgradeneeded = () => {
+      for (const name of [STORE, CHARS]) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -47,6 +49,30 @@ export async function readKeys(keys) {
     await Promise.all([...keys].map(key => new Promise((resolve, reject) => {
       const request = store.get(key);
       request.onsuccess = () => { if (request.result !== undefined) found.set(key, request.result); resolve(); };
+      request.onerror = () => reject(request.error);
+    })));
+    return found;
+  } finally { db.close(); }
+}
+
+// The per-character list (Hanja -> {readings, meaning}) shown on the candidate card; replaced as a whole.
+export async function saveChars(chars) {
+  const db = await open();
+  try {
+    let tx = db.transaction(CHARS, 'readwrite');
+    tx.objectStore(CHARS).clear(); await done(tx);
+    tx = db.transaction(CHARS, 'readwrite');
+    for (const [char, info] of chars) tx.objectStore(CHARS).put(info, char);
+    await done(tx);
+  } finally { db.close(); }
+}
+export async function readChars(chars) {
+  const db = await open();
+  try {
+    const store = db.transaction(CHARS, 'readonly').objectStore(CHARS), found = {};
+    await Promise.all([...new Set(chars)].map(char => new Promise((resolve, reject) => {
+      const request = store.get(char);
+      request.onsuccess = () => { if (request.result !== undefined) found[char] = request.result; resolve(); };
       request.onerror = () => reject(request.error);
     })));
     return found;

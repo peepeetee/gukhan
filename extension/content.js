@@ -143,6 +143,18 @@
     // a native-word twin (form equal to the headword) is "Keep Hangul", listed once below
     for (const c of decision.candidates) if (c.form !== decision.word && !seen.has(c.form)) { seen.add(c.form); choices.push(c); }
     choices.push({form: '-', sense: '한글 유지 / Keep Hangul'});
+    // 한자 풀이: the reading and meaning of each Hanja of the candidate under the pointer (or of the chosen one),
+    // from the character list if one was imported; nothing is shown without it.
+    const detail = style(document.createElement('div'), `padding:4px 8px 2px;font-size:12px;color:${accent};white-space:normal;display:none`);
+    let info = {};
+    const showDetail = candidate => {
+      const lines = [...(candidate?.form === '-' ? '' : candidate?.form || '')].filter(ch => info[ch]).map(ch => {
+        const {readings = [], meaning = ''} = info[ch];
+        return `${ch} ${readings.join('/')}${meaning ? ' · ' + meaning.slice(0, 40) : ''}`;
+      });
+      detail.textContent = lines.join('\n'); detail.style.whiteSpace = 'pre-line'; detail.style.display = lines.length ? 'block' : 'none';
+    };
+    const chosen = () => choices.find(c => c.form === (decision.text === decision.word ? '-' : decision.text));
     for (const candidate of choices) {
       const current = candidate.form === (decision.text === decision.word ? '-' : decision.text);
       const button = style(document.createElement('button'),
@@ -152,10 +164,17 @@
       const note = `${candidate.domain ? `[${candidate.domain}] ` : ''}${candidate.sense || ''}`;  // [법률] for statute terms
       button.textContent = `${current ? '✓ ' : ''}${form}${form && note ? '  ' : ''}${note.slice(0, 40)}`;
       button.title = note;
-      button.onpointerenter = button.onfocus = () => { button.style.background = hover; };
-      button.onpointerleave = button.onblur = () => { button.style.background = ''; };
+      button.onpointerenter = button.onfocus = () => { button.style.background = hover; showDetail(candidate); };
+      button.onpointerleave = button.onblur = () => { button.style.background = ''; showDetail(chosen()); };
       button.onclick = async e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
       box.append(button);
+    }
+    box.append(detail);
+    const wanted = [...new Set(choices.flatMap(c => c.form === '-' ? [] : [...c.form].filter(ch => HAN.test(ch))))];
+    if (wanted.length) {
+      chrome.runtime.sendMessage({type: 'chars', chars: wanted}).then(answer => {
+        if (panel && anchor === span && answer?.info) { info = answer.info; showDetail(chosen()); }
+      }).catch?.(() => {});
     }
     if (choices.some(c => c.form !== '-' && [...c.form].some(ch => HAN.test(ch) && glyphs(ch, span)))) {
       const note = style(document.createElement('div'), `padding:4px 8px 2px;font-size:12px;color:${accent};white-space:normal`);
@@ -224,6 +243,18 @@
     }
     return results;
   }
+  // Write a converted word into its span in the reader's output style: plain text (mixed, gloss, hanja-gloss) or one
+  // <ruby> pair per Hanja. The worker sends `parts`; with none, the word is just its text.
+  function fill(span, decision) {
+    const parts = decision.parts;
+    if (!Array.isArray(parts?.ruby)) { span.textContent = typeof parts?.text === 'string' ? parts.text : decision.text; return; }
+    for (const [base, reading] of parts.ruby) {
+      if (!reading) { span.append(base); continue; }
+      const ruby = document.createElement('ruby'), open = document.createElement('rp'), rt = document.createElement('rt'), close = document.createElement('rp');
+      open.textContent = '('; rt.textContent = reading; close.textContent = ')';
+      ruby.append(base, open, rt, close); span.append(ruby);
+    }
+  }
   // Replace `node` (a text node in the page) with words wrapped in buttons for `decisions`.
   function apply(node, text, decisions) {
     const fragment = document.createDocumentFragment(); let end = 0;
@@ -231,7 +262,7 @@
     for (const decision of decisions) {
       plain(text.slice(end, decision.start));
       const span = document.createElement('span'); span.dataset.gukhan = 'word';
-      span.dataset.original = decision.word; span.textContent = decision.text;
+      span.dataset.original = decision.word; fill(span, decision);
       span.tabIndex = 0; span.setAttribute('role', 'button'); span.setAttribute('aria-haspopup', 'true');
       span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
       span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
@@ -296,7 +327,7 @@
   });
   chrome.storage.onChanged.addListener(changes => {
     // Only settings that change what the page shows; unrelated writes must not redraw it.
-    if (['enabled', 'sites', 'overrides', 'lexiconInfo'].some(k => k in changes)) schedule(true);
+    if (['enabled', 'sites', 'overrides', 'lexiconInfo', 'style'].some(k => k in changes)) schedule(true);
   });
   schedule(true);
 })();

@@ -38,7 +38,9 @@ def make_build(tmp_path, *, licence="CC-BY-SA-4.0", rows=ROW, extra=None, source
 
 def test_stage_ships_only_built_lexicon_and_scrubs_paths(tmp_path):
     out = tmp_path / "pkg"
-    assert pl.main([str(make_build(tmp_path)), "--version", "0.1.0", "-o", str(out)]) == 0
+    build = make_build(tmp_path)
+    (build / "char-info.tsv").write_text("# hanja\treadings\tmeaning\n電\t전\telectricity\n", encoding="utf-8")
+    assert pl.main([str(build), "--version", "0.1.0", "-o", str(out)]) == 0  # the extension's file is not "stray"
     files = {p.name for p in (out / "src" / "gukhan_lexicon" / "data").iterdir()}
     assert files == {"lexicon.tsv", "chars.tsv", "manifest.json"}
     assert 'version = "0.1.0"' in (out / "pyproject.toml").read_text(encoding="utf-8")

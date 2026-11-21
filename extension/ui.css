@@ -4,3 +4,4 @@ h1 { font-family: "Noto Serif CJK KR", serif; } label { display:block; margin:14
 button { background:#235c53; color:white; border:0; border-radius:5px; padding:10px; cursor:pointer; }
 textarea { display:block; width:100%; margin-bottom:12px; } pre { white-space:pre-wrap; font:inherit; }
 .hint { font-size: 12px; opacity: .8; max-width: 320px; }
+select { display:block; margin:0 0 14px; padding:6px; max-width:100%; }
