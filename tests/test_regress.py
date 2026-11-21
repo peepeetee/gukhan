@@ -183,3 +183,31 @@ def test_score_reports_missing_files_and_reads_a_bom(tmp_path, capsys):
     assert main(["score", str(items), "--lexicon", str(tmp_path / "missing-lexicon.tsv")]) == 2
     assert main(["score", str(items)]) == 0
     assert "items=1" in capsys.readouterr().out
+
+
+COUNTER_CHARS = {
+    "三": ["삼"], "十": ["십"], "六": ["륙", "육"], "里": ["리", "이"], "年": ["년", "연"], "量": ["량", "양"],
+    "料": ["료", "요"], "百": ["백"], "今": ["금"], "理": ["리", "이"], "論": ["론", "논"], "力": ["력", "역"],
+}  # fmt: skip
+COUNTER_WORDS = {"三十": "삼십", "百": "백", "今年": "금년"}
+
+
+def test_counter_after_a_numeral_word_keeps_its_reading():
+    # 三十 is matched as a word, so the counter that follows is not word-initial: 삼십리, not 삼십이
+    for text, hangul in [("三十里", "삼십리"), ("三十年", "삼십년"), ("三十量", "삼십량"), ("三十料", "삼십료")]:
+        p = prep.prepare(text, COUNTER_CHARS, COUNTER_WORDS)
+        assert p.hangul == hangul, text
+    # the same without a word match, and after Arabic digits (these already worked)
+    assert prep.prepare("三里", COUNTER_CHARS).hangul == "삼리"
+    assert prep.prepare("30里", COUNTER_CHARS).hangul == "30리"
+    assert prep.prepare("百年", COUNTER_CHARS, COUNTER_WORDS).hangul == "백년"
+
+
+def test_initial_sound_rule_still_applies_elsewhere():
+    # after a non-numeral word, at the start of a text and after spaces or punctuation
+    assert prep.prepare("今年 里", COUNTER_CHARS, COUNTER_WORDS).hangul == "금년 이"
+    assert prep.prepare("今年力", COUNTER_CHARS, COUNTER_WORDS).hangul == "금년역"
+    assert prep.prepare("理論", COUNTER_CHARS).hangul == "이론"
+    assert prep.prepare("(論)", COUNTER_CHARS).hangul == "(논)"
+    # a numeral after a numeral word is not a counter: the rule is the character's own
+    assert prep.prepare("三十六", COUNTER_CHARS, COUNTER_WORDS).hangul == "삼십육"

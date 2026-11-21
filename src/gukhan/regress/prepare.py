@@ -187,6 +187,10 @@ def _pick(char: str, readings: list[str], next_char: str | None, chars: Chars) -
 
 
 MAX_WORD = 8
+# Hanja numerals: a counter after one keeps its dictionary reading (三十里 삼십리, 三年 삼년, 二十量 이십량), so the
+# initial-sound rule does not apply to it, as it does not after Arabic digits.
+# A numeral after a numeral is not a counter, so 六 after 十 is still read by the character.
+NUMERALS = frozenset("零〇一二三四五六七八九十百千萬万億兆壹貳參叁肆伍陸柒捌玖拾佰仟數幾")
 # Glyph variants that Unihan lists without a Korean reading: read them as the standard form.
 READING_VARIANTS = {"兦": "亡", "產": "産", "强": "強", "內": "内", "靑": "青", "淸": "清"}
 
@@ -208,12 +212,14 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
     words = words or {}
     i = 0
     seg_start = True
+    after_numeral = False
     while i < len(mixed):
         ch = mixed[i]
         if not is_cjk(ch):
             out.append(ch)
             # a counter after a numeral keeps its dictionary reading: 4281年 → 4281년, 3里 → 3리
             seg_start = not ch.isdigit()
+            after_numeral = False
             i += 1
             continue
         matched = False
@@ -223,6 +229,7 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
                 out.append(words[cand])
                 i += n
                 seg_start = True
+                after_numeral = cand[-1] in NUMERALS  # 三十 + 里: the counter is not word-initial
                 matched = True
                 break
         if matched:
@@ -232,16 +239,18 @@ def prepare(mixed: str, chars: Chars | dict[str, list[str]], words: dict[str, st
             unknown.append(ch)
             out.append(ch)
             seg_start = True
+            after_numeral = False
             i += 1
             continue
         nxt = mixed[i + 1] if i + 1 < len(mixed) else None
         chosen, guessed = _pick(ch, readings, nxt if nxt and is_cjk(nxt) else None, chars)
-        if seg_start:
+        if seg_start and not (after_numeral and ch not in NUMERALS):
             chosen = _apply_initial_rule(chosen)
         if guessed:
             flags.append(Flag(i, ch, chosen, readings))
         out.append(chosen)
         seg_start = False
+        after_numeral = ch in NUMERALS
         i += 1
     return Prepared("".join(out), flags, unknown)
 
