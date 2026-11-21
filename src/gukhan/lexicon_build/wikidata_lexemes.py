@@ -162,7 +162,10 @@ def parse(
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     if len(args) != 1:
-        print("usage: python -m gukhan.lexicon_build.wikidata_lexemes latest-lexemes.json.bz2", file=sys.stderr)
+        print(
+            "使用法 / usage: python -m gukhan.lexicon_build.wikidata_lexemes latest-lexemes.json.bz2",
+            file=sys.stderr,
+        )
         return 2
     print(json.dumps(survey(Path(args[0])), ensure_ascii=False, indent=2))
     return 0

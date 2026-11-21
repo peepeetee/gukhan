@@ -85,41 +85,80 @@ def build_parser() -> argparse.ArgumentParser:
         "input",
         nargs="*",
         type=Path,
-        help="input file (Markdown or plain text); several need --in-place or --out-dir; omit with --stdin",
+        help="入力 file (Markdown 또는 平文); 여러 개는 --in-place나 --out-dir 필요, --stdin이면 생략 / "
+        "input file (Markdown or plain text); several need --in-place or --out-dir; omit with --stdin",
     )
     ap.add_argument("--stdin", action="store_true", help="read text from standard input / 標準 入力에서 읽기")
-    ap.add_argument("-o", "--output", type=Path, help="write converted text here instead of stdout")
+    ap.add_argument(
+        "-o", "--output", type=Path, help="標準出力 대신 이 file에 씀 / write converted text here instead of stdout"
+    )
     ap.add_argument(
         "--in-place",
         action="store_true",
         help="overwrite each input with its conversion; the original is first kept as FILE.bak "
         "(see --backup-suffix, --no-backup) / 原本은 FILE.bak 으로 保存",
     )
-    ap.add_argument("--backup-suffix", default=".bak", help="suffix of the backup --in-place keeps (default .bak)")
-    ap.add_argument("--no-backup", action="store_true", help="with --in-place: do not keep the original")
     ap.add_argument(
-        "--out-dir", type=Path, help="write each converted file into this directory (created) under its own name"
+        "--backup-suffix",
+        default=".bak",
+        help="--in-place의 備份 接尾辭 (기본 .bak) / suffix of the backup --in-place keeps (default .bak)",
     )
     ap.add_argument(
-        "--lexicon", type=Path, help="lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)"
+        "--no-backup",
+        action="store_true",
+        help="--in-place에서 原本을 남기지 않음 / with --in-place: do not keep the original",
     )
-    ap.add_argument("--overrides", type=Path, action="append", default=[], help="override file; repeatable, later wins")
-    ap.add_argument("--report", type=Path, help="write flagged words and review list (.tsv or .md by extension)")
+    ap.add_argument(
+        "--out-dir",
+        type=Path,
+        help="變換한 file을 이 directory에 같은 이름으로 씀 (없으면 만듦) / "
+        "write each converted file into this directory (created) under its own name",
+    )
+    ap.add_argument(
+        "--lexicon",
+        type=Path,
+        help="lexicon.tsv 또는 그 directory (기본: 設置된 gukhan-lexicon, 없으면 例示 辭典) / "
+        "lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)",
+    )
+    ap.add_argument(
+        "--overrides",
+        type=Path,
+        action="append",
+        default=[],
+        help="사용자 지정 file, 여러 번 가능, 뒤의 것이 우선 / override file; repeatable, later wins",
+    )
+    ap.add_argument(
+        "--report",
+        type=Path,
+        help="flag된 낱말과 檢討 목록을 씀 (.tsv 또는 .md) / "
+        "write flagged words and review list (.tsv or .md by extension)",
+    )
     ap.add_argument("--mark", action="store_true", help="show flagged words inline as 전기{電氣|傳記}")
-    ap.add_argument("--review-all", action="store_true", help="also list every common noun with no entry")
+    ap.add_argument(
+        "--review-all",
+        action="store_true",
+        help="辭典에 없는 普通名詞도 모두 나열 / also list every common noun with no entry",
+    )
     ap.add_argument(
         "--min-weight",
         type=int,
         default=None,
-        help="flag a lone candidate whose weight is below this (default 12 on a weighted lexicon, 0 otherwise)",
+        help="單一 後補의 weight가 이보다 낮으면 flag (加重 辭典 기본 12, 그 밖에는 0) / "
+        "flag a lone candidate whose weight is below this (default 12 on a weighted lexicon, 0 otherwise)",
     )
     ap.add_argument(
         "--rules",
         default="default",
-        help="evidence rules that narrow a flag's candidates: default, all, none, or names "
+        help="flag의 後補를 줄이는 根據 規則: default, all, none 또는 이름 / "
+        "evidence rules that narrow a flag's candidates: default, all, none, or names "
         f"({', '.join(sorted(rules.ALL))}), comma separated; see docs/PLAN.md §5",
     )
-    ap.add_argument("--version", action=_Version, nargs=0, help="show the versions of gukhan, Kiwi and the lexicon")
+    ap.add_argument(
+        "--version",
+        action=_Version,
+        nargs=0,
+        help="gukhan·Kiwi·辭典의 版本 표시 / show the versions of gukhan, Kiwi and the lexicon",
+    )
     return ap
 
 
@@ -129,15 +168,25 @@ def review_main(argv: list[str]) -> int:
         description="flag된 낱말의 漢字를 文脈 속에서 직접 고릅니다 / Pick the Hanja for flagged words in context. "
         "Answers are appended to the override file; nothing is guessed.",
     )
-    ap.add_argument("input", type=Path, help="the same file you convert")
+    ap.add_argument("input", type=Path, help="變換하는 것과 같은 file / the same file you convert")
     ap.add_argument(
-        "--overrides", type=Path, required=True, help="override file to read and append to (created if absent)"
+        "--overrides",
+        type=Path,
+        required=True,
+        help="읽고 덧붙일 사용자 지정 file (없으면 만듦) / override file to read and append to (created if absent)",
     )
     ap.add_argument(
-        "--lexicon", type=Path, help="lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)"
+        "--lexicon",
+        type=Path,
+        help="lexicon.tsv 또는 그 directory (기본: 設置된 gukhan-lexicon, 없으면 例示 辭典) / "
+        "lexicon.tsv or its directory (default: installed gukhan-lexicon, else a sample)",
     )
-    ap.add_argument("--rules", default="default", help="same as for conversion")
-    ap.add_argument("--include-review", action="store_true", help="also ask about words with no entry (type the Hanja)")
+    ap.add_argument("--rules", default="default", help="變換과 같음 / same as for conversion")
+    ap.add_argument(
+        "--include-review",
+        action="store_true",
+        help="辭典에 없는 낱말도 물음 (漢字를 직접 입력) / also ask about words with no entry (type the Hanja)",
+    )
     args = ap.parse_args(argv)
     from .review import Reviewer
 

@@ -130,31 +130,36 @@ def _build(argv: list[str] | None) -> int:
         type=Path,
         action="append",
         default=[],
-        help="kaikki.org wiktextract JSONL (.jsonl or .jsonl.gz), e.g. kaikki.org-dictionary-Korean.jsonl; repeatable",
+        help="kaikki.org wiktextract JSONL (.jsonl 또는 .jsonl.gz), 여러 번 가능 / "
+        "kaikki.org wiktextract JSONL (.jsonl or .jsonl.gz), e.g. kaikki.org-dictionary-Korean.jsonl; repeatable",
     )
     ap.add_argument(
         "--kowiki",
         type=Path,
-        help="Korean Wikipedia dump (kowiki-latest-pages-articles.xml.bz2): names from article leads, CC BY-SA 4.0",
+        help="한국어 위키백과 dump (kowiki-latest-pages-articles.xml.bz2): 첫 문단의 이름, CC BY-SA 4.0 / "
+        "Korean Wikipedia dump (kowiki-latest-pages-articles.xml.bz2): names from article leads, CC BY-SA 4.0",
     )
     ap.add_argument(
         "--wikidata-lexemes",
         type=Path,
-        help="Wikidata lexeme dump (latest-lexemes.json.bz2, CC0); run the survey first (see wikidata_lexemes.py)",
+        help="Wikidata 語彙素 dump (latest-lexemes.json.bz2, CC0), 먼저 調査 실행 (wikidata_lexemes.py 참조) / "
+        "Wikidata lexeme dump (latest-lexemes.json.bz2, CC0); run the survey first (see wikidata_lexemes.py)",
     )
     ap.add_argument(
         "--wikidata-hanja-property",
         action="append",
         default=[],
         metavar="P####",
-        help="Wikidata statement property that holds the Hanja form (from the survey); repeatable",
+        help="漢字 形態를 담은 Wikidata 屬性 (調査 결과), 여러 번 가능 / "
+        "Wikidata statement property that holds the Hanja form (from the survey); repeatable",
     )
     ap.add_argument(
         "--law-glosses",
         type=Path,
         help=(
-            "legalize-kr checkout (kr/<법령명>/*.md): Hanja the statutes gloss as 분사무소(分事務所). "
-            "Optional; adds only words no other source has, and writes law-glosses.tsv and law-overrides.txt"
+            "法令 註釋: legalize-kr checkout (kr/<법령명>/*.md): Hanja the statutes gloss as 분사무소(分事務所). "
+            "Optional; adds only words no other source has, and writes law-glosses.tsv and law-overrides.txt. "
+            "(選擇 事項: 다른 source에 없는 낱말만 더하고 law-glosses.tsv와 law-overrides.txt를 씀)"
         ),
     )
     ap.add_argument(
@@ -162,10 +167,16 @@ def _build(argv: list[str] | None) -> int:
         type=Path,
         action="append",
         default=[],
-        help="regression items TSV whose gold pairs are left out of the law glosses (keeps it unseen); repeatable",
+        help="金標準 쌍을 法令 註釋에서 뺄 回歸 項目 TSV, 여러 번 가능 / "
+        "regression items TSV whose gold pairs are left out of the law glosses (keeps it unseen); repeatable",
     )
-    ap.add_argument("--unihan", type=Path, help="Unihan.zip or directory with Unihan_Readings.txt (validates readings)")
-    ap.add_argument("-o", "--out", required=True, type=Path, help="output directory")
+    ap.add_argument(
+        "--unihan",
+        type=Path,
+        help="Unihan.zip 또는 Unihan_Readings.txt가 든 directory (讀音 檢證) / "
+        "Unihan.zip or directory with Unihan_Readings.txt (validates readings)",
+    )
+    ap.add_argument("-o", "--out", required=True, type=Path, help="出力 directory / output directory")
     ap.add_argument("--krdict", type=Path, help="한국어기초사전 XML vocabulary levels / candidate tie-breaker")
     ap.add_argument("--learner-list", type=Path, help="국립국어원 learner vocabulary text / candidate tie-breaker")
     args = ap.parse_args(argv)

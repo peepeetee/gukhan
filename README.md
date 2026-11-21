@@ -80,7 +80,7 @@ North-Korean (북한어) and archaic (옛말) senses, proverbs, idioms and spell
 the dictionary marks as non-standard are skipped, and usage examples are never
 read.
 
-## How it works
+## How it works / 作動 方式
 
 text → morphological analysis (Kiwi) → longest-match lookup in a Sino-Korean
 lexicon → choose Hanja (user override list, then rule, then flag) → splice
@@ -92,6 +92,10 @@ its own pretrained language model: in kiwipiepy 0.24.1 that is the CoNg
 (Contextual N-gram embedding) neural model, which gukhan selects explicitly
 (`model_type="cong"`) so results are reproducible across runs. The Chrome
 extension processes text locally and sends nothing anywhere.
+
+한국어: 形態素 分析(Kiwi) → 辭典 最長 一致 檢索 → 漢字 選擇(사용자 지정, 規則, flag 順) → 原文에 漢字만 끼워 넣고
+語尾는 그대로 둡니다. 同音異義語가 가려지지 않으면 추측하지 않고 flag합니다. 自體 學習 模型이나 漢字 選擇用
+神經網은 없습니다. 확장 프로그램은 글을 기기 안에서만 處理합니다.
 
 ## Regression set and accuracy
 

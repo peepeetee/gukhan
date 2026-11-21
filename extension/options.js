@@ -10,9 +10,9 @@ async function show() {
 // Import a dictionary: the bytes of lexicon.tsv and the parsed manifest.json that describes them.
 async function importDictionary(bytes, metadata) {
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
-  if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('Manifest does not match dictionary');
+  if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('manifest가 사전과 맞지 않습니다 / Manifest does not match dictionary');
   const entries = parseLexicon(new TextDecoder().decode(bytes));
-  if (!entries.size) throw new Error('Empty dictionary');
+  if (!entries.size) throw new Error('빈 사전입니다 / Empty dictionary');
   status.textContent = '저장 중… / Saving…';
   await saveIndex(entries);
   await chrome.storage.local.remove('lexicon');  // pre-IndexedDB copy
@@ -23,7 +23,7 @@ document.querySelector('#import').onclick = async () => {
   try {
     const files = [...document.querySelector('#files').files];
     const lex = files.find(f => f.name === 'lexicon.tsv'), manifest = files.find(f => f.name === 'manifest.json');
-    if (!lex || !manifest) throw new Error('Select lexicon.tsv + manifest.json');
+    if (!lex || !manifest) throw new Error('lexicon.tsv와 manifest.json을 고르세요 / Select lexicon.tsv + manifest.json');
     await importDictionary(await lex.arrayBuffer(), JSON.parse(await manifest.text()));
   } catch (e) { status.textContent = String(e); }
 };
