@@ -15,7 +15,14 @@ pip install "gukhan[lexicon]"      # plus the prebuilt lexicon, gukhan-lexicon (
 gukhan input.md             # converted text to stdout (installed lexicon, else a tiny sample)
 gukhan input.md -o out.md --report flagged.tsv --overrides my.txt --mark
 gukhan input.md --lexicon build/lexicon/     # a lexicon you built
+gukhan chapters/*.md --out-dir converted/      # many files, copies; the model loads once
+gukhan notes/*.md --in-place                 # overwrite, keeping each original as FILE.bak
 ```
+
+Several input files need `--out-dir DIR` (new files, never overwritten) or `--in-place`
+(each original is first copied to `FILE.bak`; an existing backup stops the run; `--no-backup`
+and `--backup-suffix` change that). Without one of them gukhan refuses, and every input is
+checked and read before anything is written. `--report` takes a single input.
 
 `--rules default|all|none|<names>` chooses the evidence rules that narrow a flag's
 candidates (docs/PLAN.md §5a); `default` is on, `verb` is opt-in.

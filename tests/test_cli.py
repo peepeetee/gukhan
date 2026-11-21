@@ -123,3 +123,73 @@ def test_review_errors_exit_2(tmp_path, capsys, src):
     assert main(["review", str(src), "--overrides", str(ov), "--lexicon", str(tmp_path / "bad.tsv")]) == 2
     assert main(["review", str(src), "--overrides", str(ov), "--lexicon", MINI, "--rules", "nonsense"]) == 2
     assert capsys.readouterr().err.count("gukhan:") == 3
+
+
+def _files(tmp_path, n=2):
+    out = []
+    for i in range(n):
+        p = tmp_path / f"f{i}.md"
+        p.write_text("대한민국\r\n", encoding="utf-8", newline="")
+        out.append(p)
+    return out
+
+
+def test_several_files_need_an_explicit_flag(tmp_path, capsys):
+    a, b = _files(tmp_path)
+    assert main([str(a), str(b), "--lexicon", MINI]) == 2
+    assert "--in-place or --out-dir" in capsys.readouterr().err
+    assert a.read_bytes() == b.read_bytes() == "대한민국\r\n".encode()  # nothing touched
+
+
+def test_in_place_keeps_a_backup_and_line_endings(tmp_path):
+    a, b = _files(tmp_path)
+    assert main([str(a), str(b), "--in-place", "--lexicon", MINI]) == 0
+    for p in (a, b):
+        assert p.read_bytes() == "大韓民國\r\n".encode()
+        assert p.with_name(p.name + ".bak").read_bytes() == "대한민국\r\n".encode()
+        assert not list(tmp_path.glob(".*gukhan-tmp"))
+
+
+def test_in_place_refuses_to_clobber_an_existing_backup(tmp_path, capsys):
+    (a,) = _files(tmp_path, 1)
+    a.with_name("f0.md.bak").write_text("older", encoding="utf-8")
+    assert main([str(a), "--in-place", "--lexicon", MINI]) == 2
+    assert "backup already exists" in capsys.readouterr().err
+    assert a.read_bytes() == "대한민국\r\n".encode()
+    assert main([str(a), "--in-place", "--no-backup", "--lexicon", MINI]) == 0
+    assert a.read_bytes() == "大韓民國\r\n".encode() and a.with_name("f0.md.bak").read_text() == "older"
+
+
+def test_out_dir_writes_copies_and_never_overwrites(tmp_path, capsys):
+    a, b = _files(tmp_path)
+    out = tmp_path / "converted"
+    assert main([str(a), str(b), "--out-dir", str(out), "--lexicon", MINI]) == 0
+    assert (out / "f0.md").read_bytes() == "大韓民國\r\n".encode() and a.read_bytes() == "대한민국\r\n".encode()
+    assert main([str(a), "--out-dir", str(out), "--lexicon", MINI]) == 2  # output exists
+    assert main([str(a), "--out-dir", str(tmp_path), "--lexicon", MINI]) == 2  # would overwrite its input
+    assert "overwrite" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        ["--in-place", "--out-dir", "{t}/o"],
+        ["--in-place", "-o", "{t}/x"],
+        ["--no-backup"],
+        ["--in-place", "--stdin"],
+        ["--out-dir", "{t}/o", "--report", "{t}/r.tsv", "{t}/f1.md"],
+    ],
+)
+def test_conflicting_options_are_rejected(tmp_path, extra):
+    a, b = _files(tmp_path)
+    args = [str(a), *(x.replace("{t}", str(tmp_path)) for x in extra), "--lexicon", MINI]
+    assert main(args) == 2
+    assert a.read_bytes() == "대한민국\r\n".encode()
+
+
+def test_one_bad_file_stops_before_any_write(tmp_path):
+    a, _ = _files(tmp_path)
+    bad = tmp_path / "bad.md"
+    bad.write_bytes("대한민국".encode("cp949"))
+    assert main([str(a), str(bad), "--in-place", "--lexicon", MINI]) == 2
+    assert a.read_bytes() == "대한민국\r\n".encode() and not a.with_name("f0.md.bak").exists()
