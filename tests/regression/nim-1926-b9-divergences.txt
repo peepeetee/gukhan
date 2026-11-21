@@ -1,0 +1,15 @@
+# 님의 沈黙 1926 batch 9: scan vs ko.wikisource divergences (PDF pp.114-119)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p115: DIFFERS
+  scan : 시드러가는 두불의桃花가 無情한봄바람에 멋번이나슬처서 落花가될가요
+  scan : 灰色이되여가는 두귀밋의 푸른구름이 ᄶᅩ이는가을벗에 얼마나바래서 白雪이될가요
+  wiki : 시드러가는 두볼의桃花가 無情한봄바람에 몃번이나슬처서 落花가될가요
+  wiki : 灰色이되여가는 두귀밋의 푸른구름이 ᄶᅩ이는가을볏에 얼마나바래서 白雪이될가요
+  chars: '불'->'볼' | '멋'->'몃'
+  chars: '벗'->'볏'
+## p119: DIFFERS
+  scan : 아々 당신의얼골이 달이기에 나의얼골도 달이되얏슴니다
+  wiki : 아아 당신의얼골이 달이기에 나의얼골도 달이되얏슴니다
+  chars: '々'->'아'
