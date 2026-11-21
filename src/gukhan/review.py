@@ -37,6 +37,8 @@ ANSWER = re.compile(r"^([np]?)(\d+)$")
 
 @dataclass
 class Group:
+    """All decisions for one unresolved spelling, with the candidates they share."""
+
     hangul: str
     decisions: list[Decision]
     candidates: list[Entry] = field(default_factory=list)
@@ -90,6 +92,11 @@ def phrase_pair(result: Result, d: Decision, side: str, hanja: str) -> tuple[str
 
 
 class Reviewer:
+    """The interactive ``gukhan review`` session: asks about each flagged word and appends answers to the override file.
+
+    ``input_fn`` and ``output_fn`` replace ``input`` and ``print`` (for tests and other front ends).
+    """
+
     def __init__(
         self,
         conv: Converter,
@@ -280,3 +287,6 @@ class Reviewer:
                 self.say(err)
                 continue
             return i + 1
+
+
+__all__ = ["Group", "Reviewer", "collect"]

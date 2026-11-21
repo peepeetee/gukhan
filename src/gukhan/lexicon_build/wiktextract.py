@@ -29,6 +29,7 @@ import json
 import re
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 from .hangul import is_cjk, is_syllable
 from .stdict import Entry, ParseStats, Reject, align, clean_hanja, validate_readings
@@ -61,7 +62,7 @@ def _open(path: Path) -> io.TextIOBase:
     return path.open(encoding="utf-8")
 
 
-def _nonstandard(obj: dict) -> bool:
+def _nonstandard(obj: dict[str, Any]) -> bool:
     """Senses tagged North-Korea (력사, 녀자) are spellings the converter must never emit or expect."""
     senses = obj.get("senses") or []
     return bool(senses) and all("North-Korea" in (s.get("tags") or []) for s in senses)
@@ -76,7 +77,7 @@ def _is_hanja_word(s: str) -> bool:
     return bool(s) and all(is_cjk(c) or is_syllable(c) or c == " " for c in s) and any(is_cjk(c) for c in s)
 
 
-def _pairs(obj: dict) -> Iterator[tuple[str, str, bool]]:
+def _pairs(obj: dict[str, Any]) -> Iterator[tuple[str, str, bool]]:
     """Yield (hangul, raw_hanja, from_hangul_page) found in one JSON object."""
     word = obj.get("word", "")
     forms = obj.get("forms") or []
@@ -135,7 +136,7 @@ def shorten(text: str, limit: int = 80, romanizations: frozenset[str] | set[str]
     return cut + "…"
 
 
-def _gloss(obj: dict) -> str:
+def _gloss(obj: dict[str, Any]) -> str:
     """First gloss; for 「hanja form of 역사 (“history”)」 pages, the quoted gloss."""
     fallback = ""
     roman = {f.get("form", "") for f in obj.get("forms") or [] if "romanization" in (f.get("tags") or [])}
@@ -152,7 +153,7 @@ def _gloss(obj: dict) -> str:
     return fallback
 
 
-def _weight(obj: dict, from_hangul_page: bool) -> int:
+def _weight(obj: dict[str, Any], from_hangul_page: bool) -> int:
     """Crude likelihood, higher = more likely reading.
 
     10 for a reading listed on the Hangul page, plus one per sense (max 9),
@@ -195,7 +196,7 @@ def parse(
                 continue
             if _nonstandard(obj):
                 continue
-            pos = POS_MAP.get(pos_raw, pos_raw)
+            pos = str(POS_MAP.get(pos_raw, pos_raw))
             word = obj.get("word", "")
             if _is_hangul_word(word) and not any("hanja" in (f.get("tags") or []) for f in obj.get("forms") or []):
                 ety = (obj.get("etymology_text") or "").lower()

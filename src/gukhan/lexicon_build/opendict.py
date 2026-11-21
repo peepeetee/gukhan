@@ -120,7 +120,7 @@ def parse(
             continue
         if _text(word_info, "word_type") not in SINO_WORD_TYPES:
             continue
-        comps = components(word_info)
+        comps = components(word_info) if word_info is not None else []
         if not any(kind == "한자" and any(is_cjk(c) for c in raw) for raw, kind in comps):
             continue
         definition = re.sub(r"<[^>]+>", "", _text(sense_info, "definition"))

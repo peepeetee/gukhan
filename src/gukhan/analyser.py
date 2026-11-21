@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 # Kiwi language model selected explicitly for reproducibility. Kiwi's default
 # ("none") means "the fastest model available", which can change between
@@ -63,6 +63,8 @@ NATIVE_STOP = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class Token:
+    """One morpheme from an analyser: surface form, part-of-speech tag and character offsets."""
+
     form: str
     tag: str
     start: int  # character offset in the analysed string
@@ -96,11 +98,11 @@ class KiwiAnalyser:
     """
 
     def __init__(self, model_type: str = KIWI_MODEL_TYPE, workers: int | None = None) -> None:
-        self._kiwi = None
+        self._kiwi: Any = None
         self.model_type = model_type
         self.workers = default_workers() if workers is None else max(1, workers)
 
-    def _load(self):
+    def _load(self) -> Any:
         if self._kiwi is None:
             try:
                 from kiwipiepy import Kiwi
@@ -148,3 +150,6 @@ class ListAnalyser:
             out.append(Token(form, tag, idx, idx + len(form)))
             pos = idx + len(form)
         return out
+
+
+__all__ = ["Analyser", "KiwiAnalyser", "ListAnalyser", "Token", "default_workers"]

@@ -24,13 +24,13 @@ README come only from this script.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from gukhan.convert import Converter, Decision, Kind
 from gukhan.lexicon_build.hangul import is_cjk
-from gukhan.suggest import collect_suggestions
+from gukhan.suggest import Backend, Suggestion, collect_suggestions
 
 
 @dataclass(frozen=True)
@@ -192,7 +192,9 @@ def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decisi
                 tally.examples_over.append((item.id, gold[a:b], out[a:b]))
 
 
-def score_suggestions(item: Item, decisions: Iterable[Decision], suggestions, tally: Tally) -> None:
+def score_suggestions(
+    item: Item, decisions: Iterable[Decision], suggestions: Mapping[tuple[int, int], Suggestion], tally: Tally
+) -> None:
     """Count what a backend suggested for each flagged word, against the gold text; nothing is applied."""
     gold = fold_variants(item.mixed)
     for d in decisions:
@@ -213,7 +215,12 @@ def score_suggestions(item: Item, decisions: Iterable[Decision], suggestions, ta
             tally.sugg_over += 1
 
 
-def score(items: Iterable[Item], converter: Converter, backend=None, on_error=None) -> Tally:
+def score(
+    items: Iterable[Item],
+    converter: Converter,
+    backend: Backend | None = None,
+    on_error: Callable[[str], None] | None = None,
+) -> Tally:
     tally = Tally()
     by_source: dict[str, list[Item]] = {}
     for item in items:

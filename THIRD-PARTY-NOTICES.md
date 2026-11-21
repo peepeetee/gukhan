@@ -18,7 +18,9 @@ versions are not covered by this Apache-2.0 selection. kiwipiepy in turn install
 `numpy` (BSD-3-Clause, with bundled 0BSD, MIT, Zlib and CC0-1.0 parts) and `tqdm`
 (MPL-2.0 and MIT; MPL-2.0 is file-level copyleft and applies to tqdm's own files only), read
 from `pip-licenses` on a clean install of the 0.1.0 candidate wheels, 2026-11-05.
-Dev only: pytest, ruff, pip-licenses, build, twine. Optional, used only by
+Dev only: pytest, ruff, mypy (MIT), pip-licenses, build, twine. Docs site only (build time, never shipped): mkdocs
+(BSD-2-Clause), mkdocstrings and mkdocstrings-python (ISC), pymdown-extensions (MIT), whose dependencies are
+permissive apart from pathspec (MPL-2.0, file-level copyleft, unmodified). Optional, used only by
 `scripts/check_font_coverage.py` and not a dependency: fontTools (MIT).
 
 한국어: Apache-2.0 적용 버전인 `kiwipiepy>=0.24`만 사용합니다.

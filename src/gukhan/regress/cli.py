@@ -11,6 +11,7 @@ from pathlib import Path
 from gukhan import console, rules, suggest
 from gukhan.convert import Converter
 from gukhan.lexicon import Lexicon
+from gukhan.lexicon_build.hangul import is_cjk
 from gukhan.overrides import Overrides
 
 from . import prepare as prep
@@ -27,7 +28,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
     with args.out.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(f"# gukhan regression items from {args.source}\n# id\tsource\thangul\tmixed\n")
         for n, sent in enumerate(sentences, 1):
-            if not any(prep.is_cjk(c) for c in sent):
+            if not any(is_cjk(c) for c in sent):
                 continue
             p = prep.prepare(sent, chars, words)
             unknown.update(p.unknown)
@@ -100,7 +101,8 @@ def cmd_score(args: argparse.Namespace) -> int:
         if tally.sugg_asked:
             print(
                 f"suggest: asked={tally.sugg_asked} right={tally.sugg_right} wrong={tally.sugg_wrong} "
-                f"over={tally.sugg_over} abstained={tally.sugg_abstain} (not applied; model {backend.name})"
+                f"over={tally.sugg_over} abstained={tally.sugg_abstain} "
+                f"(not applied; model {backend.name if backend else '-'})"
             )
         print(
             f"chars={result['chars']} right={result['chars_right']} ({result['chars_right_pct']}%) "
@@ -182,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         if pth is not None and not pth.exists():
             print(f"gukhan-regress: file을 찾을 수 없습니다 / file not found: {pth}", file=sys.stderr)
             return 2
-    return args.func(args)
+    return int(args.func(args))
 
 
 if __name__ == "__main__":

@@ -175,7 +175,7 @@ def _pick(char: str, readings: list[str], next_char: str | None, chars: Chars) -
     if pref:
         default, by_next = pref
         if next_char and by_next:
-            nxt = chars.get(next_char, [next_char])[0]
+            nxt = (chars.get(next_char) or [next_char])[0]
             if is_syllable(nxt):
                 ini = _INITIALS[decompose(nxt)[0]]
                 for initials, reading in by_next.items():

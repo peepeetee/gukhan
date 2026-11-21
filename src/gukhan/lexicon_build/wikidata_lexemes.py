@@ -24,6 +24,7 @@ import sys
 from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 from .hangul import is_cjk, is_syllable
 from .stdict import Entry, ParseStats, Reject, align, validate_readings
@@ -42,7 +43,7 @@ def _open(path: Path) -> io.BufferedIOBase:
     return path.open("rb")
 
 
-def iter_lexemes(path: Path) -> Iterator[dict]:
+def iter_lexemes(path: Path) -> Iterator[dict[str, Any]]:
     with _open(path) as fh:
         for raw in fh:
             line = raw.decode("utf-8").strip().rstrip(",")
@@ -62,7 +63,7 @@ def _hanja(s: str) -> bool:
     return bool(s) and all(is_cjk(c) or c == " " for c in s) and any(is_cjk(c) for c in s)
 
 
-def _values(lex: dict) -> Iterator[str]:
+def _values(lex: dict[str, Any]) -> Iterator[str]:
     for rep in (lex.get("lemmas") or {}).values():
         yield rep.get("value", "")
     for form in lex.get("forms") or []:
@@ -70,7 +71,7 @@ def _values(lex: dict) -> Iterator[str]:
             yield rep.get("value", "")
 
 
-def _string_claims(lex: dict) -> Iterator[tuple[str, str]]:
+def _string_claims(lex: dict[str, Any]) -> Iterator[tuple[str, str]]:
     for prop, statements in (lex.get("claims") or {}).items():
         for st in statements:
             value = ((st.get("mainsnak") or {}).get("datavalue") or {}).get("value")
@@ -80,15 +81,15 @@ def _string_claims(lex: dict) -> Iterator[tuple[str, str]]:
                 yield prop, value["text"]
 
 
-def _korean(lex: dict) -> bool:
+def _korean(lex: dict[str, Any]) -> bool:
     return lex.get("language") == KOREAN and lex.get("type", "lexeme") == "lexeme"
 
 
-def survey(path: Path) -> dict:
+def survey(path: Path) -> dict[str, Any]:
     """Counts that decide whether the dump is worth building from."""
-    c: Counter = Counter()
-    props: Counter = Counter()
-    categories: Counter = Counter()
+    c: Counter[str] = Counter()
+    props: Counter[str] = Counter()
+    categories: Counter[str] = Counter()
     samples: list[str] = []
     for lex in iter_lexemes(path):
         c["lexemes"] += 1

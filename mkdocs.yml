@@ -1,0 +1,42 @@
+# Static documentation site, built in CI (not deployed). 문서 사이트는 CI에서 build만 하고 公開하지 않습니다.
+site_name: gukhan 國漢混用
+site_description: Hangul to Hanja mixed-script converter
+repo_url: https://github.com/peepeetee/gukhan
+docs_dir: docs
+site_dir: build/site
+strict: true
+theme:
+  name: mkdocs
+  locale: en
+nav:
+  - Home: index.md
+  - Overrides and review: overrides-and-review.md
+  - API reference: api.md
+  - API policy: api-policy.md
+  - Local model: local-model.md
+  - Fonts: fonts.md
+  - Performance: performance.md
+  - Privacy: privacy.md
+  - Security review: security-review.md
+  - Licensing and data: licensing.md
+  - Data distribution: data-distribution.md
+  - Chrome Web Store: chrome-web-store.md
+  - Plan: PLAN.md
+  - Release: RELEASE.md
+  - Status: STATUS.md
+  - Changelog: changelog.md
+markdown_extensions:
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            docstring_style: google
+            show_root_heading: true
+            heading_level: 3

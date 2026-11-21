@@ -8,6 +8,7 @@ import unicodedata
 from collections import Counter
 from dataclasses import dataclass, field, replace
 from enum import Enum
+from typing import Any
 
 from . import rules
 from .analyser import CANDIDATE_TAGS, NATIVE_STOP, TAG_TO_POS, VERB_SUFFIXES, Analyser, KiwiAnalyser, Token
@@ -43,6 +44,8 @@ def spacing_compatible(span: str, entry_hangul: str) -> bool:
 
 
 class Kind(str, Enum):
+    """What became of a word: converted, flagged, left for review, or kept in Hangul."""
+
     CONVERTED = "converted"  # Hanja written
     FLAGGED = "flagged"  # several candidates, left in Hangul, needs a human
     REVIEW = "review"  # proper noun or unknown word with no entry
@@ -52,6 +55,13 @@ class Kind(str, Enum):
 
 @dataclass(frozen=True)
 class Decision:
+    """What was decided for one word of the text: ``text[start:end]`` is ``hangul``.
+
+    ``kind`` says what happened; ``hanja`` is set for a converted word, ``candidates`` lists the readings
+    of a flagged one, and ``reason`` names the evidence (``override``, a rule, the dictionary). 한 낱말에
+    對한 決定입니다.
+    """
+
     start: int
     end: int
     hangul: str
@@ -64,10 +74,13 @@ class Decision:
 
 @dataclass
 class Result:
+    """The converted ``text`` and one :class:`Decision` per word converted, flagged, kept or left for review."""
+
     text: str
     decisions: list[Decision] = field(default_factory=list)
 
     def of(self, kind: Kind) -> list[Decision]:
+        """The decisions of one kind, in text order."""
         return [d for d in self.decisions if d.kind == kind]
 
 
@@ -216,6 +229,14 @@ def _forms_of(cands: list[Entry]) -> set[str]:
 
 
 class Converter:
+    """Converts Hangul text to mixed script with a lexicon, optional overrides and a morphological analyser.
+
+    Ambiguous words are flagged and left in Hangul, never guessed. With no arguments it uses the tiny bundled
+    sample lexicon and Kiwi (loaded on first use). ``review_all`` also reports names and words with no entry;
+    ``min_weight`` drops rare readings; ``use_rules`` is ``True`` (the default rules), ``False`` or a set of
+    rule names. 辭典·사용자 지정·形態素 分析器로 한글을 國漢混用으로 바꿉니다.
+    """
+
     def __init__(
         self,
         lexicon: Lexicon | None = None,
@@ -494,7 +515,7 @@ class Converter:
             for text in texts:
                 for d in self._spans_decisions(text):
                     if d.kind == Kind.CONVERTED and d.candidates and d.reason != "override":
-                        fields = rules.entry_fields(list(d.candidates), d.hanja.replace(" ", ""))
+                        fields = rules.entry_fields(list(d.candidates), (d.hanja or "").replace(" ", ""))
                         counts.update(fields)
         finally:
             self.field_evidence = saved
@@ -516,7 +537,7 @@ class Converter:
         for d in decisions:
             out.append(text[pos : d.start])
             if d.kind == Kind.CONVERTED:
-                out.append(d.hanja)
+                out.append(d.hanja or d.hangul)
             elif d.kind == Kind.FLAGGED and mark:
                 out.append(d.hangul + "{" + "|".join(c.hanja for c in d.candidates) + "}")
             else:
@@ -526,7 +547,10 @@ class Converter:
         return Result("".join(out), decisions)
 
 
-def convert(text: str, **kwargs) -> Result:
+def convert(text: str, **kwargs: Any) -> Result:
     """One-shot helper: ``convert("국군은 작전 계획을 수립하였다.").text``."""
     mark = kwargs.pop("mark", False)
     return Converter(**kwargs).convert(text, mark=mark)
+
+
+__all__ = ["Converter", "Decision", "Kind", "Result", "convert"]

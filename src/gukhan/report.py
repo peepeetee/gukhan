@@ -55,6 +55,7 @@ Suggestions = Mapping[tuple[int, int], Suggestion]
 
 
 def rows(source_text: str, result: Result, suggestions: Suggestions | None = None) -> list[dict[str, str]]:
+    """One dict per flagged or review word: kind, line, column, Hangul, candidates, context (and suggestion)."""
     starts = _line_starts(source_text)
     out = []
     for d in result.decisions:
@@ -77,10 +78,12 @@ def rows(source_text: str, result: Result, suggestions: Suggestions | None = Non
 
 
 def summary(result: Result) -> dict[str, int]:
+    """How many words of each kind (``converted``, ``flagged``, ``review``, ``kept``, ``none``) the result has."""
     return {k.value: len(result.of(k)) for k in Kind}
 
 
 def to_tsv(source_text: str, result: Result, suggestions: Suggestions | None = None) -> str:
+    """The ``--report`` TSV: a header line, one line per flagged or review word, and a count footer."""
     header = "# kind\tline\tcol\thangul\tcandidates\tcontext" + ("\tsuggestion" if suggestions is not None else "")
     header += "\n"
     body = "".join("\t".join(r.values()) + "\n" for r in rows(source_text, result, suggestions))
@@ -90,6 +93,7 @@ def to_tsv(source_text: str, result: Result, suggestions: Suggestions | None = N
 
 
 def to_markdown(source_text: str, result: Result, suggestions: Suggestions | None = None) -> str:
+    """The report as a Markdown page with a count line and a table of flagged and review words."""
     s = summary(result)
     lines = [
         "# gukhan 報告 / report",
@@ -107,3 +111,6 @@ def to_markdown(source_text: str, result: Result, suggestions: Suggestions | Non
         extra = f" {r['suggestion'].replace('|', chr(92) + '|')} |" if "suggestion" in r else ""
         lines.append(f"| {r['kind']} | {r['line']}:{r['col']} | {r['hangul']} | {cands} | {ctx} |{extra}")
     return "\n".join(lines) + "\n"
+
+
+__all__ = ["one_line", "rows", "summary", "to_markdown", "to_tsv"]

@@ -49,6 +49,8 @@ class SuggestError(RuntimeError):
 
 @dataclass(frozen=True)
 class Suggestion:
+    """A local model's pick among a flagged word's candidates; never applied unless asked."""
+
     index: int  # 1-based number in the candidate list; always within it
     hanja: str  # that candidate's Hanja (the Hangul itself for a native-word candidate)
     backend: str
@@ -94,6 +96,7 @@ def _clean(candidates: Sequence[Entry]) -> list[Entry]:
 
 
 def suggest_one(backend: Backend, sentence: str, word: str, candidates: Sequence[Entry]) -> Suggestion | None:
+    """Ask ``backend`` to pick among ``candidates`` for ``word``; None when there is no choice or it abstains."""
     cands = _clean(candidates)
     if len(cands) < 2:
         return None

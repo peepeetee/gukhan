@@ -57,9 +57,10 @@ def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
         weight[key] = max(weight.get(key, 0), e.weight)
         if key not in cats:
             cats[key] = set()
-        if cats[key] is not None:
+        current = cats[key]
+        if current is not None:
             if e.domain:
-                cats[key].update(e.domain.split(","))
+                current.update(e.domain.split(","))
             else:
                 cats[key] = None
         rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), source_rank(e.source), e.source)
@@ -355,9 +356,9 @@ def _build(argv: list[str] | None) -> int:
     counts["learner_matches"] = sum((e.hangul, e.hanja) in ranks for e in merged)
     with lex_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(HEADER.format(licence=licence))
-        for e in merged:
-            key = e.hangul, e.hanja
-            fh.write(e.tsv() + f"\t{levels.get(key, 0)}\t{ranks.get(key, 0)}\t{e.domain}\n")
+        for ent in merged:
+            key = ent.hangul, ent.hanja
+            fh.write(ent.tsv() + f"\t{levels.get(key, 0)}\t{ranks.get(key, 0)}\t{ent.domain}\n")
     outputs = {"lexicon": lex_path}
     seen = merged
 
@@ -367,8 +368,8 @@ def _build(argv: list[str] | None) -> int:
     rej_path = args.out / "rejects.tsv"
     with rej_path.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write("# hangul\traw_hanja\tsource\treason\n")
-        for r in rejects:
-            fh.write(r.tsv() + "\n")
+        for rej in rejects:
+            fh.write(rej.tsv() + "\n")
     outputs["rejects"] = rej_path
 
     if law_stats is not None:
