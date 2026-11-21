@@ -38,7 +38,7 @@ AMO summary, 한국어:
 >
 > For readers learning Hanja, the popup's output style chooses how each word is written: mixed 國軍, Hangul with Hanja
 > 국군(國軍), Hanja with Hangul 國軍(국군), or ruby with the Hangul reading above each character. If you import the
-> character list, the card also shows each Hanja's Korean reading and its English meaning.
+> character list, the card also shows each Hanja's reading and meaning: the Korean 訓 and 音 (물 수 for 水) where known, else the English meaning.
 >
 > Private by design: matching happens inside your browser against a dictionary stored on your device. No account, no
 > analytics, no network requests, no remote code. Access is asked for one site at a time and given back when you turn the
@@ -58,7 +58,7 @@ AMO summary, 한국어:
 > 한자가 여럿인 낱말은 추측하지 않고 밑줄만 긋고, 작은 카드에서 직접 고르면 기억합니다. 끄면 원문으로 돌아갑니다.
 >
 > 한자를 배우는 분을 위해 팝업의 出力 方式(출력 방식)에서 國軍·국군(國軍)·國軍(국군)·루비(한자 위에 한글 讀音)를 고를 수
-> 있습니다. 漢字 目錄(목록)을 가져오면 카드에 한자마다 音(음)과 英語(영어) 뜻도 보입니다.
+> 있습니다. 漢字 目錄(목록)을 가져오면 카드에 한자마다 訓·音(물 수)이, 訓이 없는 한자는 音과 英語(영어) 뜻이 보입니다.
 >
 > 모든 처리는 기기 안에서 이루어지며 아무것도 보내지 않습니다. 계정, 分析(분석), 네트워크 요청, 원격 코드가 없고, 사이트
 > 접근은 한 곳씩 허용받고 끄면 돌려줍니다.

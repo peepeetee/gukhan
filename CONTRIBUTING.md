@@ -25,9 +25,10 @@ python -m venv .venv && . .venv/bin/activate        # Windows: .venv\Scripts\act
 pip install -e ".[dev]"
 ruff check . && ruff format --check .
 python -m pytest -q                                 # about 30 s; tests marked kiwi need kiwipiepy
+python -m coverage run -m pytest -q && python -m coverage report   # CI fails below the floor in pyproject.toml (94%)
 python -m mypy                                      # strict type check of src/gukhan (CI runs it)
 pip install -e ".[docs]" && mkdocs build --strict  # static docs site into build/site (CI builds it, never deploys)
-node --test extension/engine.test.mjs               # extension engine (Node 22)
+node --test extension/engine.test.mjs extension/a11y.test.mjs   # extension engine and contrast (Node 22)
 node extension/browser-smoke.cjs                    # optional: needs Playwright + Chromium
 python scripts/check_licences.py                    # what CI runs for licences
 python scripts/check_bilingual.py                   # every message needs Korean and English

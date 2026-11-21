@@ -19,7 +19,7 @@ Install: `pip install gukhan[lexicon]`; then `gukhan file.md`. The extension is 
   never guessed**; override file (`전기 = 電氣`, `의사 = -`), `gukhan review`.
 - Input formats: Markdown and plain text, HTML, .docx, EPUB, SRT and VTT; typed library API with a stability policy.
 - Output styles for Hanja learners: `mixed`, `gloss` 한글(漢字), `hanja-gloss` 漢字(한글), `ruby`; in the extension
-  too, with each Hanja's 音 and English meaning on the candidate card.
+  too, with each Hanja's 音 and meaning (the Korean 訓 where Wiktionary has one, else the English meaning) on the candidate card.
 - Extension: per-site permission, all local, no network, no remote code (`docs/privacy.md`).
 
 ## Known problems, stated plainly / 알려진 문제
@@ -30,7 +30,7 @@ Install: `pip install gukhan[lexicon]`; then `gukhan file.md`. The extension is 
   fixed by keeping native headwords per part of speech; others remain. A line like `별 = -` keeps a word in Hangul.
 - **Pre-1970 and modern texts are harder**: Kiwi was not trained on the older register; the modern check covers statutes only.
 - **The browser extension has no morphological analysis**, so it is less accurate than the command line.
-- **No Korean 訓** on the card (the NIKL dumps and Unihan carry none; `docs/styles.md`).
+- **Korean 訓 only for some Hanja**: the NIKL dumps and Unihan carry none; the card takes it from Wiktionary's `ko-hanja` entries (about 3,000 characters) and shows the English meaning for the rest (`docs/styles.md`).
 - **Regression excerpts are test data, not verified gold**: original-edition checks for 李光洙, 玄鎭健 and 蔡萬植 are pending.
 - Start-up loads the whole dictionary (about 23 s in the cloud container, including Kiwi); a cache may follow.
 - One person builds this and the names are not trademark-cleared.

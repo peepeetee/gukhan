@@ -32,7 +32,13 @@ jobs:
       - name: Bilingual messages (Korean and English)
         run: python scripts/check_bilingual.py
       - name: Test
+        if: ${{ matrix.os != 'ubuntu-latest' || matrix.python-version != '3.13' }}
         run: python -m pytest -q
+      - name: Test with coverage (line and branch; the floor is `fail_under` in pyproject.toml)
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13' }}
+        run: |
+          python -m coverage run -m pytest -q
+          python -m coverage report
 
   typecheck:
     # The library ships a py.typed marker, so its annotations are checked strictly (config in pyproject.toml).

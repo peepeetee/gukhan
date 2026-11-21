@@ -62,9 +62,6 @@ gukhan thesis.docx --in-place      # the original is kept as thesis.docx.bak
 For learners / 學習者用: `--style gloss` writes 국군(國軍), `--style hanja-gloss` 國軍(국군) and `--style ruby`
 HTML `<ruby>` with the reading above each Hanja (default `mixed`: 國軍): `docs/styles.md`.
 
-For learners / 學習者用: `--style gloss` writes 국군(國軍), `--style hanja-gloss` 國軍(국군) and `--style ruby`
-HTML `<ruby>` with the reading above each Hanja (default `mixed`: 國軍): `docs/styles.md`.
-
 Speed: about 0.36 MB/s on 4 cores (`--workers N` sets Kiwi's threads, `--jobs N` splits several files over
 processes; the output never changes); numbers and method in `docs/performance.md` (處理 速度).
 
@@ -101,6 +98,19 @@ North-Korean (북한어) and archaic (옛말) senses, proverbs, idioms and spell
 the dictionary marks as non-standard are skipped, and usage examples are never
 read.
 
+## Browser extension / 확장 프로그램
+
+A Chrome and Firefox (140 or newer; Android 142 or newer, untested on a device) extension converts the pages of
+the sites you turn on, entirely inside the browser: no network requests, no account, access asked for one site at a
+time. It uses exact whole-word matching without morphological analysis, so it is **less accurate than the command
+line** and the figures below do not apply to it. Words with several possible Hanja stay Hangul and a card lets you
+choose; the popup has the same four output styles as `--style`, and the card shows each Hanja's 音 and English meaning
+if you import the character list. Keyboard and screen-reader use are designed for and checked by tests (contrast, names,
+focus), but not yet tried with a real screen reader. Not yet in any store; install steps, limits and privacy:
+[extension/README.md](extension/README.md), [docs/privacy.md](docs/privacy.md), listing texts in
+[docs/store-listings.md](docs/store-listings.md).
+Chrome·Firefox 확장 프로그램은 켠 사이트의 글만 기기 안에서 바꿉니다. 形態素 분석이 없어 命令行보다 정확도가 낮습니다.
+
 ## How it works / 作動 方式
 
 text → morphological analysis (Kiwi) → longest-match lookup in a Sino-Korean
@@ -111,7 +121,7 @@ own and has no Hanja-selection network; Hanja choice is dictionary lookup,
 overrides and rules. The morphological analysis step is Kiwi, which loads
 its own pretrained language model: in kiwipiepy 0.24.1 that is the CoNg
 (Contextual N-gram embedding) neural model, which gukhan selects explicitly
-(`model_type="cong"`) so results are reproducible across runs. The Chrome
+(`model_type="cong"`) so results are reproducible across runs. The browser
 extension processes text locally and sends nothing anywhere.
 
 한국어: 形態素 分析(Kiwi) → 辭典 最長 一致 檢索 → 漢字 選擇(사용자 지정, 規則, flag 順) → 原文에 漢字만 끼워 넣고
@@ -173,8 +183,7 @@ Reading the numbers:
 한국어: 憲法 本文에서 誤變換은 0.2~0.3%이나 절반 이상은 變換하지 않고 남깁니다. 詩集에서는
 固有語를 漢字語로 읽는 誤變換(사랑→舍廊)이 가장 큰 約點입니다. 現行 法令(保留 標本)에서는 正答 23.4%, 誤變換 1.2%이며, 一般 現代 文章의 正確度는 아직 測定하지 않았습니다.
 
-Per Hanja character on the 1948 text: 54.7% right, 0.1% wrong (6 of 4,038). The four wrong words
-there are 總綱→銃腔, 命→名, 總理令→摠理營 and 國防上→國防相.
+The four wrong words on the 1948 text (table above) are 總綱→銃腔, 命→名, 總理令→摠理營 and 國防上→國防相.
 한국어: 1919년 옛말, 하야·안이·옛 자모와 인명은 현대 형태소 분석기의 한계로 수동 검토가 필요합니다.
 
 ## Licence
