@@ -11,9 +11,17 @@ import pytest
 from gukhan import cli
 
 ROOT = Path(__file__).resolve().parent.parent
-DOC = (ROOT / "docs" / "overrides-and-review.md").read_text(encoding="utf-8")
-INPUT = ROOT / "docs" / "examples" / "input.txt"
-LEXICON = ROOT / "docs" / "examples" / "lexicon.tsv"
+DOC = (ROOT / "docs" / "overrides-and-review.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+EXAMPLES = ROOT / "docs" / "examples"
+LEXICON = EXAMPLES / "lexicon.tsv"
+
+
+@pytest.fixture
+def INPUT(tmp_path):
+    """The example text with LF line endings, whatever the checkout did (Windows may give CRLF)."""
+    path = tmp_path / "input.txt"
+    path.write_text((EXAMPLES / "input.txt").read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+    return path
 
 
 def run(capsys, *argv: str) -> str:
@@ -28,22 +36,22 @@ def assert_in_doc(text: str) -> None:
             assert line.strip() in DOC, f"not in the guide: {line!r}"
 
 
-def test_the_example_input_is_the_one_shown():
-    assert INPUT.read_text(encoding="utf-8").strip() in DOC
+def test_the_example_input_is_the_one_shown(INPUT):
+    assert INPUT.read_text(encoding="utf-8").strip() in DOC.replace("\r\n", "\n")
 
 
-def test_mark_output(capsys):
+def test_mark_output(capsys, INPUT):
     assert_in_doc(run(capsys, INPUT, "--lexicon", LEXICON, "--mark"))
 
 
-def test_hand_written_override_file(capsys, tmp_path):
+def test_hand_written_override_file(capsys, tmp_path, INPUT):
     by_hand = tmp_path / "by-hand.txt"
     by_hand.write_text("의사 = 醫師\n전기 공학 = 電氣 工學\n이순신 = 李舜臣\n", encoding="utf-8")
     assert by_hand.read_text(encoding="utf-8").strip() in DOC
     assert_in_doc(run(capsys, INPUT, "--lexicon", LEXICON, "--overrides", by_hand, "--mark"))
 
 
-def test_too_short_hanja_is_refused(capsys, tmp_path):
+def test_too_short_hanja_is_refused(capsys, tmp_path, INPUT):
     bad = tmp_path / "bad.txt"
     bad.write_text("의사 = 醫\n", encoding="utf-8")
     assert cli.main([str(INPUT), "--lexicon", str(LEXICON), "--overrides", str(bad)]) == 2
@@ -55,7 +63,7 @@ def answer(monkeypatch, *typed: str) -> None:
     monkeypatch.setattr(builtins, "input", lambda prompt="": next(it))
 
 
-def test_review_session_and_follow_up(capsys, monkeypatch, tmp_path):
+def test_review_session_and_follow_up(capsys, monkeypatch, tmp_path, INPUT):
     mine = tmp_path / "my.txt"
     answer(monkeypatch, "n2", "2", "李舜臣")
     rc = cli.main(["review", str(INPUT), "--lexicon", str(LEXICON), "--overrides", str(mine), "--include-review"])
