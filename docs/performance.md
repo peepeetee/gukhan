@@ -12,7 +12,7 @@ CI runs the same script, non-blocking. 1 MB 글을 4코어 container에서 잰 �
 
 Four 1 MB files, `gukhan a b c d --out-dir out`: 14.9 s in one process (4 Kiwi threads), 10.8 s with
 `--jobs 4` (four processes, one Kiwi thread each). Small batches gain nothing from `--jobs`: each process
-loads the lexicon and the model first (about 5 s and 2.5 s with a real lexicon). 작은 묶음에는 `--jobs`가 도움이 안 됩니다.
+loads the lexicon and the model first (about 4 s and 2.5 s with a real lexicon). 작은 묶음에는 `--jobs`가 도움이 안 됩니다.
 
 ## What was slow, and what changed / 무엇이 느렸고 무엇을 바꿨나
 
@@ -45,9 +45,12 @@ loads the lexicon and the model first (about 5 s and 2.5 s with a real lexicon).
 
 ## Tried and left alone / 試했으나 바꾸지 않은 것
 
-- **Lexicon load** (4.6 s for 700k entries) is spread over parsing, 700k `Entry` objects and the index; a fast path
-  that skips per-field stripping gained nothing and was dropped. A cache file would help, at the price of a
-  second file format to keep valid; not done.
+- **Lexicon load.** A second look (2026-11-21, a 708,455-entry lexicon built from the 標準國語大辭典 and 우리말샘 dumps, Python 3.13,
+  three runs each) found the per-line work in `Lexicon.from_lines` dominated by generators and by computing the
+  space-free key twice: reading each field once and reusing the key cut the load from 4.8-5.2 s to 3.8-4.2 s
+  (about 22% less), and the loaded index is identical (same entries, same order, checked by digest). Most of what
+  remains is building 700k `Entry` objects. A cache file would help further, at the price of a second file format to
+  keep valid; not done. 辭典 載入가 약 22% 빨라졌고 結果는 같습니다.
 - **Caching repeated sentences.** The cache is by exact piece, which is what the two passes need. Sentence-level
   caching would change what Kiwi sees around a sentence, and real books rarely repeat sentences.
 - **Kiwi options** that change the analysis (`model_type`, typo handling, dialects) are not speed settings here.

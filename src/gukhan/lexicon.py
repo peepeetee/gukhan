@@ -51,11 +51,16 @@ class Lexicon:
             self.add(e)
 
     def add(self, entry: Entry) -> None:
-        key = _strip_spaces(entry.hangul)
-        bucket = self._by_key.setdefault(key, [])
-        if entry not in bucket:
+        self._add(_strip_spaces(entry.hangul), entry)
+
+    def _add(self, key: str, entry: Entry) -> None:
+        bucket = self._by_key.get(key)
+        if bucket is None:
+            self._by_key[key] = [entry]
+        elif entry not in bucket:
             bucket.append(entry)
-        self.max_key_len = max(self.max_key_len, len(key))
+        if len(key) > self.max_key_len:
+            self.max_key_len = len(key)
         if entry.weight:
             self.weighted = True
 
@@ -111,7 +116,9 @@ class Lexicon:
 
     @classmethod
     def from_lines(cls, lines: Iterable[str]) -> Lexicon:
+        # Hot path: a real lexicon has 700,000 lines, so each is split and converted once, with no generators.
         lex = cls()
+        width = len(COLUMNS)
         for n, raw in enumerate(lines, 1):
             line = raw.rstrip("\n")
             if not line.strip() or line.lstrip().startswith("#"):
@@ -121,9 +128,11 @@ class Lexicon:
                 raise ValueError(
                     f"line {n}: expected at least 2 tab-separated columns / 탭 區分 열이 2個 以上이어야 합니다"
                 )
-            parts += [""] * (len(COLUMNS) - len(parts))
-            hangul, hanja, pos, source, sense, weight = (p.strip() for p in parts[:6])
-            if len(_strip_spaces(hangul)) != len(_strip_spaces(hanja)):
+            if len(parts) < width:
+                parts += [""] * (width - len(parts))
+            hangul, hanja, weight = parts[0].strip(), parts[1].strip(), parts[5].strip()
+            key = hangul.replace(" ", "")
+            if len(key) != len(hanja.replace(" ", "")):
                 raise ValueError(f"line {n}: {hangul!r} and {hanja!r} differ in length / 길이가 다릅니다")
             try:
                 w = int(weight) if weight else 0
@@ -131,13 +140,28 @@ class Lexicon:
                 raise ValueError(
                     f"line {n}: weight must be an integer / weight는 整數여야 합니다: {weight!r}"
                 ) from None
+            level_text, rank_text = parts[6].strip(), parts[7].strip()
             try:
-                level, rank = (int(p.strip()) if p.strip() else 0 for p in parts[6:8])
+                level = int(level_text) if level_text else 0
+                rank = int(rank_text) if rank_text else 0
             except ValueError:
                 raise ValueError(
                     f"line {n}: level and learner_rank must be integers / 整數여야 합니다: {parts[6:8]!r}"
                 ) from None
-            lex.add(Entry(hangul, hanja, pos, source, sense, w, level, rank, parts[8].strip()))
+            lex._add(
+                key,
+                Entry(
+                    hangul,
+                    hanja,
+                    parts[2].strip(),
+                    parts[3].strip(),
+                    parts[4].strip(),
+                    w,
+                    level,
+                    rank,
+                    parts[8].strip(),
+                ),
+            )
         return lex
 
     @classmethod
