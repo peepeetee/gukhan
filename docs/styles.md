@@ -64,8 +64,5 @@ The NIKL dumps (標準國語大辭典, 우리말샘, 韓國語基礎辭典; CC B
 not 訓 (귤 귤). Turning definitions into 訓 would be a guess, so it is not done. Unihan `kHangul` gives 音 only.
 標準國語大辭典·우리말샘·韓國語基礎辭典에는 訓音 欄이 없고, 漢字 한 글자 標題語는 낱말 뜻풀이일 뿐 訓이 아닙니다.
 
-Not usable yet: the en.wiktionary Hanja entries (`ko-hanja` template carries 訓 and 音; CC BY-SA 4.0, same licence as the
-Wiktionary-including build) are the one candidate with a clear licence, but the kaikki.org extract is not reachable from the
-cloud build environment, so its shape could not be checked there. A builder input for it is a follow-up once someone has
-inspected a real extract. 國漢混用은 확인하지 못한 資料를 추측으로 넣지 않습니다.
+Now used: the en.wiktionary Hanja entries (`ko-hanja` carries 訓 and 音; CC BY-SA 4.0) are read from a real kaikki extract, whose shape was checked on 2026-11-21 (3,057 of 10,280 character entries have both), through `--wiktextract` as above. 國漢混用은 확인하지 못한 資料를 추측으로 넣지 않습니다.
 
