@@ -36,9 +36,6 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Output styles for Hanja learners: `--style mixed|gloss|hanja-gloss|ruby` and `gukhan.styles` (`docs/styles.md`);
   it works with every input format, and `ruby` (HTML `<ruby>`, one pair per Hanja) is refused for Word and
   subtitles.
-- Output styles for Hanja learners: `--style mixed|gloss|hanja-gloss|ruby` and `gukhan.styles` (`docs/styles.md`);
-  it works with every input format, and `ruby` (HTML `<ruby>`, one pair per Hanja) is refused for Word and
-  subtitles.
 - Browser extension: the four output styles in the popup (live, per reader) and, with an imported `char-info.tsv`
   (new builder output from Unihan, also bundled by `package_extension.py`), the reading and English meaning of each
   Hanja on the candidate card.
@@ -62,12 +59,13 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Modern-law regression set from statutory Hanja glosses, split into halves (#54, #55).
 - Resumable literature collection with revision and scan checksums (#8).
 - Non-blocking 1 MB throughput benchmark in CI (#60).
+- Test coverage measured with coverage.py (line and branch) in CI, with a floor at the level reached (#76); edge-case tests for console set-up, archive limits, Unihan inputs and the manifest.
 
 #### Browser extension / 확장 프로그램
 - Chrome and Firefox (≥ 140) extension that converts pages locally with whole-word matching, particle and phrase
   matching, a dictionary in IndexedDB, an unobtrusive candidate card, icons and packaging script (#8, #19, #22–#24, #28).
 - Optional bundled dictionary (full or without definitions) loaded on first run (#29).
-- Chrome Web Store build target, privacy policy and listing draft (#32, #19).
+- Chrome Web Store build target, privacy policy and listing draft (#32, #19); Chrome and Firefox listing texts in Korean and English, screenshot steps and a release-notes draft (#74).
 - Per-site access granted at runtime, none at install (#66).
 - Lazy conversion near the viewport with a node cap, and a notice for characters the page's font cannot draw
   (#67); font note with measured coverage.
