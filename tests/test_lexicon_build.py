@@ -389,3 +389,11 @@ def test_cli_names_sources_set_licence_and_manifest(tmp_path):
     wd_only = tmp_path / "w"
     assert main(["--wikidata-lexemes", str(FIX / "wikidata_lexemes_sample.json"), "-o", str(wd_only)]) == 0
     assert json.loads((wd_only / "manifest.json").read_text(encoding="utf-8"))["licence"] == "CC0-1.0"
+
+
+def test_tsv_cells_never_contain_tabs_or_line_breaks():
+    from gukhan.lexicon_build.stdict import Entry, Reject
+
+    row = Entry("가", "街", "명사", "src", "a\tb\r\nc  ", 3).tsv()
+    assert row == "가\t街\t명사\tsrc\ta b c\t3"
+    assert len(Reject("가", "X\tY", "s", "bad\nreason").tsv().split("\t")) == 4
