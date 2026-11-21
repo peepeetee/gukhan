@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from gukhan import rules
+from gukhan.cli import _utf8_streams
 from gukhan.convert import Converter
 from gukhan.lexicon import Lexicon
 from gukhan.overrides import Overrides
@@ -20,7 +21,7 @@ from . import score as sc
 def cmd_prepare(args: argparse.Namespace) -> int:
     chars = prep.load_chars(args.chars)
     words = prep.load_lexicon_hanja(args.lexicon) if args.lexicon else None
-    text = args.text.read_text(encoding="utf-8")
+    text = args.text.read_text(encoding="utf-8-sig")
     sentences = prep.split_sentences(text)
     flagged_total = 0
     unknown: set[str] = set()
@@ -43,6 +44,10 @@ def cmd_prepare(args: argparse.Namespace) -> int:
 
 
 def cmd_score(args: argparse.Namespace) -> int:
+    for pth in [*args.items, *([args.lexicon] if args.lexicon else []), *args.overrides]:
+        if not pth.exists():
+            print(f"gukhan-regress: file을 찾을 수 없습니다 / file not found: {pth}", file=sys.stderr)
+            return 2
     lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.sample()
     overrides = None
     if args.overrides:
@@ -110,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--rules", default="default", help="default, all, none or rule names, as for `gukhan --rules`")
     s.set_defaults(func=cmd_score)
     args = ap.parse_args(argv)
+    _utf8_streams()
     for attr in ("text", "chars"):
         pth = getattr(args, attr, None)
         if pth is not None and not pth.exists():

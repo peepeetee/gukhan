@@ -44,7 +44,16 @@ class Entry:
     weight: int = 0
 
     def tsv(self) -> str:
-        return "\t".join((self.hangul, self.hanja, self.pos, self.source, self.sense, str(self.weight)))
+        cells = (self.hangul, self.hanja, self.pos, self.source, self.sense)
+        return "\t".join((*(_cell(c) for c in cells), str(self.weight)))
+
+
+_CELL_BREAKS = re.compile(r"[\t\r\n]+")
+
+
+def _cell(value: str) -> str:
+    """A tab or line break inside a field would shift the columns or split the row of a TSV."""
+    return _CELL_BREAKS.sub(" ", value).strip()
 
 
 @dataclass
@@ -55,7 +64,7 @@ class Reject:
     reason: str
 
     def tsv(self) -> str:
-        return "\t".join((self.hangul, self.raw_hanja, self.source, self.reason))
+        return "\t".join(_cell(c) for c in (self.hangul, self.raw_hanja, self.source, self.reason))
 
 
 @dataclass

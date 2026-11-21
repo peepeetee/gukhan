@@ -104,7 +104,7 @@ class Chars:
 def load_chars(path: Path) -> Chars:
     """Read chars.tsv: ``hanja<TAB>reading:tag …`` (tags optional, Unihan order)."""
     out = Chars()
-    with path.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8-sig") as fh:
         for line in fh:
             if line.startswith("#") or not line.strip():
                 continue

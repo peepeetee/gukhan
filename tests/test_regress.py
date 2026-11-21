@@ -173,3 +173,13 @@ def test_in_candidates_counts_offered_hanja():
     t = sc.score(items, conv)
     assert (t.flagged, t.right, t.wrong, t.in_candidates) == (2, 0, 0, 1)
     assert t.as_dict()["in_candidates_pct"] == 50.0
+
+
+def test_score_reports_missing_files_and_reads_a_bom(tmp_path, capsys):
+    assert main(["score", str(tmp_path / "missing.tsv")]) == 2
+    assert "file not found" in capsys.readouterr().err
+    items = tmp_path / "items.tsv"
+    items.write_bytes("﻿a-1\ta\t대한민국\t大韓民國\n".encode())
+    assert main(["score", str(items), "--lexicon", str(tmp_path / "missing-lexicon.tsv")]) == 2
+    assert main(["score", str(items)]) == 0
+    assert "items=1" in capsys.readouterr().out

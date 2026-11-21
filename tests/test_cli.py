@@ -86,3 +86,40 @@ def test_report_rows_stay_on_one_line_with_crlf_and_tabs():
     tsv = to_tsv(text, result)
     assert "\r" not in tsv and all(len(row.split("\t")) == 6 for row in tsv.splitlines() if not row.startswith("#"))
     assert "a\\|b" in to_markdown(text, result)
+
+
+@pytest.fixture
+def src(tmp_path):
+    p = tmp_path / "in.txt"
+    p.write_text("대한민국", encoding="utf-8")
+    return p
+
+
+@pytest.mark.parametrize(
+    "extra, message",
+    [
+        (["--rules", "nonsense"], "unknown rule"),
+        (["--lexicon", "{tmp}/bad.tsv"], "cannot read lexicon"),
+        (["--lexicon", "{tmp}/absent.tsv"], "cannot read lexicon"),
+        (["--overrides", "{tmp}/bad.ov"], "override file error"),
+        (["--overrides", "{tmp}/absent.ov"], "override file error"),
+        (["--stdin"], "one input file or --stdin"),
+    ],
+)
+def test_conversion_errors_exit_2(tmp_path, capsys, src, extra, message):
+    (tmp_path / "bad.tsv").write_text("only-one-column\n", encoding="utf-8")
+    (tmp_path / "bad.ov").write_text("no separator here\n", encoding="utf-8")
+    args = [str(src), *(a.replace("{tmp}", str(tmp_path)) for a in extra)]
+    if "--lexicon" not in args:
+        args += ["--lexicon", MINI]
+    assert main(args) == 2
+    assert message in capsys.readouterr().err
+
+
+def test_review_errors_exit_2(tmp_path, capsys, src):
+    ov = tmp_path / "my.ov"
+    assert main(["review", str(tmp_path / "missing.txt"), "--overrides", str(ov)]) == 2
+    (tmp_path / "bad.tsv").write_text("only-one-column\n", encoding="utf-8")
+    assert main(["review", str(src), "--overrides", str(ov), "--lexicon", str(tmp_path / "bad.tsv")]) == 2
+    assert main(["review", str(src), "--overrides", str(ov), "--lexicon", MINI, "--rules", "nonsense"]) == 2
+    assert capsys.readouterr().err.count("gukhan:") == 3

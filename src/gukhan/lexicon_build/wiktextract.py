@@ -182,6 +182,9 @@ def parse(
             except json.JSONDecodeError:
                 stats.rejected += 1
                 continue
+            if not isinstance(obj, dict):
+                stats.rejected += 1
+                continue
             stats.items += 1
             if stats.items <= 50:
                 stats.tags_seen.update(obj.keys())
