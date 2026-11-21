@@ -3,7 +3,7 @@
   const wrappers = new Set();
   const groups = [];  // {original, nodes}: the text node a conversion replaced, and the nodes standing in for it
   let generation = 0, timer, panel;
-  const protectedSelector = 'script,style,textarea,input,select,option,pre,code,a,button,[contenteditable], [data-gukhan]';
+  const protectedSelector = 'script,style,noscript,textarea,input,select,option,pre,code,kbd,samp,a,button,[contenteditable],[role="textbox"],[data-gukhan]';
   const mine = new WeakSet();  // the plain text pieces this script created around converted words
   function restoreGroup(group) {
     // Put the replaced text node back whole, so a later pass sees "전기 공학" as one text again.

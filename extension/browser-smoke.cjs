@@ -29,13 +29,13 @@ const crypto = require('node:crypto');
     await options.locator('#status').filter({hasText:'headwords imported'}).waitFor({timeout:60000});
     await worker.evaluate(() => chrome.storage.local.set({enabled:true,sites:{'fixture.test':true}}));
     const page = await context.newPage();
-    await page.route('http://fixture.test/**', r => r.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><p id="text">전기 연구</p><p id="more">연구가 전기 공학이</p><p id="tick"></p><script>var n=0;setInterval(function(){document.getElementById("tick").textContent="초 "+(++n)},400);window.flashes=0;new MutationObserver(function(){var t=document.getElementById("text").textContent;if(t==="전기 연구"&&window.converted)window.flashes++;if(t.indexOf("研究")>=0)window.converted=true}).observe(document.getElementById("text"),{childList:true,subtree:true,characterData:true})</script><pre>전기 연구</pre><input value="전기 연구">'}));
+    await page.route('http://fixture.test/**', r => r.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><p id="text">전기 연구</p><p id="more">연구가 전기 공학이</p><p id="tick"></p><script>var n=0;setInterval(function(){document.getElementById("tick").textContent="초 "+(++n)},400);window.flashes=0;new MutationObserver(function(){var t=document.getElementById("text").textContent;if(t==="전기 연구"&&window.converted)window.flashes++;if(t.indexOf("研究")>=0)window.converted=true}).observe(document.getElementById("text"),{childList:true,subtree:true,characterData:true})</script><pre>전기 연구</pre><kbd>전기 연구</kbd><samp>전기 연구</samp><div role="textbox">전기 연구</div><input value="전기 연구">'}));
     await page.goto('http://fixture.test/');
     await page.locator('[data-gukhan="word"]').first().waitFor();
     // A page that keeps changing elsewhere (the ticker) must not make converted words flash back to Hangul.
     await page.waitForTimeout(2500);
     assert.equal(await page.evaluate(() => window.flashes), 0);
-    assert.equal(await page.locator('pre').textContent(),'전기 연구');
+    for (const tag of ['pre', 'kbd', 'samp', '[role=textbox]']) assert.equal(await page.locator(tag).textContent(), '전기 연구', tag);
     // The popover is unintrusive: hover previews it without taking focus or moving the page;
     // Escape closes it; Enter opens it from the keyboard and Escape returns focus to the word.
     const word = page.locator('[data-gukhan="word"]').first(), panel = page.locator('[data-gukhan="panel"]');

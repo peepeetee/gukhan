@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 export function parseLexicon(text) {
   const index = new Map();
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
     if (!line || line.startsWith('#')) continue;
     const [word, form, pos = '', source = '', sense = '', weight = '0', level = '0', rank = '0'] = line.split('\t');
     if (!word || !form || [...word].length !== [...form].length) throw new Error('Invalid lexicon / 사전 형식 오류');
