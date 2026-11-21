@@ -1,0 +1,19 @@
+# 님의 沈黙 1926 batch 18: scan vs ko.wikisource divergences (PDF pp.165-172)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p169: DIFFERS
+  scan : 달아레에서 거문고를타기는 근심을이즐ㅅ가 함이러니 츰곡조가ᄭᅳᆺ나기전에 눈물이압흘가려서 밤은 바다가되고 거문고줄은 무지개가됨니다
+  wiki : 달아레에서 거문고를타기는 근심을잊즐ㅅ가 함이러니 츰곡조가ᄭᅳᆺ나기전에 눈물이압흘가려서 밤은 바다가되고 거문고줄은 무지개가됨니다
+  chars: '이'->'잊'
+## p171: DIFFERS
+  scan : 당신은 나의죽엄속으로오서요 죽엄은 당신을위하야의準備가 언제든
+  wiki : 당신은 나의죽엄속으로오서요 죽엄은 당신을위하야의準備가 언제든지
+  chars: ''->'지'
+## p172: DIFFERS
+  scan : 지 되야잇슴니다
+  wiki : 되야잇슴니다
+  chars: '지'->''
+  scan : 죽엄의압헤는 軍艦과砲臺가 ᄯᅴᄭᅳᆯ이됨니다
+  wiki : 죽엄의압헤는 軍艦과砲臺가 ᄯᅴᄭᅳᆯ이됨다
+  chars: '니'->''
