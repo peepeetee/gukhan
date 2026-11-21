@@ -28,5 +28,13 @@
       site.checked = !on; status.textContent = String(e.message || e);
     } finally { site.disabled = false; }
   };
+  const lacking = tab ? (await chrome.storage.session.get(`glyphs:${tab.id}`))[`glyphs:${tab.id}`] : undefined;
+  if (lacking?.count) {
+    const note = document.querySelector('#glyphs'); note.hidden = false;
+    note.textContent = `글꼴에 없는 漢字 ${lacking.count}자(${lacking.sample.join(' ')})는 네모로 보일 수 있습니다. Noto Serif/Sans CJK KR 같은 글꼴을 설치해 보세요. / ` +
+      `${lacking.count} Hanja (${lacking.sample.join(' ')}) are missing from this page's font and may show as boxes; try a font such as Noto Serif or Noto Sans CJK KR.`;
+  }
+  const capped = tab ? (await chrome.storage.session.get(`capped:${tab.id}`))[`capped:${tab.id}`] : false;
+  document.querySelector('#capped').hidden = !capped;
   document.querySelector('#options').onclick = () => chrome.runtime.openOptionsPage();
 })();

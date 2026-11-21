@@ -53,6 +53,52 @@ system, which were not tested here. The lexicon holds the Hanja gukhan can write
 Hanja a given text uses: rare personal-name characters in a text may still fall outside any
 font.
 
+## Hanja the gold texts use (2026-11-21)
+
+The same script, on the Hanja that the regression set actually uses (`--items` with its 26 items files, not
+`sources.tsv` or `modern-law-laws.tsv`: 1,359 distinct ideographs, 19,694 occurrences, from the 1919 declaration
+and provisional charter, three constitutions, 님의 沈黙 and the modern statutes). Fonts were read from their character maps only; the Noto files are the Korean subset OpenType
+files from the `main` branch of the Noto CJK repository on that date, the others the Ubuntu packages named.
+
+| Font | Characters covered | Share of occurrences | Missing |
+| --- | --- | --- | --- |
+| Noto Serif KR (NotoSerifKR-Regular.otf, sha256 5ea012e1…) | 1,358 of 1,359 | 99.99% | 兦 |
+| Noto Sans KR (NotoSansKR-Regular.otf, sha256 69975a0a…) | 1,358 of 1,359 | 99.99% | 兦 |
+| WenQuanYi Zen Hei 0.9.45 (fonts-wqy-zenhei) | 1,359 of 1,359 | 100.00% | none; Chinese forms (see below) |
+| GNU Unifont 15.1 (fonts-unifont), BMP file | 1,359 of 1,359 | 100.00% | none; a bitmap-style face, for fallback only |
+| IPAGothic (fonts-ipafont-gothic) | 1,342 of 1,359 | 99.38% | 內 稅 脫 强 說 畵 玆 吳 戶 毁 銳 產 兦 旣 閱 洑 歲 |
+
+IPAGothic, a Japanese font, lacks the traditional forms that Korean text uses (內, 稅, 說, 戶 …): a browser that
+picks it for Korean text has to borrow those from another font, which is how a page ends up with mixed
+styles or boxes. "Covered" does not mean "Korean form": WenQuanYi Zen Hei covers everything here but draws
+Simplified-Chinese-leaning forms of some characters. Of the fonts measured, only the Noto Korean files are
+both complete here and Korean in form. Characters outside this set, such as Extension B and later (rare
+personal-name characters, 𠀀 U+20000 and beyond), are in almost no ordinary font; the extension checks for them
+(next section).
+
+## When a character is missing: what the extension does
+
+When it converts a word, the extension draws each Hanja once on a hidden canvas in the same font as the
+page text. If nothing is drawn, or the picture equals what a few reference characters that no font draws
+(the last characters of CJK Extensions G, H and I, and an unassigned BMP code point) look like, the character is counted as missing. Then:
+
+- the popup says how many Hanja the page's font cannot draw, shows up to eight, and suggests Noto Serif or
+  Noto Sans CJK KR;
+- the candidate card for a word with such a character carries the same note.
+
+Words are still converted: a missing glyph is a font problem, and the reader may have another font for the
+site. Limits, stated plainly: this is a check on pictures. It was tested in headless Chromium on Linux, where a
+missing glyph is drawn as nothing. Chrome on Windows and macOS is expected to draw one shared box for every missing
+character, which the second condition is meant to catch, but that was not tested here. Firefox draws the code
+point inside the box, so the pictures differ and the check stays silent there; so does the headless Chromium on GitHub's Linux runner (its
+browser test then checks that nothing is reported, instead of guessing). If the canvas cannot be read
+(a browser privacy setting that blanks it) the check turns itself off instead of reporting everything missing.
+It never changes a page's fonts and downloads none.
+
+한국어: 擴張 프로그램은 페이지 글꼴로 漢字를 한 번 그려 보아 아무것도 그려지지 않거나 모든 빠진 글자에 같은
+네모가 나오면 "글꼴에 없음"으로 셉니다. 팝업과 後補 카드가 이를 알리고 Noto Serif/Sans CJK KR을 勸합니다.
+Firefox는 네모 안에 코드를 그려 이 檢査가 침묵합니다. 글꼴을 바꾸거나 내려받지는 않습니다.
+
 ## Other fonts
 
 Not tested for this note; coverage depends on the font version, so run the script on the file

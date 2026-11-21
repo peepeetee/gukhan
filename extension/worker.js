@@ -30,6 +30,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   else if (message?.type === 'site') {
     // Only the extension's own pages (popup, settings) may change sites, never a content script on a web page.
     task = sender.url?.startsWith(chrome.runtime.getURL('')) ? siteMessage(message) : Promise.reject(new Error('refused'));
+  } else if (message?.type === 'capped' && sender.tab) {
+    // a page too large to convert whole: the popup tells the reader (per tab, forgotten when the browser closes)
+    task = chrome.storage.session.set({[`capped:${sender.tab.id}`]: message.capped === true}).then(() => ({}));
+  } else if (message?.type === 'glyphs' && sender.tab && Number.isInteger(message.count)) {
+    // characters the page's font cannot draw, for the popup to mention (per tab, forgotten when the browser closes)
+    const sample = Array.isArray(message.sample) ? message.sample.slice(0, 8).map(c => String(c).slice(0, 2)) : [];
+    task = chrome.storage.session.set({[`glyphs:${sender.tab.id}`]: {count: message.count, sample}}).then(() => ({}));
   } else task = Promise.resolve({});
   task.then(reply, e => { console.error(e); reply({error: String(e?.message || e)}); });
   return true;

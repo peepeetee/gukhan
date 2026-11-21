@@ -11,7 +11,7 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
 (async () => {
   const fixture = path.resolve('build/browser-fixture');
   fs.mkdirSync(fixture, {recursive:true});
-  const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n';
+  const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n희귀\t\u{30000}\u{30001}\n';  // the last two are CJK Extension G: no ordinary font has them
   fs.writeFileSync(path.join(fixture,'lexicon.tsv'), lexicon);
   fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:crypto.createHash('sha256').update(lexicon).digest('hex')}}}));
   // GUKHAN_EXT: an unpacked store build. Tested through a copy that declares the hosts as granted (see smoke-helpers).
@@ -103,6 +103,60 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await page.waitForTimeout(800);
     assert.equal(await page.locator('#text').textContent(),'전기 연구');
     assert.equal(await page.locator('[data-gukhan]').count(), 0);
+    // A Hanja the page's font cannot draw is noticed: the popup is told and the candidate card says so.
+    const glyph = await context.newPage();
+    await glyph.route('http://glyph.test/**', r => r.fulfill({contentType: 'text/html', body: '<meta charset="utf-8"><p>희귀 연구</p>'}));
+    await glyph.goto('http://glyph.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('glyph.test', true)), {ok: true});
+    await glyph.locator('[data-gukhan="word"]').first().waitFor();
+    await glyph.waitForFunction(() => document.querySelector('p').textContent.includes('\u{30000}'));
+    const lacking = async () => worker.evaluate(async () => Object.entries(await chrome.storage.session.get(null)).filter(([k]) => k.startsWith('glyphs:')).map(([, v]) => v));
+    // What does this browser draw for a character no font has? Nothing, or one box shared by all of them, are what the
+    // check recognises. A box that carries the character's own code point (Firefox, and the CI runner's headless
+    // Chromium, which draws one) differs per character; there the check must stay silent rather than guess.
+    const pictures = await glyph.evaluate(() => {
+      const ctx = document.createElement('canvas').getContext('2d', {willReadFrequently: true});
+      const ink = ch => { ctx.clearRect(0, 0, 64, 64); ctx.font = '32px serif'; ctx.fillText(ch, 8, 44); const a = ctx.getImageData(0, 0, 64, 64).data; let n = 0, h = 0; for (let i = 3; i < a.length; i += 4) if (a[i]) { n++; h = (h * 31 + i * a[i]) >>> 0; } return {n, h}; };
+      const a = ink('\u{30000}'), b = ink('\u{30001}');
+      return {detectable: a.n === 0 || (a.n === b.n && a.h === b.h), a, b};
+    });
+    if (pictures.detectable) {
+      for (let i = 0; i < 40 && !(await lacking()).length; i++) await glyph.waitForTimeout(100);
+      const reported = await lacking();
+      assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported');
+      await glyph.locator('[data-gukhan="word"]').first().click();
+      await glyph.locator('[data-gukhan="panel"]').waitFor({state: 'attached'});
+      assert.match(await glyph.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent), /이 글꼴에 없는 글자/);
+    } else {
+      await glyph.waitForTimeout(1000);
+      assert.equal((await lacking()).length, 0, 'a browser that draws a box per character gets no report (the check does not guess)');
+      console.log('NOTE: this browser draws a per-character box for missing glyphs; the glyph check stays silent, as documented. ' + JSON.stringify(pictures));
+    }
+    // A large page converts lazily: only text near the viewport is converted, the rest when it scrolls into view.
+    const big = await context.newPage();
+    const paragraphs = Array.from({length: 3000}, (_, i) => `<p style="height:40px;margin:0">연구 ${i}</p>`).join('');
+    await big.route('http://big.test/**', r => r.fulfill({contentType: 'text/html', body: `<meta charset="utf-8">${paragraphs}`}));
+    await big.goto('http://big.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('big.test', true)), {ok: true});
+    await big.waitForFunction(() => document.querySelectorAll('[data-gukhan="word"]').length > 0);
+    await big.waitForTimeout(800);
+    const near = await big.locator('[data-gukhan="word"]').count();
+    assert.ok(near > 0 && near < 300, `only the text near the viewport is converted, got ${near} of 3000`);
+    assert.equal(await big.evaluate(() => document.body.lastElementChild.textContent), '연구 2999', 'far text stays Hangul');
+    await big.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await big.waitForFunction(() => document.body.lastElementChild.textContent === '研究 2999');
+    // A cap on the nodes examined per page: the rest stays Hangul and the popup is told.
+    await worker.evaluate(() => chrome.storage.local.set({limits: {total: 30, perPass: 10}}));
+    const capped = await context.newPage();
+    const spans = Array.from({length: 200}, () => '<span>연구 </span>').join('');
+    await capped.route('http://capped.test/**', r => r.fulfill({contentType: 'text/html', body: `<meta charset="utf-8"><div style="font-size:4px">${spans}</div>`}));
+    await capped.goto('http://capped.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('capped.test', true)), {ok: true});
+    await capped.waitForFunction(() => document.querySelectorAll('[data-gukhan="word"]').length >= 30);
+    await capped.waitForTimeout(1200);
+    assert.equal(await capped.locator('[data-gukhan="word"]').count(), 30, 'the cap stops conversion at 30 nodes');
+    assert.equal(await worker.evaluate(async () => Object.values(await chrome.storage.session.get(null)).includes(true)), true, 'the popup is told');
+    await worker.evaluate(() => chrome.storage.local.remove('limits'));
     console.log('PASS: real dictionary import, candidates, saved override, protected text, toggle restore, site disable');
   } finally { await context.close(); }
 })().catch(e => {console.error(e);process.exitCode=1});

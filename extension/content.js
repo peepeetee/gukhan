@@ -7,6 +7,77 @@
   let generation = 0, timer, panel;
   const protectedSelector = 'script,style,noscript,textarea,input,select,option,pre,code,kbd,samp,a,button,[contenteditable],[role="textbox"],[data-gukhan]';
   const mine = new WeakSet();  // the plain text pieces this script created around converted words
+  // A page can hold any number of text nodes (infinite scroll, a hostile page), so the work is bounded and lazy:
+  // a text node is converted only once its element has come within `MARGIN` px of the viewport, at most
+  // `perPass` nodes per pass, and no more than `total` nodes are examined on one page. Beyond that the page
+  // is left alone and the popup says so. `limits` in storage may lower the numbers (the tests do).
+  const LIMITS = {perPass: 500, total: 20000, watch: 50000}, MARGIN = 800;
+  let examined = 0, watchedCount = 0, capped = false;
+  let checked = new WeakMap();  // text node -> the text that was sent and had nothing to convert
+  const inView = new WeakSet(), watching = new WeakSet();
+  const io = typeof IntersectionObserver === 'function' ? new IntersectionObserver(entries => {
+    let any = false;
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      inView.add(entry.target); io.unobserve(entry.target); watching.delete(entry.target); any = true;
+    }
+    if (any) schedule(false);
+  }, {rootMargin: `${MARGIN}px 0px`}) : null;
+  // --- Missing glyphs. A Hanja the page's font lacks shows as an empty space or a box (tofu). The check draws the
+  // character on a canvas in the element's own font: no ink at all, or the same picture as a character that no
+  // font has, means missing. Where the browser draws something else for a missing glyph (Firefox
+  // puts its code point in the box) the check says nothing rather than guessing. If the canvas cannot be read
+  // (a privacy setting that blanks it) it also says nothing.
+  const HAN = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u;
+  // Reference code points that no font draws. Browsers differ: some draw a box only for an assigned character that
+  // no font has (the last characters of CJK Extensions G, H and I), some also for an unassigned BMP one, and
+  // none draw one for noncharacters like U+FFFF, so a few of each are compared and any equal picture counts.
+  const SENTINELS = ['\u0378', '\u{3134A}', '\u{323AF}', '\u{2EE5D}'];
+  const glyphs = (() => {
+    let ctx, usable, empties;
+    const cache = new Map();
+    const draw = (ch, font) => {
+      ctx.clearRect(0, 0, 64, 64); ctx.font = font; ctx.fillText(ch, 8, 44);
+      const data = ctx.getImageData(0, 0, 64, 64).data; let n = 0, hash = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i]) { n++; hash = (hash * 31 + i * data[i]) >>> 0; }
+      return {n, hash};
+    };
+    return function missing(ch, element) {
+      try {
+        if (usable === undefined) {
+          const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
+          ctx = canvas.getContext('2d', {willReadFrequently: true});
+          usable = !!ctx && draw('H', '32px sans-serif').n > 0;  // a blanked canvas would call everything missing
+        }
+        if (!usable) return false;
+        const style = getComputedStyle(element), font = `${style.fontStyle} ${style.fontWeight} 32px ${style.fontFamily}`;
+        const key = `${font}|${ch}`;
+        if (!cache.has(key)) {
+          const sentinels = SENTINELS.map(c => draw(c, font));
+          const mine = draw(ch, font);
+          cache.set(key, mine.n === 0 || sentinels.some(s => s.n > 0 && s.hash === mine.hash && s.n === mine.n));
+        }
+        return cache.get(key);
+      } catch { usable = false; return false; }
+    };
+  })();
+  const toCheck = [];  // {span, text} for words just converted
+  const missingChars = new Set();
+  let reportedMissing = 0;
+  function checkGlyphs() {
+    let budget = 300;
+    for (const {span, text} of toCheck.splice(0)) {
+      for (const ch of text) if (HAN.test(ch) && budget-- > 0 && glyphs(ch, span)) missingChars.add(ch);
+    }
+    if (missingChars.size !== reportedMissing) {
+      reportedMissing = missingChars.size;
+      chrome.runtime.sendMessage({type: 'glyphs', count: missingChars.size, sample: [...missingChars].slice(0, 8)}).catch?.(() => {});
+    }
+  }
+  function reportCapped(value) {
+    if (value === capped) return;
+    capped = value; chrome.runtime.sendMessage({type: 'capped', capped: value}).catch?.(() => {});
+  }
   function restoreGroup(group) {
     // Put the replaced text node back whole, so a later pass sees "전기 공학" as one text again.
     if (group.nodes.every(n => n.isConnected)) {
@@ -86,6 +157,11 @@
       button.onclick = async e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
       box.append(button);
     }
+    if (choices.some(c => c.form !== '-' && [...c.form].some(ch => HAN.test(ch) && glyphs(ch, span)))) {
+      const note = style(document.createElement('div'), `padding:4px 8px 2px;font-size:12px;color:${accent};white-space:normal`);
+      note.textContent = '□ 이 글꼴에 없는 글자가 있습니다. Noto Serif/Sans CJK KR 같은 글꼴을 설치해 보세요. / Some characters are missing from this font and show as boxes; try a font such as Noto Serif or Noto Sans CJK KR.';
+      box.append(note);
+    }
     box.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
     box.addEventListener('pointerleave', () => { if (!pinned) leaveTimer = setTimeout(() => closePopover(), 250); });
     shadow.append(box); document.documentElement.append(panel);
@@ -120,14 +196,24 @@
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); }
     });
   }
-  // Text nodes with Hangul that are not ours and not inside protected elements.
-  function freshNodes() {
+  // Text nodes with Hangul that are not ours, not inside protected elements, and near the viewport.
+  // Elements not yet near it are watched; they come back through the IntersectionObserver.
+  function freshNodes(room) {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {acceptNode(node) {
-      return !mine.has(node) && node.parentElement && !node.parentElement.closest(protectedSelector) &&
+      return !mine.has(node) && checked.get(node) !== node.data && node.parentElement && !node.parentElement.closest(protectedSelector) &&
         /[가-힣]/.test(node.data) && node.data.length <= 20000 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
     }});
-    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-    return nodes;
+    const nodes = []; let more = false;
+    while (walker.nextNode()) {
+      const node = walker.currentNode, element = node.parentElement;
+      if (io && !inView.has(element)) {
+        if (!watching.has(element) && watchedCount < LIMITS.watch) { io.observe(element); watching.add(element); watchedCount++; }
+        continue;
+      }
+      if (nodes.length >= room) { more = true; break; }
+      nodes.push(node);
+    }
+    return {nodes, more};
   }
   async function convertAll(texts) {
     const results = [];
@@ -150,13 +236,14 @@
       span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
       span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
       attach(span, decision);
-      wrappers.add(span); fragment.append(span); end = decision.end;
+      wrappers.add(span); toCheck.push({span, text: decision.text}); fragment.append(span); end = decision.end;
     }
     plain(text.slice(end));
     groups.push({original: node, nodes: [...fragment.childNodes]}); node.replaceWith(fragment);
   }
   async function enabled() {
-    const s = await chrome.storage.local.get(['enabled', 'sites']);
+    const s = await chrome.storage.local.get(['enabled', 'sites', 'limits']);
+    for (const key of Object.keys(LIMITS)) if (Number.isInteger(s.limits?.[key]) && s.limits[key] > 0) LIMITS[key] = s.limits[key];
     return !!(s.enabled && s.sites?.[location.hostname]);
   }
   // Everything below changes the page only in one synchronous step, with the observer off, so the
@@ -165,8 +252,12 @@
     if (!document.body) return;  // an XML or SVG document has no body to convert
     const run = full ? ++generation : generation;
     if (!await enabled()) { if (run === generation) { observer.disconnect(); restoreAll(); watch(); } return; }
-    const items = freshNodes().map(node => ({node, text: node.data}));
+    if (full) checked = new WeakMap();
+    const base = full ? groups.length : examined;  // nodes already examined; a full pass converts the groups again
+    const {nodes, more} = freshNodes(Math.max(0, Math.min(LIMITS.perPass, LIMITS.total - base)));
+    const items = nodes.map(node => ({node, text: node.data}));
     if (full) for (const group of groups) items.push({group, text: group.original.data});
+    const atTotal = more && base + nodes.length >= LIMITS.total;
     const results = await convertAll(items.map(i => i.text));
     if (!results || run !== generation) return;
     observer.disconnect();
@@ -174,12 +265,17 @@
       if (full) { for (const group of groups) restoreGroup(group); groups.length = 0; closePopover(); }
       items.forEach((item, i) => {
         const node = item.group ? item.group.original : item.node;
+        if (!item.group && results[i].length === 0 && node.isConnected && node.data === item.text) checked.set(node, item.text);
         if (!results[i].length || (!item.group && (!node.isConnected || node.data !== item.text))) return;
         if (item.group && !node.isConnected) return;
         apply(node, item.text, results[i]);
       });
     } finally { watch(); }
-    if (full) schedule(false);  // pick up anything the page added while we were converting
+    examined = (full ? 0 : examined) + items.length;
+    checkGlyphs();
+    reportCapped(atTotal || (watchedCount >= LIMITS.watch));
+    if (more && !atTotal) schedule(false);  // the next slice of nodes near the viewport
+    else if (full) schedule(false);  // pick up anything the page added while we were converting
   }
   function watch() { if (document.body) observer.observe(document.body, {childList: true, subtree: true, characterData: true}); }
   let running = false, again = false, fullPending = false;
