@@ -143,7 +143,9 @@ def _runs(text: str) -> list[tuple[int, int]]:
     return runs
 
 
-def _offered(gold: str, a: int, b: int, decisions: Iterable[Decision]) -> bool:
+def _offered(
+    gold: str, a: int, b: int, decisions: Iterable[Decision], fold: Callable[[str], str] = fold_variants
+) -> bool:
     """Does a decision covering gold[a:b] list exactly that Hanja among its candidates?"""
     for d in decisions:
         if not d.candidates or d.start > a or d.end < b:
@@ -152,16 +154,22 @@ def _offered(gold: str, a: int, b: int, decisions: Iterable[Decision]) -> bool:
         offset = len(d.hangul[: a - d.start].replace(" ", ""))
         width = len(gold[a:b])
         for c in d.candidates:
-            if fold_variants(c.hanja.replace(" ", ""))[offset : offset + width] == gold[a:b]:
+            if fold(c.hanja.replace(" ", ""))[offset : offset + width] == gold[a:b]:
                 return True
     return False
 
 
-def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decision] = ()) -> None:
+def score_item(
+    item: Item,
+    output: str,
+    tally: Tally,
+    decisions: Iterable[Decision] = (),
+    fold: Callable[[str], str] = fold_variants,
+) -> None:
     if len(output) != len(item.mixed):
         tally.misaligned += 1
         return
-    gold, out = fold_variants(item.mixed), fold_variants(output)
+    gold, out = fold(item.mixed), fold(output)
     covered: set[int] = set()
     for a, b in _runs(gold):
         covered.update(range(a, b))
@@ -171,7 +179,7 @@ def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decisi
         tally.chars_right += right_chars
         tally.chars_wrong += wrong_chars
         tally.chars_flagged += len(g) - right_chars - wrong_chars
-        if o == g or _offered(gold, a, b, decisions):
+        if o == g or _offered(gold, a, b, decisions, fold):
             tally.in_candidates += 1
         if o == g:
             tally.right += 1
@@ -193,10 +201,14 @@ def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decisi
 
 
 def score_suggestions(
-    item: Item, decisions: Iterable[Decision], suggestions: Mapping[tuple[int, int], Suggestion], tally: Tally
+    item: Item,
+    decisions: Iterable[Decision],
+    suggestions: Mapping[tuple[int, int], Suggestion],
+    tally: Tally,
+    fold: Callable[[str], str] = fold_variants,
 ) -> None:
     """Count what a backend suggested for each flagged word, against the gold text; nothing is applied."""
-    gold = fold_variants(item.mixed)
+    gold = fold(item.mixed)
     for d in decisions:
         if d.kind != Kind.FLAGGED or len(d.candidates) < 2 or d.end > len(gold):
             continue
@@ -206,7 +218,7 @@ def score_suggestions(
             tally.sugg_abstain += 1
             continue
         want = gold[d.start : d.end]
-        got = fold_variants(sug.hanja.replace(" ", ""))
+        got = fold(sug.hanja.replace(" ", ""))
         if got == want.replace(" ", ""):
             tally.sugg_right += 1
         elif any(is_cjk(c) for c in want):
@@ -220,6 +232,7 @@ def score(
     converter: Converter,
     backend: Backend | None = None,
     on_error: Callable[[str], None] | None = None,
+    fold: Callable[[str], str] = fold_variants,
 ) -> Tally:
     tally = Tally()
     by_source: dict[str, list[Item]] = {}
@@ -230,9 +243,9 @@ def score(
         converter.set_document([i.hangul for i in group])
         for item in group:
             result = converter.convert(item.hangul)
-            score_item(item, result.text, tally, result.decisions)
+            score_item(item, result.text, tally, result.decisions, fold)
             if backend is not None:
                 sugg = collect_suggestions(backend, item.hangul, result, on_error=on_error)
-                score_suggestions(item, result.decisions, sugg, tally)
+                score_suggestions(item, result.decisions, sugg, tally, fold)
     converter.field_evidence = None
     return tally

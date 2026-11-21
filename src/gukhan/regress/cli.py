@@ -16,11 +16,29 @@ from gukhan.overrides import Overrides
 
 from . import prepare as prep
 from . import score as sc
+from .variants import KINDS, Variants, load_variants
+
+
+def _variants(args: argparse.Namespace) -> Variants | None:
+    if not args.variants:
+        return None
+    kinds = [k for k in args.variant_kinds.split(",") if k]
+    return load_variants(args.variants, kinds)
 
 
 def cmd_prepare(args: argparse.Namespace) -> int:
+    if args.variants and not args.variants.exists():
+        print(f"gukhan-regress: file을 찾을 수 없습니다 / file not found: {args.variants}", file=sys.stderr)
+        return 2
+    try:
+        variants = _variants(args)
+    except ValueError as e:
+        print(f"gukhan-regress: {e}", file=sys.stderr)
+        return 2
     chars = prep.load_chars(args.chars)
     words = prep.load_lexicon_hanja(args.lexicon) if args.lexicon else None
+    if variants and words:
+        words = prep.fold_words(words, variants)
     text = args.text.read_text(encoding="utf-8-sig")
     sentences = prep.split_sentences(text)
     flagged_total = 0
@@ -30,7 +48,7 @@ def cmd_prepare(args: argparse.Namespace) -> int:
         for n, sent in enumerate(sentences, 1):
             if not any(is_cjk(c) for c in sent):
                 continue
-            p = prep.prepare(sent, chars, words)
+            p = prep.prepare(sent, chars, words, variants)
             unknown.update(p.unknown)
             flagged_total += len(p.flags)
             note = ""
@@ -48,7 +66,12 @@ def cmd_prepare(args: argparse.Namespace) -> int:
 
 
 def cmd_score(args: argparse.Namespace) -> int:
-    for pth in [*args.items, *([args.lexicon] if args.lexicon else []), *args.overrides]:
+    for pth in [
+        *args.items,
+        *([args.lexicon] if args.lexicon else []),
+        *args.overrides,
+        *([args.variants] if args.variants else []),
+    ]:
         if not pth.exists():
             print(f"gukhan-regress: file을 찾을 수 없습니다 / file not found: {pth}", file=sys.stderr)
             return 2
@@ -60,6 +83,11 @@ def cmd_score(args: argparse.Namespace) -> int:
             overrides.update(Overrides.load(p))
     try:
         use_rules = rules.parse_rules(args.rules)
+    except ValueError as e:
+        print(f"gukhan-regress: {e}", file=sys.stderr)
+        return 2
+    try:
+        variants = _variants(args)
     except ValueError as e:
         print(f"gukhan-regress: {e}", file=sys.stderr)
         return 2
@@ -82,11 +110,13 @@ def cmd_score(args: argparse.Namespace) -> int:
         conv,
         backend,
         on_error=lambda m: print(f"gukhan-regress: 提案 中斷 / suggestions stopped: {m}", file=sys.stderr),
+        fold=variants.fold if variants else sc.fold_variants,
     )
     result = {
         "items": len(items),
         "lexicon": str(args.lexicon or "sample"),
         "rules": ",".join(sorted(use_rules)) or "none",
+        "variants": f"{args.variants} ({args.variant_kinds})" if args.variants else "built-in",
         **tally.as_dict(),
     }
     if args.json:
@@ -118,6 +148,21 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_variant_options(p: argparse.ArgumentParser, what: str) -> None:
+    p.add_argument(
+        "--variants",
+        type=Path,
+        metavar="variants.tsv",
+        help=f"字形 變體 表 (gukhan-lexicon-build --unihan이 만듦): {what} / variant-glyph table from "
+        "gukhan-lexicon-build --unihan: " + what,
+    )
+    p.add_argument(
+        "--variant-kinds",
+        default=",".join(KINDS),
+        help="쓸 變體 種類 / kinds to use, comma separated: z (glyph forms) and semantic (looser) (default: both)",
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     console.utf8_streams()  # --help carries Korean; a Windows console would fail on it
     ap = argparse.ArgumentParser(prog="gukhan-regress", description="回歸 test set 道具 / regression set tools")
@@ -139,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="lexicon.tsv: 漢字 連續을 아는 낱말로 먼저 나눔 / lexicon.tsv: segments Hanja runs into known words first",
     )
+    _add_variant_options(p, "match a run in another glyph form with its word")
     p.add_argument("-o", "--out", type=Path, required=True, help="出力 file / output file")
     p.set_defaults(func=cmd_prepare)
     s = sub.add_parser("score", help="項目에 變換器를 돌려 報告 / run the converter on items and report")
@@ -164,6 +210,7 @@ def main(argv: list[str] | None = None) -> int:
         default=[],
         help="사용자 지정 file, 여러 번 가능 / override file; repeatable",
     )
+    _add_variant_options(s, "count 絕/絶 and 歎/嘆 as the same")
     s.add_argument("--json", action="store_true", help="JSON으로 출력 / print JSON")
     s.add_argument(
         "--min-weight",

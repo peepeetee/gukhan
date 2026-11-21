@@ -1,0 +1,9 @@
+# Unihan_Variants.txt  (hand-written excerpt in Unihan format, test fixture only)
+U+7D55	kZVariant	U+7D76<kHKGlyph
+U+7D76	kZVariant	U+7D55<kHKGlyph
+U+6B4E	kSemanticVariant	U+5606<kMatthews,kMeyerWempe
+U+5606	kSemanticVariant	U+6B4E<kMatthews
+U+4E00	kSimplifiedVariant	U+4E00
+U+9AD4	kSemanticVariant	U+4F53<kMatthews U+9AA8
+U+4E94	kZVariant	U+4E94
+U+4F53	kZVariant	U+9AD4
