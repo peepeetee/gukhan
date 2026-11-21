@@ -44,4 +44,12 @@ Converter(style="gloss").convert("국군은 작전 계획을 수립하였다.").
 render("국군", "國軍", "ruby")  # one word, written in a style
 ```
 
-The browser extension has the same four styles in its popup; see `extension/README.md`.
+## Browser extension / 확장 프로그램
+
+The extension has the same four styles in its popup (*Output style*), applied live to every enabled site. In
+`ruby` the reading is a `<ruby>` pair per Hanja, and the word is still the underlined button with the candidate card.
+Besides the styles, the card can show each Hanja's reading and English meaning (`電 전 · electricity`) when
+`char-info.tsv` is imported. See `extension/README.md`. 확장 프로그램의 팝업에도 같은 네 가지 形式이 있습니다.
+
+Unihan has no Korean 訓 (meaning-reading like 나라 국), so the character list gives the reading (音) and the English
+meaning only; a source for 訓 would need its own licence check first. Unihan에는 한국어 訓이 없어 英語 뜻을 보입니다.

@@ -14,6 +14,7 @@ import zipfile
 from pathlib import Path
 
 _LINE = re.compile(r"^U\+([0-9A-F]{4,6})\tkHangul\t(.+)$")
+_DEFINITION = re.compile(r"^U\+([0-9A-F]{4,6})\tkDefinition\t(.+)$")
 _VERSION = re.compile(r"Unihan(?:_Readings)?[-_ ](\d+\.\d+\.\d+)|Unicode (?:version )?(\d+\.\d+\.\d+)", re.IGNORECASE)
 _DATE = re.compile(r"Date:\s*(\d{4}-\d{2}-\d{2})")
 
@@ -62,3 +63,20 @@ def read_khangul(path: Path, *, with_tags: bool = False) -> tuple[dict[str, list
             values = [v if with_tags else v.split(":", 1)[0] for v in m.group(2).split()]
             readings[ch] = list(dict.fromkeys(values))
     return readings, version
+
+
+def read_definitions(path: Path) -> dict[str, str]:
+    """Return ``{hanja_char: English meaning}`` from ``kDefinition``: the first two senses, at most 60 characters.
+
+    Unihan separates senses with ``;`` and synonyms with ``,``: ``country, nation; state`` keeps both senses.
+    Unihan에는 한국어 訓이 없어 英語 뜻을 씁니다.
+    """
+    out: dict[str, str] = {}
+    fh, _ = _open_readings(path)
+    with fh:
+        for line in fh:
+            m = _DEFINITION.match(line.rstrip("\n"))
+            if m:
+                senses = [x.strip() for x in m.group(2).split(";") if x.strip()]
+                out[chr(int(m.group(1), 16))] = "; ".join(senses[:2])[:60].rstrip(" ,;")
+    return out

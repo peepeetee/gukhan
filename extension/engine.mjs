@@ -116,3 +116,28 @@ export function neededKeys(texts) {
   }
   return keys;
 }
+
+// --- Output styles (the same four as the CLI's --style). A converted word is {word, text}; `styleParts` says how
+// to write it: null = just `text` (mixed, or nothing was converted), {text} = a gloss as plain text, or
+// {ruby: [[base, reading], ...]} = one <ruby> pair per Hanja (reading '' for a character that stays as it is).
+export const STYLES = ['mixed', 'gloss', 'ruby', 'hanja-gloss'];
+export function styleParts(word, text, style) {
+  if (style === 'mixed' || !STYLES.includes(style) || text === word) return null;
+  if (style === 'gloss') return {text: `${word}(${text})`};
+  if (style === 'hanja-gloss') return {text: `${text}(${word})`};
+  const hangul = [...word], hanja = [...text];
+  if (hangul.length !== hanja.length) return {ruby: [[text, word]]};  // a reading of another length: one ruby for the word
+  return {ruby: hanja.map((c, i) => [c, c === hangul[i] || c === ' ' ? '' : hangul[i]])};
+}
+
+// chars.tsv (built from Unihan): character, readings (usual one first, comma separated), English meaning.
+export function parseChars(text) {
+  const chars = new Map();
+  for (const line of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    if (!line || line.startsWith('#')) continue;
+    const [char, readings = '', meaning = ''] = line.split('\t');
+    if ([...char].length !== 1) throw new Error('Invalid character list / 한자 목록 형식 오류');
+    chars.set(char, {readings: readings ? readings.split(',') : [], meaning});
+  }
+  return chars;
+}

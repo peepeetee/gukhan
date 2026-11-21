@@ -39,6 +39,9 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Output styles for Hanja learners: `--style mixed|gloss|hanja-gloss|ruby` and `gukhan.styles` (`docs/styles.md`);
   it works with every input format, and `ruby` (HTML `<ruby>`, one pair per Hanja) is refused for Word and
   subtitles.
+- Browser extension: the four output styles in the popup (live, per reader) and, with an imported `char-info.tsv`
+  (new builder output from Unihan, also bundled by `package_extension.py`), the reading and English meaning of each
+  Hanja on the candidate card.
 - Full type annotations, a `py.typed` marker, `mypy --strict` in CI, a public API defined by `__all__`
   (`docs/api-policy.md`) and an API reference; a static documentation site built from `docs/` in CI (not deployed).
 

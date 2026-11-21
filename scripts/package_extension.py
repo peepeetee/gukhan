@@ -70,11 +70,22 @@ def dictionary_files(directory: Path, no_definitions: bool) -> dict[str, bytes]:
     meta["outputs"] = {
         "lexicon": {"name": "lexicon.tsv", "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
     }
+    files = {}
+    info = directory / "char-info.tsv"  # reading and meaning of each Hanja, for the candidate card
+    if info.exists():
+        info_data = info.read_bytes()
+        meta["outputs"]["char_info"] = {
+            "name": "char-info.tsv",
+            "bytes": len(info_data),
+            "sha256": hashlib.sha256(info_data).hexdigest(),
+        }
+        files["dictionary/char-info.tsv"] = info_data
     notice = (
         f"{meta['notice']}\n\nLicence: {meta.get('licence', '')}. The dictionary data is separate from the add-on's\n"
         "Apache-2.0 code (see LICENSE.txt) and keeps its own licence; see https://github.com/peepeetee/gukhan\n"
     )
     return {
+        **files,
         "dictionary/lexicon.tsv": data,
         "dictionary/manifest.json": json.dumps(meta, ensure_ascii=False, indent=1).encode("utf-8"),
         "dictionary/NOTICE.txt": notice.encode("utf-8"),

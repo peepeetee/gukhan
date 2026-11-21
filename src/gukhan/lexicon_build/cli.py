@@ -16,6 +16,7 @@ from . import stdict as stdict_mod
 from . import unihan as unihan_mod
 from . import wikidata_lexemes as wikidata_mod
 from . import wiktextract as wikt_mod
+from .hangul import is_cjk
 from .manifest import write_manifest
 from .ranking import krdict_levels, learner_ranks
 
@@ -393,6 +394,19 @@ def _build(argv: list[str] | None) -> int:
             for ch in sorted(readings):
                 fh.write(f"{ch}\t{' '.join(tagged[ch])}\n")
         outputs["chars"] = chars_path
+
+    if readings:
+        # What the browser extension's candidate card shows for each Hanja of the lexicon: the usual reading
+        # first (the education-set one), then others, and Unihan's English meaning (no Korean 訓 is available).
+        definitions = unihan_mod.read_definitions(args.unihan)
+        info_path = args.out / "char-info.tsv"
+        used = sorted({ch for ent in merged for ch in ent.hanja if is_cjk(ch) and ch in tagged})
+        with info_path.open("w", encoding="utf-8", newline="\n") as fh:
+            fh.write("# hanja\treadings (usual first, comma separated)\tmeaning (English, Unihan kDefinition)\n")
+            for ch in used:
+                ordered = sorted(tagged[ch], key=lambda r: "E" not in r.partition(":")[2])  # stable: Unihan order
+                fh.write(f"{ch}\t{','.join(r.partition(':')[0] for r in ordered)}\t{definitions.get(ch, '')}\n")
+        outputs["char_info"] = info_path
 
     write_manifest(
         args.out,

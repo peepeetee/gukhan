@@ -67,6 +67,14 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     assert text.startswith("# gukhan lexicon")
     assert "전기\t電氣\t명사\tstdict:1001" in text
     assert (out1 / "chars.tsv").exists()
+    # the extension's character list: only Hanja of the lexicon, usual reading first, English meaning from Unihan
+    info = (out1 / "char-info.tsv").read_text(encoding="utf-8").splitlines()
+    assert info[0].startswith("# hanja")
+    rows = {line.split("\t")[0]: line.split("\t")[1:] for line in info[1:]}
+    assert rows["電"] == ["전", "electricity, electric; lightning"]  # two senses kept, the third dropped
+    assert rows["氣"] == ["기", "air, gas, vapor; breath"] and rows["記"] == ["기", ""]
+    assert m["outputs"]["char_info"]["sha256"]
+    assert (out1 / "char-info.tsv").read_bytes() == (out2 / "char-info.tsv").read_bytes()
 
 
 def test_cli_rejects_wrong_schema(tmp_path):

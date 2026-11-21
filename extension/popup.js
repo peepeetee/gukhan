@@ -3,10 +3,13 @@
   const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
   const supported = /^https?:/.test(tab?.url || '');
   const host = supported ? new URL(tab.url).hostname : '';
-  const settings = await chrome.storage.local.get(['enabled', 'sites', 'lexiconInfo']);
+  const settings = await chrome.storage.local.get(['enabled', 'sites', 'lexiconInfo', 'style']);
   document.querySelector('#host').textContent = host || '이 페이지는 지원하지 않습니다 / Unsupported page';
   const enabled = document.querySelector('#enabled'), site = document.querySelector('#site'), status = document.querySelector('#status');
   const usable = supported && /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(host);  // an IP literal in brackets cannot be a match pattern
+  const styleBox = document.querySelector('#style');
+  styleBox.value = ['mixed', 'gloss', 'hanja-gloss', 'ruby'].includes(settings.style) ? settings.style : 'mixed';
+  styleBox.onchange = () => chrome.storage.local.set({style: styleBox.value});  // pages redraw by themselves
   enabled.checked = !!settings.enabled;
   site.checked = !!settings.sites?.[host]; site.disabled = !usable;
   const idle = settings.lexiconInfo ? '로컬 처리 / Local processing' : '먼저 사전을 가져오세요 / Import a dictionary first';

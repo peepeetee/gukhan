@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import {parseLexicon} from './engine.mjs';
-import {saveIndex} from './lexstore.js';
+import {parseChars, parseLexicon} from './engine.mjs';
+import {saveChars, saveIndex} from './lexstore.js';
 const status = document.querySelector('#status');
 async function showSites() {
   const {sites = {}} = await chrome.storage.local.get('sites');
@@ -23,14 +23,22 @@ async function show() {
   document.querySelector('#notice').textContent = s.notice || '';
   document.querySelector('#overrides').value = Object.entries(s.overrides || {}).map(([w, h]) => `${w} = ${h}`).join('\n');
 }
-// Import a dictionary: the bytes of lexicon.tsv and the parsed manifest.json that describes them.
-async function importDictionary(bytes, metadata) {
-  const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+const sha256 = async bytes => [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
+// Import a dictionary: the bytes of lexicon.tsv and the parsed manifest.json that describes them, and 
+// char-info.tsv, the reading and meaning of each Hanja that the candidate card shows.
+async function importDictionary(bytes, metadata, charBytes) {
+  const digest = await sha256(bytes);
   if (digest !== metadata.outputs?.lexicon?.sha256 || typeof metadata.notice !== 'string') throw new Error('manifest가 사전과 맞지 않습니다 / Manifest does not match dictionary');
+  let chars;
+  if (charBytes) {
+    if (await sha256(charBytes) !== metadata.outputs?.char_info?.sha256) throw new Error('manifest가 한자 목록과 맞지 않습니다 / Manifest does not match the character list');
+    chars = parseChars(new TextDecoder().decode(charBytes));
+  }
   const entries = parseLexicon(new TextDecoder().decode(bytes));
   if (!entries.size) throw new Error('빈 사전입니다 / Empty dictionary');
   status.textContent = '저장 중… / Saving…';
   await saveIndex(entries);
+  if (chars) { await saveChars(chars); await chrome.storage.local.set({charsInfo: {count: chars.size}}); }
   await chrome.storage.local.remove('lexicon');  // pre-IndexedDB copy
   await chrome.storage.local.set({lexiconInfo: {headwords: entries.size, sha256: digest}, notice: metadata.notice});
   status.textContent = `${entries.size} 단어 / headwords imported`; await show();
@@ -40,7 +48,8 @@ document.querySelector('#import').onclick = async () => {
     const files = [...document.querySelector('#files').files];
     const lex = files.find(f => f.name === 'lexicon.tsv'), manifest = files.find(f => f.name === 'manifest.json');
     if (!lex || !manifest) throw new Error('lexicon.tsv와 manifest.json을 고르세요 / Select lexicon.tsv + manifest.json');
-    await importDictionary(await lex.arrayBuffer(), JSON.parse(await manifest.text()));
+    const charList = files.find(f => f.name === 'char-info.tsv');
+    await importDictionary(await lex.arrayBuffer(), JSON.parse(await manifest.text()), charList && await charList.arrayBuffer());
   } catch (e) { status.textContent = String(e); }
 };
 // A dictionary shipped inside the add-on (dictionary/lexicon.tsv + manifest.json) is loaded on
@@ -55,7 +64,8 @@ async function loadBundled() {
   const {lexiconInfo} = await chrome.storage.local.get('lexiconInfo');
   if (lexiconInfo?.sha256 === metadata.outputs?.lexicon?.sha256) return;
   status.textContent = '내장 사전을 불러오는 중입니다 (1분쯤) / Loading the built-in dictionary (about a minute)…';
-  await importDictionary(await (await fetch('dictionary/lexicon.tsv')).arrayBuffer(), metadata);
+  const chars = metadata.outputs?.char_info ? await (await fetch('dictionary/char-info.tsv')).arrayBuffer() : undefined;
+  await importDictionary(await (await fetch('dictionary/lexicon.tsv')).arrayBuffer(), metadata, chars);
 }
 document.querySelector('#save').onclick = async () => {
   try {

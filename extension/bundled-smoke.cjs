@@ -13,6 +13,7 @@ const {grantHosts, siteMessage} = require('./smoke-helpers.cjs');
   fs.rmSync(work, {recursive: true, force: true}); fs.mkdirSync(dict, {recursive: true});
   fs.writeFileSync(path.join(dict, 'lexicon.tsv'), '연구\t研究\t명사\tstdict:1\t조사하는 일\t0\t0\t0\n전기\t電氣\t명사\tstdict:2\t에너지\t0\t0\t0\n');
   fs.writeFileSync(path.join(dict, 'manifest.json'), JSON.stringify({licence: 'CC-BY-SA-2.0-KR', notice: 'Hand-written test fixture', outputs: {}}));
+  fs.writeFileSync(path.join(dict, 'char-info.tsv'), '# hanja\treadings\tmeaning\n研\t연\tgrind\n');  // loaded with the dictionary
   const xpi = path.join(work, 'bundled.xpi');
   execFileSync('python3', ['scripts/package_extension.py', xpi, '--dictionary', dict, '--no-definitions'], {stdio: 'inherit'});
   fs.mkdirSync(ext); execFileSync('unzip', ['-q', xpi, '-d', ext]);
@@ -31,6 +32,7 @@ const {grantHosts, siteMessage} = require('./smoke-helpers.cjs');
     }
     assert.ok(options, 'first install should open the settings page');
     await options.locator('#status').filter({hasText: 'headwords imported'}).waitFor({timeout: 60000});
+    assert.deepEqual(await worker.evaluate(async () => (await chrome.storage.local.get('charsInfo')).charsInfo), {count: 1}, 'the bundled character list is loaded too');
     await worker.evaluate(() => chrome.storage.local.set({enabled: true}));
     const page = await context.newPage();
     await page.route('http://fixture.test/**', r => r.fulfill({contentType: 'text/html', body: '<meta charset="utf-8"><p id="text">연구가 전기를</p>'}));
