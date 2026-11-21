@@ -5,6 +5,9 @@
 <p>사전은 별도 배포됩니다. lexicon.tsv와 manifest.json을 함께 선택하세요.<br>Import the separately built lexicon.tsv and manifest.json together.</p>
 <input id="files" type="file" multiple accept=".tsv,.json"><button id="import">가져오기 / Import</button>
 <p id="status" role="status"></p><pre id="notice"></pre>
+<h2>켜 둔 사이트 / Sites that are on</h2>
+<p>여기에 있는 사이트만 읽습니다. 지우면 그 사이트의 접근 허용도 돌려줍니다.<br>Only these sites are read. Removing one also gives its access back to the browser.</p>
+<ul id="sites"></ul><p id="no-sites">없음 / None</p>
 <h2>내 선택 / My overrides</h2><p>단어 = 漢字, 또는 단어 = - (한글 유지). One word per line; “-” keeps Hangul.</p>
 <textarea id="overrides" rows="12" aria-label="Overrides"></textarea><button id="save">저장 / Save</button>
 <h2>개인정보 / Privacy</h2><p>페이지·사전·선택은 기기 안에서만 처리합니다. 서버·분석·동기화가 없습니다.<br>Page text, dictionaries and overrides stay on this device. No server, analytics or sync.</p>

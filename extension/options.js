@@ -2,7 +2,23 @@
 import {parseLexicon} from './engine.mjs';
 import {saveIndex} from './lexstore.js';
 const status = document.querySelector('#status');
+async function showSites() {
+  const {sites = {}} = await chrome.storage.local.get('sites');
+  const list = document.querySelector('#sites'), hosts = Object.keys(sites).filter(h => sites[h]).sort();
+  list.replaceChildren(...hosts.map(host => {
+    const item = document.createElement('li'), remove = document.createElement('button');
+    remove.textContent = '지우기 / Remove'; remove.setAttribute('aria-label', `${host} 지우기 / Remove ${host}`);
+    remove.onclick = async () => {
+      const answer = await chrome.runtime.sendMessage({type: 'site', host, on: false});
+      status.textContent = answer?.error ? String(answer.error) : `${host} 접근을 돌려주었습니다 / Access to ${host} given back`;
+    };
+    item.append(`${host} `, remove); return item;
+  }));
+  document.querySelector('#no-sites').hidden = hosts.length > 0;
+}
+chrome.storage.onChanged.addListener(changes => { if ('sites' in changes) showSites(); });
 async function show() {
+  showSites();
   const s = await chrome.storage.local.get(['notice', 'overrides']);
   document.querySelector('#notice').textContent = s.notice || '';
   document.querySelector('#overrides').value = Object.entries(s.overrides || {}).map(([w, h]) => `${w} = ${h}`).join('\n');

@@ -21,8 +21,10 @@ no advertising, no crash reporting and no sync. The authors never receive any da
   (`connect-src 'self'`) lets extension pages read only their own packaged files, and it loads no
   remote code or fonts.
 - **Permissions.** `storage` and `unlimitedStorage` hold your settings and the dictionary;
-  `activeTab` lets the popup show the address of the tab you opened it on; the content script runs
-  on HTTP(S) pages so it can rewrite text there once you enable it.
+  `activeTab` lets the popup show the address of the tab you opened it on; `scripting` registers
+  the content script. No site is allowed at install: when you turn a site on in the popup your browser
+  asks about that one site, the script is registered for it alone, and turning it off (or removing it
+  in Settings) gives the access back.
 - **Third parties.** None. Nothing is sold, shared or transferred, for any purpose.
 - **Deleting data.** Uninstalling the extension deletes everything it stored. Settings also lets you
   remove your choices.
@@ -48,7 +50,8 @@ for creditworthiness or lending.
   사이트 이름은 사용자가 켠 경우에만 목록에 들어갑니다.
 - **네트워크.** 네트워크 要請(요청)을 하지 않습니다. 원격 코드나 글꼴도 불러오지 않습니다.
 - **權限(권한).** `storage`·`unlimitedStorage`는 설정과 사전 보관용, `activeTab`은 팝업에 現在(현재) 탭의
-  주소를 보이기 위한 것, 內容(콘텐츠) 스크립트는 켠 뒤 HTTP(S) 페이지의 글을 바꾸기 위한 것입니다.
+  주소를 보이기 위한 것, `scripting`은 內容(콘텐츠) 스크립트를 등록하기 위한 것입니다. 설치할 때는 어떤 사이트도
+  허용받지 않으며, 팝업에서 사이트를 켤 때 브라우저가 그 사이트 하나에 대해서만 묻고, 끄면 허용을 돌려줍니다.
 - **第三者(제3자).** 없습니다. 판매·공유·전송을 하지 않습니다.
 - **삭제.** 확장 프로그램을 지우면 보관한 資料(자료)가 모두 사라집니다. 설정에서 선택만 지울 수도 있습니다.
 - **문의.** <https://github.com/peepeetee/gukhan/issues>

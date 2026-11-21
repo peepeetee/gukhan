@@ -18,7 +18,7 @@ registration fee and the upload are theirs).
 
 `python scripts/package_extension.py gukhan-chrome-0.1.1.zip --target chrome`
 
-The Chrome manifest drops the Firefox-only keys and `host_permissions`; the full smoke test passes
+The Chrome manifest drops the Firefox-only keys; it declares no host access at install (hosts are `optional_host_permissions`, asked for one site at a time); the full smoke test passes
 against the unpacked store build (`GUKHAN_EXT=<dir> node extension/browser-smoke.cjs`). For a
 build with a bundled dictionary add `--dictionary <lexicon dir> --no-definitions` (CC BY-SA
 notice is written beside it). The code-only build asks the reader to import a dictionary first.
@@ -57,8 +57,10 @@ Category: Productivity (or Accessibility/Education). Language: Korean + English.
   the user turns on.
 - Permission justifications: `storage`: settings and choices. `unlimitedStorage`: the imported
   dictionary (hundreds of thousands of headwords) exceeds the default quota. `activeTab`: popup shows
-  the current site's switch. Content script on HTTP(S): the only way to rewrite page text; it exits
-  immediately unless both switches are on.
+  the current site's switch. `scripting`: registers the content script, the only way to rewrite page
+  text, for the one site the user turned on. Optional host access (`http://*/*`, `https://*/*`): never
+  granted at install; the browser asks about a single host when the user turns that site on, and the
+  access is given back when it is turned off.
 - Remote code: none. Data use: collects none; none sold or transferred; none used for unrelated
   purposes or creditworthiness.
 - Privacy policy URL: <https://github.com/peepeetee/gukhan/blob/main/docs/privacy.md>

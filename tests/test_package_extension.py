@@ -21,6 +21,9 @@ def make_dictionary(tmp_path):
     return tmp_path
 
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_strip_definitions_keeps_ranking_columns():
     lines = pkg.strip_definitions(LEXICON).splitlines()
     assert lines[0] == "# header"
@@ -55,7 +58,16 @@ def test_chrome_target_manifest(tmp_path):
     assert m["manifest_version"] == 3
     assert "browser_specific_settings" not in m and "host_permissions" not in m
     assert "scripts" not in m["background"] and m["background"]["service_worker"] == "worker.js"
-    assert m["content_scripts"][0]["matches"] == ["http://*/*", "https://*/*"]
+    assert "content_scripts" not in m  # registered per site at runtime, never for every site
+    assert m["optional_host_permissions"] == ["http://*/*", "https://*/*"]
+
+
+def test_no_build_has_access_to_any_site_at_install():
+    """Hosts are granted one at a time by the reader (popup toggle); the manifest asks for none up front."""
+    m = json.loads((ROOT / "extension" / "manifest.json").read_text(encoding="utf-8"))
+    assert "host_permissions" not in m and "content_scripts" not in m
+    assert sorted(m["permissions"]) == ["activeTab", "scripting", "storage", "unlimitedStorage"]
+    assert m["optional_host_permissions"] == ["http://*/*", "https://*/*"]
 
 
 def test_firefox_target_keeps_gecko_keys(tmp_path):

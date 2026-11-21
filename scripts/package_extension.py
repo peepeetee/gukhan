@@ -46,13 +46,13 @@ def chrome_manifest(text: str) -> str:
     """The Chrome Web Store flavour of manifest.json.
 
     Drops what only Firefox reads (``browser_specific_settings``, the event-page ``scripts`` list)
-    so the store shows no unknown-key warnings, and drops ``host_permissions``: the content script's
-    own ``matches`` already covers HTTP(S) pages, and the popup learns the current address through
-    ``activeTab``, so the install prompt asks for nothing more than it needs.
+    so the store shows no unknown-key warnings. The manifest asks for no site at install: the reader turns
+    a site on in the popup, the browser asks about that one host (``optional_host_permissions``), and the
+    worker registers the content script for it. ``activeTab`` lets the popup read the current address.
     """
     m = json.loads(text)
     m.pop("browser_specific_settings", None)
-    m.pop("host_permissions", None)
+    m.pop("host_permissions", None)  # none declared; kept so a stray one never reaches the store
     m["background"].pop("scripts", None)
     m["minimum_chrome_version"] = "116"
     return json.dumps(m, ensure_ascii=False, indent=2) + "\n"
