@@ -27,11 +27,18 @@ def _line_col(starts: list[int], offset: int) -> tuple[int, int]:
 
 
 _WHITESPACE = re.compile(r"\s")
+# C0/C1 controls (ESC starts a terminal escape sequence), line/paragraph separators and the bidirectional
+# overrides that can reorder what a terminal shows
+_UNSAFE = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029\u202a-\u202e\u2066-\u2069]")
 
 
 def one_line(s: str) -> str:
-    """Every line break and tab becomes a space, so a context never breaks a TSV row or a terminal line."""
-    return _WHITESPACE.sub(" ", s)
+    """Every line break and tab becomes a space, so a context never breaks a TSV row or a terminal line.
+
+    Other control characters become ``�``: a text that is only being shown (``gukhan review``, reports) must
+    not be able to send escape sequences to the reader's terminal.
+    """
+    return _UNSAFE.sub("\ufffd", _WHITESPACE.sub(" ", s))
 
 
 def _context(text: str, d: Decision) -> str:

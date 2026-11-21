@@ -23,12 +23,12 @@
   // root, so it never moves page content; hovering previews it, a click or Enter pins it and moves
   // focus in, Escape / outside click / scrolling closes it. Styles are inline (CSSOM) so strict
   // page CSP cannot block them.
-  let hoverTimer, leaveTimer, anchor, pinned = false;
+  let hoverTimer, leaveTimer, anchor, root, pinned = false;  // root: the card's shadow root
   const dark = () => matchMedia('(prefers-color-scheme: dark)').matches;
   function style(el, css) { el.style.cssText = css; return el; }
   function closePopover(returnFocus) {
     clearTimeout(hoverTimer); clearTimeout(leaveTimer);
-    const was = anchor; panel?.remove(); panel = undefined; anchor = undefined; pinned = false;
+    const was = anchor; panel?.remove(); panel = root = undefined; anchor = undefined; pinned = false;
     removeEventListener('scroll', onScroll, true); removeEventListener('resize', onScroll);
     removeEventListener('pointerdown', onOutside, true); removeEventListener('keydown', onKey, true);
     if (returnFocus && was?.isConnected) was.focus();
@@ -39,8 +39,8 @@
     if (!panel) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePopover(true); return; }
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) || !pinned) return;
-    const buttons = [...panel.shadowRoot.querySelectorAll('button')];
-    const at = buttons.indexOf(panel.shadowRoot.activeElement);
+    const buttons = [...root.querySelectorAll('button')];
+    const at = buttons.indexOf(root.activeElement);
     const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 :
       (at + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
     e.preventDefault(); e.stopPropagation(); buttons[next].focus();
@@ -58,7 +58,8 @@
       line = night ? '#43544f' : '#cfd8d4', hover = night ? '#2e3d39' : '#e8f1ee', accent = night ? '#7fcab9' : '#235c53';
     anchor = span; panel = document.createElement('div'); panel.dataset.gukhan = 'panel';
     style(panel, 'all:initial;position:fixed;z-index:2147483647;top:0;left:0');
-    const shadow = panel.attachShadow({mode: 'open'});
+    // The page can reach an open root, but a click it fires is untrusted and every handler ignores it.
+    const shadow = root = panel.attachShadow({mode: 'open'});
     const box = style(document.createElement('div'),
       `box-sizing:border-box;min-width:140px;max-width:300px;max-height:min(320px,70vh);overflow:auto;padding:4px;background:${bg};color:${fg};` +
       `border:1px solid ${line};border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.22);font:14px/1.35 system-ui,sans-serif`);
@@ -80,7 +81,7 @@
       button.title = note;
       button.onpointerenter = button.onfocus = () => { button.style.background = hover; };
       button.onpointerleave = button.onblur = () => { button.style.background = ''; };
-      button.onclick = async e => { e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
+      button.onclick = async e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
       box.append(button);
     }
     box.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
@@ -97,12 +98,13 @@
   }
   function pinPopover() {
     pinned = true;
-    const buttons = panel.shadowRoot.querySelectorAll('button');
-    (panel.shadowRoot.querySelector('button[style*="600"]') || buttons[0]).focus({preventScroll: true});
+    const buttons = root.querySelectorAll('button');
+    (root.querySelector('button[style*="600"]') || buttons[0]).focus({preventScroll: true});
   }
   function attach(span, decision) {
+    // Only the reader's own input counts: a script on the page can dispatch events, but not trusted ones.
     span.addEventListener('pointerenter', e => {
-      if (e.pointerType !== 'mouse') return;
+      if (!e.isTrusted || e.pointerType !== 'mouse') return;
       clearTimeout(leaveTimer); clearTimeout(hoverTimer);
       hoverTimer = setTimeout(() => openPopover(span, decision, {pin: false}), 350);
     });
@@ -110,8 +112,9 @@
       clearTimeout(hoverTimer);
       if (!pinned) leaveTimer = setTimeout(() => closePopover(), 250);
     });
-    span.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); });
+    span.addEventListener('click', e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); });
     span.addEventListener('keydown', e => {
+      if (!e.isTrusted) return;
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); openPopover(span, decision, {pin: true}); }
     });
   }
@@ -157,6 +160,7 @@
   // Everything below changes the page only in one synchronous step, with the observer off, so the
   // reader never sees Hangul flash back between a restore and the next conversion.
   async function render(full) {
+    if (!document.body) return;  // an XML or SVG document has no body to convert
     const run = full ? ++generation : generation;
     if (!await enabled()) { if (run === generation) { observer.disconnect(); restoreAll(); watch(); } return; }
     const items = freshNodes().map(node => ({node, text: node.data}));
@@ -175,7 +179,7 @@
     } finally { watch(); }
     if (full) schedule(false);  // pick up anything the page added while we were converting
   }
-  function watch() { observer.observe(document.body, {childList: true, subtree: true, characterData: true}); }
+  function watch() { if (document.body) observer.observe(document.body, {childList: true, subtree: true, characterData: true}); }
   let running = false, again = false, fullPending = false;
   function schedule(full) {
     fullPending ||= full;

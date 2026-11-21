@@ -7,6 +7,7 @@ import argparse
 import os
 import shutil
 import sys
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -28,8 +29,9 @@ def _read(path: Path) -> str:
         return fh.read()
 
 
-def _write(path: Path, text: str) -> None:
-    with path.open("w", encoding="utf-8", newline="") as fh:
+def _write(path: Path, text: str, *, exclusive: bool = False) -> None:
+    """Write UTF-8 text. ``exclusive`` refuses an existing path (a symlink included) instead of following it."""
+    with path.open("x" if exclusive else "w", encoding="utf-8", newline="") as fh:
         fh.write(text)
 
 
@@ -360,12 +362,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if args.in_place and path is not None:
                 if not args.no_backup:
-                    shutil.copy2(path, _backup_path(path, args.backup_suffix))
+                    _backup(path, _backup_path(path, args.backup_suffix))
                 _write_atomic(path, out_text)
             elif target is not None:
                 if args.out_dir:
                     target.parent.mkdir(parents=True, exist_ok=True)
-                _write(target, out_text)
+                _write(target, out_text, exclusive=bool(args.out_dir))
             else:
                 sys.stdout.write(out_text)
             if args.report and result is not None:
@@ -461,14 +463,38 @@ def _backup_path(path: Path, suffix: str) -> Path:
     return path.with_name(path.name + suffix)
 
 
+def _backup(path: Path, dest: Path) -> None:
+    """Copy ``path`` to ``dest``, creating ``dest`` exclusively: an existing file or a symlink (even a dangling
+    one that points somewhere else) is refused, never written through."""
+    with path.open("rb") as src, dest.open("xb") as out:
+        shutil.copyfileobj(src, out)
+    shutil.copystat(path, dest)
+
+
 def _write_atomic(path: Path, text: str) -> None:
-    """Replace ``path`` in one step, so an interrupted run never leaves half a file."""
-    tmp = path.with_name(f".{path.name}.gukhan-tmp")
+    """Replace ``path`` in one step, so an interrupted run never leaves half a file.
+
+    A symlink is followed, so the link stays a link and its target is what changes; the new file keeps the
+    old one's permissions; the temporary file is created exclusively with an unpredictable name, so nobody can
+    plant a symlink at its name in a shared folder.
+    """
+    real = Path(os.path.realpath(path))
+    fd, name = tempfile.mkstemp(prefix=f".{real.name}.", suffix=".gukhan-tmp", dir=real.parent)
+    tmp = Path(name)
     try:
-        _write(tmp, text)
-        os.replace(tmp, path)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+        shutil.copymode(real, tmp)
+        os.replace(tmp, real)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def _same_file(a: Path, b: Path) -> bool:
+    try:
+        return os.path.samefile(a, b)
+    except OSError:  # one of them does not exist yet
+        return a.resolve() == b.resolve()
 
 
 def _plan(args: argparse.Namespace) -> list[tuple[Path, Path | None]] | int:
@@ -508,18 +534,26 @@ def _plan(args: argparse.Namespace) -> list[tuple[Path, Path | None]] | int:
             target = args.out_dir / path.name
             if target.resolve() == key:
                 return _err(f"出力이 入力을 덮어씁니다 / output would overwrite its input: {path}; use --in-place")
-        if args.in_place and not args.no_backup and _backup_path(path, args.backup_suffix).exists():
+        if args.in_place and not args.no_backup and os.path.lexists(_backup_path(path, args.backup_suffix)):
             return _err(
                 f"백업이 이미 있습니다 / backup already exists: {_backup_path(path, args.backup_suffix)} "
                 "(move it away, or choose --backup-suffix / --no-backup)"
             )
+        for flag, other in (("-o", args.output), ("--report", args.report)):
+            if other is not None and _same_file(path, other):
+                return _err(
+                    f"{flag} 가 入力 file과 같습니다 / {flag} is the input file itself: {path} "
+                    "(use --in-place, which keeps a backup)"
+                )
         jobs.append((path, target if args.out_dir else args.output))
+    if args.output and args.report and _same_file(args.output, args.report):
+        return _err("-o 와 --report 가 같은 file입니다 / -o and --report name the same file")
     if args.out_dir:
         names = [t.name for _, t in jobs if t]
         if len(names) != len(set(names)):
             return _err("--out-dir 에서 file 이름이 겹칩니다 / two inputs have the same file name")
         for _, t in jobs:
-            if t and t.exists():
+            if t and os.path.lexists(t):
                 return _err(f"出力 file이 이미 있습니다 / output exists, not overwriting: {t}")
     return jobs
 
