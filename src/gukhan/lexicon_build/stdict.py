@@ -81,6 +81,7 @@ class ParseStats:
     tags_seen: set[str] = field(default_factory=set)
     # Hangul headwords that also exist as native words (no Hanja form): word → (pos, gloss, weight)
     native: dict[str, tuple[str, str, int]] = field(default_factory=dict)
+    native_source: dict[str, str] = field(default_factory=dict)  # headword → source id, where it is not Wiktionary
 
 
 def _local(tag: str) -> str:
@@ -242,6 +243,23 @@ def align(hangul: str, hanja: str) -> str | None:
     return mixed
 
 
+# Parts of speech of native words that can collide with a Sino-Korean headword (사랑 vs 舍廊).
+NATIVE_POS = frozenset({"명사", "부사", "관형사", "의존 명사", "수사"})
+
+
+def note_native(item: ET.Element, word: str, stats: ParseStats) -> None:
+    """Record a native (고유어) headword so that the same sound as a Sino-Korean entry is flagged, not converted."""
+    pos = _find_text(item, "pos") or ""
+    hangul = clean_headword(word)
+    if pos not in NATIVE_POS or not hangul or not all("가" <= c <= "힣" for c in hangul):
+        return
+    sense = re.sub(r"<[^>]+>", "", _find_text(item, "definition") or "").replace("\t", " ").replace("\n", " ")[:80]
+    native = stats.native
+    if hangul not in native or (native[hangul][0] != "명사" and pos == "명사"):
+        native[hangul] = (pos, sense, 0)
+        stats.native_source[hangul] = f"stdict:{_find_text(item, 'target_code') or hangul}"
+
+
 GENERAL_CAT = "없음"
 
 
@@ -326,6 +344,8 @@ def parse(
         raw_hanja = "".join(raw for raw, _ in comps) or _find_text(item, "origin") or ""
         word_type = _find_text(item, "word_type") or ""
         if word_type and word_type not in SINO_WORD_TYPES:
+            if word_type == "고유어" and _find_text(item, "word_unit") == "단어":
+                note_native(item, word, stats)
             continue
         if not any(is_cjk(c) for c in raw_hanja):
             continue
