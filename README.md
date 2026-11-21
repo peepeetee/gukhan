@@ -50,6 +50,9 @@ for d in result.of(Kind.FLAGGED):  # homographs left in Hangul, with candidates
     print(d.hangul, [c.hanja for c in d.candidates])
 ```
 
+Speed: about 0.36 MB/s on 4 cores (`--workers N` sets Kiwi's threads, `--jobs N` splits several files over
+processes; the output never changes); numbers and method in `docs/performance.md` (處理 速度).
+
 A worked example of the override file and of `gukhan review`, with every command run by the tests:
 `docs/overrides-and-review.md` (使用者 安內 / user guide).
 

@@ -229,8 +229,9 @@ def test_kiwi_analyser_selects_cong_explicitly(monkeypatch):
     calls = {}
 
     class FakeKiwi:
-        def __init__(self, model_type=None):
+        def __init__(self, model_type=None, num_workers=None):
             calls["model_type"] = model_type
+            calls["num_workers"] = num_workers
             self.model_type = model_type
 
         def tokenize(self, text):
@@ -240,6 +241,7 @@ def test_kiwi_analyser_selects_cong_explicitly(monkeypatch):
     analyser = KiwiAnalyser()
     assert analyser.tokenize("연구") == []
     assert calls["model_type"] == KIWI_MODEL_TYPE == "cong"
+    assert calls["num_workers"] == analyser.workers >= 1
     assert analyser.describe() == "kiwipiepy 0.0.0-test, model cong"
 
 
@@ -338,3 +340,44 @@ def test_normalise_maps_offsets_back():
     assert _normalise("plain") is None
     plain, starts, ends = _normalise("가​" + "한")  # 가, ZWSP, 한 as jamo
     assert plain == "가한" and starts == [0, 2] and ends == [1, 5]
+
+
+class _CountingAnalyser:
+    """Counts what the converter asks of its analyser; every text has no tokens."""
+
+    def __init__(self):
+        self.single = 0
+        self.batched: list[int] = []
+
+    def tokenize(self, text):
+        self.single += 1
+        return []
+
+    def tokenize_many(self, texts):
+        self.batched.append(len(texts))
+        return [[] for _ in texts]
+
+
+def test_each_piece_is_analysed_once_and_in_a_batch():
+    """The evidence pass and the real pass share one analysis per piece; pieces go to the analyser together."""
+    from gukhan.convert import chunk_bounds
+
+    text = "".join(f"{i} " + "가나다 라마바 사아자 " * 200 + "\n" for i in range(3))
+    pieces = {text[a:b] for a, b in chunk_bounds(text)}
+    assert len(pieces) >= 3
+    analyser = _CountingAnalyser()
+    conv = Converter(Lexicon([Entry("가나다", "假那多")]), analyser=analyser)
+    assert "field" in conv.rules
+    assert conv.convert(text).text == text
+    assert analyser.single == 0 and analyser.batched == [len(pieces)]
+
+
+def test_threads_do_not_change_the_result():
+    from gukhan.analyser import KiwiAnalyser
+
+    text = "".join(f"{i}. 국군은 작전 계획을 수립하였다. 전기 공학을 연구하는 학자가 있었다.\n" * 25 for i in range(4))
+    lex = Lexicon([Entry("작전", "作戰", "명사"), Entry("계획", "計劃", "명사"), Entry("전기", "電氣", "명사")])
+    one = Converter(lex, analyser=KiwiAnalyser(workers=1)).convert(text)
+    four = Converter(lex, analyser=KiwiAnalyser(workers=4)).convert(text)
+    assert one.text == four.text and one.decisions == four.decisions
+    assert "作戰 計劃" in one.text

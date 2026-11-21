@@ -67,6 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--size-mb", type=float, default=1.0, help="text size in MB (UTF-8)")
     ap.add_argument("--lexicon", type=Path, help="lexicon.tsv or directory; default: sample plus synthetic entries")
     ap.add_argument("--synthetic-entries", type=int, default=200_000)
+    ap.add_argument("--workers", type=int, default=None, help="Kiwi threads (default: cores, at most 4)")
     ap.add_argument("--json", action="store_true", help="print one JSON object")
     args = ap.parse_args(argv)
 
@@ -82,7 +83,10 @@ def main(argv: list[str] | None = None) -> int:
         lexicon_name = f"synthetic {args.synthetic_entries}"
     load_s = time.perf_counter() - t
 
-    conv = Converter(lex)
+    from gukhan.analyser import KiwiAnalyser
+
+    analyser = KiwiAnalyser(workers=args.workers)
+    conv = Converter(lex, analyser=analyser)
     t = time.perf_counter()
     conv.convert("국군은 작전 계획을 수립하였다.")  # loads the Kiwi model
     model_s = time.perf_counter() - t
@@ -99,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
         "lexicon_entries": len(lex),
         "lexicon_load_s": round(load_s, 2),
         "model_load_s": round(model_s, 2),
+        "workers": analyser.workers,
         "convert_s": round(convert_s, 2),
         "mb_per_s": round(nbytes / 1e6 / convert_s, 3),
         "chars_per_s": round(len(text) / convert_s),
@@ -112,7 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{nbytes / 1e6:.2f} MB ({out['chars']} chars) in {convert_s:.1f} s = {out['mb_per_s']} MB/s "
             f"({out['chars_per_s']} chars/s); {out['decisions']} decisions; lexicon {lexicon_name} "
-            f"({out['lexicon_entries']} entries, load {load_s:.1f} s), model load {model_s:.1f} s"
+            f"({out['lexicon_entries']} entries, load {load_s:.1f} s), model load {model_s:.1f} s, "
+            f"{analyser.workers} thread(s)"
         )
     return 0
 

@@ -7,9 +7,11 @@ import argparse
 import os
 import shutil
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import __version__, report, rules
+from .analyser import KiwiAnalyser, default_workers
 from .convert import Converter
 from .lexicon import Lexicon
 from .overrides import Overrides
@@ -154,6 +156,22 @@ def build_parser() -> argparse.ArgumentParser:
         f"({', '.join(sorted(rules.ALL))}), comma separated; see docs/PLAN.md §5",
     )
     ap.add_argument(
+        "--jobs",
+        type=int,
+        default=1,
+        metavar="N",
+        help="여러 file을 N個 process로 나눠 變換 (0 = 自動; 각 process가 辭典을 따로 읽음) / "
+        "convert several files in N processes (0 = automatic; each process loads the lexicon itself)",
+    )
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Kiwi 分析에 쓸 thread 數 (기본: 코어 數, 最大 4; 結果는 같음) / "
+        "threads Kiwi analyses with (default: cores, at most 4; the output is the same)",
+    )
+    ap.add_argument(
         "--version",
         action=_Version,
         nargs=0,
@@ -251,30 +269,38 @@ def main(argv: list[str] | None = None) -> int:
         use_rules = rules.parse_rules(args.rules)
     except ValueError as e:
         return _err(str(e))
+    if args.workers is not None and args.workers < 1 or args.jobs < 0:
+        return _err("--workers는 1 이상, --jobs는 0 이상이어야 합니다 / --workers must be 1 or more, --jobs 0 or more")
+    n_jobs = (
+        1 if args.stdin or len(jobs) < 2 else (min(os.cpu_count() or 1, len(jobs)) if args.jobs == 0 else args.jobs)
+    )
+    n_jobs = min(n_jobs, len(jobs)) if not args.stdin else 1
     conv = Converter(
         lexicon,
         overrides if args.overrides else None,
+        analyser=KiwiAnalyser(workers=args.workers),
         review_all=args.review_all,
         min_weight=args.min_weight,
         use_rules=use_rules,
     )
 
     status = 0
-    for path, target in jobs if not args.stdin else [(None, args.output)]:
+    plan = jobs if not args.stdin else [(None, args.output)]
+    spec = _WorkerSpec(args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers)
+    for path, target, out_text, s, result in _convert_stream(conv, plan, texts, args.mark, n_jobs, spec):
         text = texts[path]
-        result = conv.convert(text, mark=args.mark)
         try:
             if args.in_place and path is not None:
                 if not args.no_backup:
                     shutil.copy2(path, _backup_path(path, args.backup_suffix))
-                _write_atomic(path, result.text)
+                _write_atomic(path, out_text)
             elif target is not None:
                 if args.out_dir:
                     target.parent.mkdir(parents=True, exist_ok=True)
-                _write(target, result.text)
+                _write(target, out_text)
             else:
-                sys.stdout.write(result.text)
-            if args.report:
+                sys.stdout.write(out_text)
+            if args.report and result is not None:
                 suffix = args.report.suffix.lower()
                 body = report.to_markdown(text, result) if suffix == ".md" else report.to_tsv(text, result)
                 _write(args.report, body)
@@ -282,7 +308,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"gukhan: 쓸 수 없습니다 / cannot write: {e.filename or path} {e.strerror or e}", file=sys.stderr)
             status = 2
             continue
-        s = report.summary(result)
         print(
             (f"{path}: " if len(jobs) > 1 else "")
             + f"變換 {s['converted']} · flag {s['flagged']} · 檢討 {s['review']} · 維持 {s['kept']}"
@@ -290,6 +315,69 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
     return status
+
+
+@dataclass(frozen=True)
+class _WorkerSpec:
+    """What a worker process needs to build the same Converter: paths and options, no loaded data."""
+
+    lexicon: Path | None
+    overrides: list[Path]
+    review_all: bool
+    min_weight: int | None
+    use_rules: frozenset[str]
+    kiwi_workers: int | None
+
+
+_WORKER: dict[str, Converter] = {}
+
+
+def _init_worker(spec: _WorkerSpec, jobs: int) -> None:
+    lexicon = Lexicon.load(spec.lexicon) if spec.lexicon else (Lexicon.installed() or Lexicon.sample())
+    overrides = Overrides()
+    for p in spec.overrides:
+        overrides.update(Overrides.load(p))
+    threads = spec.kiwi_workers if spec.kiwi_workers is not None else max(1, default_workers() // jobs)
+    _WORKER["conv"] = Converter(
+        lexicon,
+        overrides if spec.overrides else None,
+        analyser=KiwiAnalyser(workers=threads),
+        review_all=spec.review_all,
+        min_weight=spec.min_weight,
+        use_rules=spec.use_rules,
+    )
+
+
+def _convert_in_worker(job: tuple[str, bool]) -> tuple[str, dict[str, int]]:
+    text, mark = job
+    result = _WORKER["conv"].convert(text, mark=mark)
+    return result.text, report.summary(result)
+
+
+def _convert_stream(conv, plan, texts, mark, n_jobs, spec):
+    """Yield ``(path, target, converted text, summary, result)`` in input order.
+
+    One process by default; with ``n_jobs`` > 1 the files are split over that many worker processes
+    (started with ``spawn``, so Kiwi's threads are never forked), each building its own Converter. The
+    converted text is the same either way; ``result`` (the decisions, for ``--report``) exists only in-process.
+    """
+    if n_jobs <= 1:
+        for path, target in plan:
+            result = conv.convert(texts[path], mark=mark)
+            yield path, target, result.text, report.summary(result), result
+        return
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
+
+    with ProcessPoolExecutor(
+        max_workers=n_jobs,
+        mp_context=multiprocessing.get_context("spawn"),
+        initializer=_init_worker,
+        initargs=(spec, n_jobs),
+    ) as pool:
+        outputs = pool.map(_convert_in_worker, [(texts[path], mark) for path, _ in plan])
+        for (path, target), (out_text, summary) in zip(plan, outputs, strict=True):
+            yield path, target, out_text, summary, None
 
 
 def _backup_path(path: Path, suffix: str) -> Path:

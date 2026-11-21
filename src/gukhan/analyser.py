@@ -61,7 +61,7 @@ NATIVE_STOP = frozenset(
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Token:
     form: str
     tag: str
@@ -76,12 +76,29 @@ class Analyser(Protocol):
     def tokenize(self, text: str) -> list[Token]: ...
 
 
-class KiwiAnalyser:
-    """Wraps kiwipiepy. The model (about 2 s) loads on first use."""
+def default_workers() -> int:
+    """Threads Kiwi may use for a batch: the machine's cores, at most 4 (more bring little), 1 if unknown."""
+    import os
 
-    def __init__(self, model_type: str = KIWI_MODEL_TYPE) -> None:
+    try:
+        cores = len(os.sched_getaffinity(0))
+    except AttributeError:  # not on every platform
+        cores = os.cpu_count() or 1
+    return max(1, min(4, cores))
+
+
+class KiwiAnalyser:
+    """Wraps kiwipiepy. The model (about 2 s) loads on first use.
+
+    ``tokenize_many`` hands a batch of texts to Kiwi's own multi-text call, which runs them on
+    ``workers`` threads; each text is analysed on its own, so the tokens are exactly those of one
+    ``tokenize`` call per text, whatever the thread count.
+    """
+
+    def __init__(self, model_type: str = KIWI_MODEL_TYPE, workers: int | None = None) -> None:
         self._kiwi = None
         self.model_type = model_type
+        self.workers = default_workers() if workers is None else max(1, workers)
 
     def _load(self):
         if self._kiwi is None:
@@ -91,7 +108,7 @@ class KiwiAnalyser:
                 raise RuntimeError(
                     "kiwipiepy가 設置되어 있지 않습니다 / kiwipiepy is not installed: pip install kiwipiepy"
                 ) from e
-            self._kiwi = Kiwi(model_type=self.model_type)
+            self._kiwi = Kiwi(model_type=self.model_type, num_workers=self.workers)
         return self._kiwi
 
     def describe(self) -> str:
@@ -103,7 +120,17 @@ class KiwiAnalyser:
 
     def tokenize(self, text: str) -> list[Token]:
         kiwi = self._load()
-        return [Token(t.form, t.tag, t.start, t.end) for t in kiwi.tokenize(text)]
+        return [Token(t.form, t.tag, t.start, t.end, idx=i) for i, t in enumerate(kiwi.tokenize(text))]
+
+    def tokenize_many(self, texts: list[str]) -> list[list[Token]]:
+        """``[tokenize(t) for t in texts]``, analysed in parallel."""
+        kiwi = self._load()
+        if len(texts) < 2 or self.workers < 2:
+            return [self.tokenize(t) for t in texts]
+        return [
+            [Token(t.form, t.tag, t.start, t.end, idx=i) for i, t in enumerate(tokens)]
+            for tokens in kiwi.tokenize(texts)
+        ]
 
 
 class ListAnalyser:
