@@ -79,7 +79,7 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue and pull-request templates (#51).
 
 ### Changed / 變更
-- Conversion is about 18× faster on 1 MB with identical output (#64); the lexicon loads about 22% faster with an identical index (#78).
+- Conversion is about 18× faster on 1 MB with identical output (#64); the lexicon loads about 22% faster with an identical index (#79).
 - Candidate ranking, strict part-of-speech matching, weights and gloss cleanup in the builder (#3, #5, #6).
 - `峯` and `峰` score as the same glyph (#21).
 - README accuracy figures are rescored on each lexicon change and come only from `gukhan-regress score`
