@@ -28,7 +28,12 @@ python -m pytest -q                                 # about 30 s; tests marked k
 node --test extension/engine.test.mjs               # extension engine (Node 22)
 node extension/browser-smoke.cjs                    # optional: needs Playwright + Chromium
 python scripts/check_licences.py                    # what CI runs for licences
+python scripts/check_bilingual.py                   # every message needs Korean and English
+python scripts/benchmark.py                         # throughput on 1 MB (CI runs it, non-blocking)
 ```
+
+한국어: 모든 사용자 向 글에는 韓國語(國漢混用)와 英語가 함께 있어야 하며 `check_bilingual.py`가 이를 確認합니다.
+`benchmark.py`는 1 MB 글의 處理 速度를 재며, CI에서는 結果가 나빠도 merge를 막지 않습니다.
 
 ## Pull requests / 變更 提案
 
