@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 EXT = ROOT / "extension"
-SKIP = ("engine.test.mjs", "browser-smoke.cjs", "firefox-smoke.cjs", "bundled-smoke.cjs", "README.md")
+SKIP = ("engine.test.mjs", "a11y.test.mjs", "browser-smoke.cjs", "firefox-smoke.cjs", "bundled-smoke.cjs", "README.md")
 
 
 def strip_definitions(text: str) -> str:

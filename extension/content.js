@@ -111,6 +111,7 @@
   function onKey(e) {
     if (!panel) return;
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePopover(true); return; }
+    if (e.key === 'Tab' && pinned) { closePopover(true); return; }  // focus goes back to the word and Tab moves on from there
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key) || !pinned) return;
     const buttons = [...root.querySelectorAll('button')];
     const at = buttons.indexOf(root.activeElement);
@@ -129,6 +130,7 @@
     closePopover();
     const night = dark(), fg = night ? '#e8eeec' : '#172d2b', bg = night ? '#1f2a28' : '#ffffff',
       line = night ? '#43544f' : '#cfd8d4', hover = night ? '#2e3d39' : '#e8f1ee', accent = night ? '#7fcab9' : '#235c53';
+    const touch = matchMedia('(pointer: coarse)').matches;  // a finger needs a 44 px target (Firefox for Android)
     anchor = span; panel = document.createElement('div'); panel.dataset.gukhan = 'panel';
     style(panel, 'all:initial;position:fixed;z-index:2147483647;top:0;left:0');
     // The page can reach an open root, but a click it fires is untrusted and every handler ignores it.
@@ -136,9 +138,9 @@
     const box = style(document.createElement('div'),
       `box-sizing:border-box;min-width:140px;max-width:300px;max-height:min(320px,70vh);overflow:auto;padding:4px;background:${bg};color:${fg};` +
       `border:1px solid ${line};border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.22);font:14px/1.35 system-ui,sans-serif`);
-    box.setAttribute('role', 'group'); box.setAttribute('aria-label', `${decision.word} · 후보 / candidates`);
+    box.setAttribute('role', 'group'); box.lang = 'ko'; box.setAttribute('aria-label', `${decision.word} · 후보 / candidates`);
     const head = style(document.createElement('div'), `padding:2px 8px 4px;font-size:12px;color:${accent}`);
-    head.textContent = decision.word; box.append(head);
+    head.textContent = decision.word; head.setAttribute('aria-hidden', 'true'); box.append(head);  // the group's label says it
     const seen = new Set(), choices = [];
     // a native-word twin (form equal to the headword) is "Keep Hangul", listed once below
     for (const c of decision.candidates) if (c.form !== decision.word && !seen.has(c.form)) { seen.add(c.form); choices.push(c); }
@@ -146,6 +148,7 @@
     // 한자 풀이: the reading and meaning of each Hanja of the candidate under the pointer (or of the chosen one),
     // from the character list if one was imported; nothing is shown without it.
     const detail = style(document.createElement('div'), `padding:4px 8px 2px;font-size:12px;color:${accent};white-space:normal;display:none`);
+    detail.setAttribute('role', 'status');  // read out as the pointer or focus moves between candidates
     let info = {};
     const showDetail = candidate => {
       const lines = [...(candidate?.form === '-' ? '' : candidate?.form || '')].filter(ch => info[ch]).map(ch => {
@@ -158,14 +161,20 @@
     for (const candidate of choices) {
       const current = candidate.form === (decision.text === decision.word ? '-' : decision.text);
       const button = style(document.createElement('button'),
-        `all:unset;box-sizing:border-box;display:block;width:100%;padding:5px 8px;border-radius:5px;cursor:pointer;` +
+        `all:unset;box-sizing:border-box;display:block;width:100%;padding:5px 8px;border-radius:5px;cursor:pointer;${touch ? 'min-height:44px;line-height:34px;' : ''}` +
         `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${fg};font-weight:${current ? 600 : 400}`);
       const form = candidate.form === '-' ? '' : candidate.form;
       const note = `${candidate.domain ? `[${candidate.domain}] ` : ''}${candidate.sense || ''}`;  // [법률] for statute terms
-      button.textContent = `${current ? '✓ ' : ''}${form}${form && note ? '  ' : ''}${note.slice(0, 40)}`;
+      if (current) { const tick = document.createElement('span'); tick.textContent = '✓ '; tick.setAttribute('aria-hidden', 'true'); button.append(tick); }
+      button.append(`${form}${form && note ? '  ' : ''}${note.slice(0, 40)}`);
+      button.setAttribute('aria-pressed', String(current));  // the saved choice, which the ✓ shows to the eye
+      if (!form) button.setAttribute('aria-label', '한글 유지 / Keep Hangul');
       button.title = note;
-      button.onpointerenter = button.onfocus = () => { button.style.background = hover; showDetail(candidate); };
-      button.onpointerleave = button.onblur = () => { button.style.background = ''; showDetail(chosen()); };
+      button.onpointerenter = () => { button.style.background = hover; showDetail(candidate); };
+      button.onpointerleave = () => { button.style.background = ''; showDetail(chosen()); };
+      // a visible 2 px ring on keyboard focus (the hover tint alone is far below 3:1)
+      button.onfocus = () => { button.style.background = hover; button.style.outline = `2px solid ${accent}`; button.style.outlineOffset = '-2px'; showDetail(candidate); };
+      button.onblur = () => { button.style.background = ''; button.style.outline = ''; showDetail(chosen()); };
       button.onclick = async e => { if (!e.isTrusted) return; e.preventDefault(); e.stopPropagation(); closePopover(true); await save(decision, candidate.form); };
       box.append(button);
     }
@@ -263,9 +272,14 @@
       plain(text.slice(end, decision.start));
       const span = document.createElement('span'); span.dataset.gukhan = 'word';
       span.dataset.original = decision.word; fill(span, decision);
-      span.tabIndex = 0; span.setAttribute('role', 'button'); span.setAttribute('aria-haspopup', 'true');
-      span.setAttribute('aria-label', `${decision.text} · ${decision.word} · 후보 / candidates`);
+      // A screen reader says Hanja badly, so the accessible name leads with the Hangul reading (the word as the author
+      // wrote it) and adds the Hanja form; lang="ko" makes it read them as Korean. The description says what Enter does.
+      span.tabIndex = 0; span.lang = 'ko'; span.setAttribute('role', 'button'); span.setAttribute('aria-haspopup', 'true');
+      span.setAttribute('aria-label', decision.text === decision.word ? decision.word : `${decision.word} · ${decision.text}`);
+      span.setAttribute('aria-description', '후보 보기 / Show candidates');
       span.style.textDecoration = 'underline dotted'; span.style.textUnderlineOffset = '2px';
+      span.addEventListener('focus', () => { span.style.outline = `2px solid ${dark() ? '#7fcab9' : '#235c53'}`; span.style.outlineOffset = '2px'; });
+      span.addEventListener('blur', () => { span.style.outline = ''; span.style.outlineOffset = ''; });
       attach(span, decision);
       wrappers.add(span); toCheck.push({span, text: decision.text}); fragment.append(span); end = decision.end;
     }

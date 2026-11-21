@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: "22"
       - name: Engine unit tests
-        run: node --test extension/engine.test.mjs
+        run: node --test extension/engine.test.mjs extension/a11y.test.mjs
       - name: Install Playwright (Apache-2.0) and Chromium
         run: |
           npm install --no-save --prefix build/browser-check playwright@1.64.1

@@ -1,15 +1,15 @@
 <!doctype html>
 <!-- SPDX-License-Identifier: Apache-2.0 -->
-<html lang="ko"><meta charset="utf-8"><title>gukhan 설정 / Settings</title><link rel="stylesheet" href="ui.css">
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>gukhan 설정 / Settings</title><link rel="stylesheet" href="ui.css">
 <body><h1>gukhan · 國漢混用</h1>
 <p>사전은 별도 배포됩니다. lexicon.tsv와 manifest.json을 함께 선택하세요 (한자 풀이를 보려면 char-info.tsv도).<br>Import the separately built lexicon.tsv and manifest.json together (add char-info.tsv for the Hanja readings and meanings on the candidate card).</p>
-<input id="files" type="file" multiple accept=".tsv,.json"><button id="import">가져오기 / Import</button>
+<input id="files" type="file" multiple accept=".tsv,.json" aria-label="사전 파일 / Dictionary files"><button id="import">가져오기 / Import</button>
 <p id="status" role="status"></p><pre id="notice"></pre>
 <h2>켜 둔 사이트 / Sites that are on</h2>
 <p>여기에 있는 사이트만 읽습니다. 지우면 그 사이트의 접근 허용도 돌려줍니다.<br>Only these sites are read. Removing one also gives its access back to the browser.</p>
-<ul id="sites"></ul><p id="no-sites">없음 / None</p>
+<ul id="sites" aria-label="켜 둔 사이트 / Sites that are on"></ul><p id="no-sites">없음 / None</p>
 <h2>내 선택 / My overrides</h2><p>단어 = 漢字, 또는 단어 = - (한글 유지). One word per line; “-” keeps Hangul.</p>
-<textarea id="overrides" rows="12" aria-label="Overrides"></textarea><button id="save">저장 / Save</button>
+<textarea id="overrides" rows="12" aria-label="내 선택 / My overrides"></textarea><button id="save">저장 / Save</button>
 <h2>개인정보 / Privacy</h2><p>페이지·사전·선택은 기기 안에서만 처리합니다. 서버·분석·동기화가 없습니다.<br>Page text, dictionaries and overrides stay on this device. No server, analytics or sync.</p>
 <p>브라우저 버전은 완전 일치 단어만 처리합니다. CLI의 형태소 분석 및 정확도와 다릅니다.<br>The browser uses exact whole-word matching. CLI morphology and accuracy measurements do not apply.</p>
 <script type="module" src="options.js"></script></body></html>

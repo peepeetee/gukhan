@@ -81,6 +81,24 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     await page.keyboard.press('Escape');
     await panel.waitFor({state: 'detached'});
     assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan), 'word');
+    // Accessibility: the word's name leads with the Hangul reading, it is read as Korean, shows a focus ring,
+    // and the card marks the saved choice, has a status line and gives focus back on Tab.
+    const access = await word.evaluate(w => ({label: w.getAttribute('aria-label'), lang: w.lang, role: w.getAttribute('role'),
+      description: w.getAttribute('aria-description'), outline: getComputedStyle(w).outlineStyle, original: w.dataset.original, text: w.textContent}));
+    assert.equal(access.role, 'button'); assert.equal(access.lang, 'ko'); assert.match(access.description, /후보/);
+    assert.ok(access.label.startsWith(access.original), `the name starts with the Hangul reading: ${access.label}`);
+    assert.notEqual(access.outline, 'none', 'a focused word shows a focus ring');
+    await page.keyboard.press('Enter'); await panel.waitFor({state: 'attached'});
+    const access2 = await page.evaluate(() => {
+      const root = document.querySelector('[data-gukhan="panel"]').shadowRoot, buttons = [...root.querySelectorAll('button')];
+      return {pressed: buttons.map(b => b.getAttribute('aria-pressed')), status: !!root.querySelector('[role=status]'),
+        ring: getComputedStyle(root.activeElement).outlineStyle};
+    });
+    assert.ok(access2.pressed.every(v => v === 'true' || v === 'false') && access2.pressed.includes('false'), 'candidates report whether they are the saved choice');
+    assert.ok(access2.status, 'the Hanja detail line is a status region'); assert.notEqual(access2.ring, 'none', 'the focused candidate shows a focus ring');
+    await page.keyboard.press('Tab'); await panel.waitFor({state: 'detached'});
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.gukhan !== 'panel'), true);
+    await word.focus();
     await word.click();
     await page.locator('[data-gukhan="panel"]').waitFor({state: 'attached'}); // host has no box; the dialog lives in its shadow root
     await page.getByRole('button', {name: /^電氣/}).click();
