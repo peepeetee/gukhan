@@ -101,7 +101,7 @@ class Tally:
 
 def read_items(path: Path) -> list[Item]:
     items = []
-    with path.open(encoding="utf-8") as fh:
+    with path.open(encoding="utf-8-sig") as fh:
         for n, line in enumerate(fh, 1):
             if not line.strip() or line.startswith("#"):
                 continue

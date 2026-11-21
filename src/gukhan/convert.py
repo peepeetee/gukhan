@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from dataclasses import dataclass, field, replace
 from enum import Enum
@@ -20,6 +21,11 @@ DEFAULT_MIN_WEIGHT = 0
 # Tags that may take part in a multi-token phrase match. Determiners, adverbs
 # and dependent nouns are excluded so that 「세 시」 never becomes 세시.
 PHRASE_TAGS = frozenset({"NNG", "NNP", "NR", "XR", "XPN", "XSN"})
+# Kiwi's running time grows faster than linearly with the length of one call (about 75 times slower
+# for a 16 times longer text), so long spans are analysed in pieces of about this many characters.
+# Pieces end at a line break, else after a sentence, else at a space; a phrase never spans one.
+CHUNK_CHARS = 2000
+_SENTENCE_END = re.compile(r"[.!?。…][\"'”’)\]]*\s")
 
 
 def spacing_compatible(span: str, entry_hangul: str) -> bool:
@@ -58,6 +64,28 @@ class Result:
 
     def of(self, kind: Kind) -> list[Decision]:
         return [d for d in self.decisions if d.kind == kind]
+
+
+def chunk_bounds(s: str, limit: int | None = None) -> list[tuple[int, int]]:
+    """Split ``s`` into consecutive ``(start, end)`` pieces of at most ``limit`` characters.
+
+    The cut falls after the last line break inside the limit, else after the last sentence end,
+    else after the last space, else at the limit itself.
+    """
+    limit = limit or CHUNK_CHARS
+    out, pos = [], 0
+    while pos < len(s):
+        end = min(pos + limit, len(s))
+        if end < len(s):
+            cut = s.rfind("\n", pos, end) + 1
+            if cut <= pos:
+                ends = [m.end() for m in _SENTENCE_END.finditer(s, pos, end)]
+                cut = ends[-1] if ends else s.rfind(" ", pos, end) + 1
+            if cut > pos:
+                end = cut
+        out.append((pos, end))
+        pos = end
+    return out
 
 
 def _is_hangul(s: str) -> bool:
@@ -375,8 +403,10 @@ class Converter:
                 self.field_evidence = None
         decisions: list[Decision] = []
         for seg in segment(text):
-            if not seg.protected:
-                decisions.extend(self.convert_span(text[seg.start : seg.end], seg.start))
+            if seg.protected:
+                continue
+            for a, b in chunk_bounds(text[seg.start : seg.end]):
+                decisions.extend(self.convert_span(text[seg.start + a : seg.start + b], seg.start + a))
         out, pos = [], 0
         for d in decisions:
             out.append(text[pos : d.start])

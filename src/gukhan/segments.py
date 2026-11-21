@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Split text into convertible and protected spans.
 
-Protected: fenced code blocks, inline code, URLs, e-mail addresses, and HTML
-tags. Everything else is converted, including Markdown headings and links'
-visible text.
+Protected: fenced code blocks (also indented ones), inline code, URLs, e-mail
+addresses, HTML tags, and Markdown link destinations. Everything else is
+converted, including Markdown headings and links' visible text.
 """
 
 from __future__ import annotations
@@ -13,11 +13,15 @@ from dataclasses import dataclass
 
 _PROTECTED = re.compile(
     r"(?ms)"
-    r"^(?P<fence>`{3,}|~{3,})[^\n]*\n.*?^(?P=fence)[ \t]*$"  # fenced code block
-    r"|`[^`\n]+`"  # inline code
+    # fenced code block, CommonMark style: may be indented (inside a list item), closes on a
+    # fence of the same character at least as long, and runs to the end of the text when unclosed
+    r"^[ \t]*(?P<bt>`{3,})[^`\n]*\n(?:.*?^[ \t]*(?P=bt)`*[ \t]*$|.*\Z)"
+    r"|^[ \t]*(?P<td>~{3,})[^\n]*\n(?:.*?^[ \t]*(?P=td)~*[ \t]*$|.*\Z)"
+    r"|(?P<tick>`+)(?!`)[^\n]*?(?<!`)(?P=tick)(?!`)"  # inline code, any run of backticks
     r"|https?://\S+|www\.\S+"  # URLs
-    r"|[\w.+-]+@[\w-]+\.[\w.-]+"  # e-mail
+    r"|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+"  # e-mail, ASCII only
     r"|<[A-Za-z/!][^>\n]*>"  # HTML tag
+    r"|(?<=\])\([^)\n]*\)"  # Markdown link or image destination: [text](path/문서.md "title")
 )
 
 

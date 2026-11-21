@@ -1,0 +1,12 @@
+# 님의 沈黙 1926 batch 14: scan vs ko.wikisource divergences (PDF pp.143-146)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p144: DIFFERS
+  scan : 그러나 죽은大地가 詩人의노래를거처서 움직이는것을 봄바람은 말함니다
+  wiki : 그러나 죽은大地가 詩人의노래를거처서 음직이는것을 바람은 말함니다
+  chars: '움'->'음' | '봄'->''
+## p146: DIFFERS
+  scan : 그러고 아즉 이세상에는 그주니에널만한 무슨보물이 업슴니다
+  wiki : 그러고 아즉 이세상에는 그주머니에널만한 무슨보물이 업슴니다
+  chars: ''->'머'

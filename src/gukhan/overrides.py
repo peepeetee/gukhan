@@ -64,7 +64,7 @@ class Overrides:
 
     @classmethod
     def load(cls, path: Path) -> Overrides:
-        with path.open(encoding="utf-8") as fh:
+        with path.open(encoding="utf-8-sig") as fh:
             return cls.from_lines(fh, source=f"override:{path.name}")
 
     def update(self, other: Overrides) -> None:

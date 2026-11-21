@@ -24,6 +24,7 @@ from pathlib import Path
 from .convert import Converter, Decision, Kind, Result
 from .lexicon import Entry, _strip_spaces
 from .overrides import KEEP, Overrides
+from .report import one_line
 
 SHOW_CONTEXTS = 3
 CONTEXT = 20
@@ -53,8 +54,8 @@ def collect(result: Result, include_review: bool = False) -> list[Group]:
 
 
 def _context(text: str, d: Decision) -> str:
-    left = text[max(0, d.start - CONTEXT) : d.start].replace("\n", " ")
-    right = text[d.end : d.end + CONTEXT].replace("\n", " ")
+    left = one_line(text[max(0, d.start - CONTEXT) : d.start])
+    right = one_line(text[d.end : d.end + CONTEXT])
     return f"…{left}[{d.hangul}]{right}…"
 
 
@@ -111,11 +112,17 @@ class Reviewer:
     # -- file ------------------------------------------------------------
     def _append(self, line: str) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
+        # a hand-edited file may lack its final newline; without one the new line would join the last
+        lead = ""
+        if self.path.is_file() and self.path.stat().st_size:
+            with self.path.open("rb") as fh:
+                fh.seek(-1, 2)
+                lead = "" if fh.read(1) == b"\n" else "\n"
+        with self.path.open("a", encoding="utf-8", newline="") as fh:
+            fh.write(lead + line + "\n")
 
     def _remove_last(self, line: str) -> None:
-        lines = self.path.read_text(encoding="utf-8").splitlines()
+        lines = self.path.read_text(encoding="utf-8-sig").splitlines()
         for i in range(len(lines) - 1, -1, -1):
             if lines[i] == line:
                 del lines[i]
@@ -220,7 +227,7 @@ class Reviewer:
         while True:
             try:
                 answer = self.ask("> ").strip()
-            except EOFError:
+            except (EOFError, KeyboardInterrupt):
                 return -1
             if answer == "q":
                 return -1

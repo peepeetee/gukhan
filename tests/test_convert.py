@@ -241,3 +241,64 @@ def test_kiwi_analyser_selects_cong_explicitly(monkeypatch):
     assert analyser.tokenize("연구") == []
     assert calls["model_type"] == KIWI_MODEL_TYPE == "cong"
     assert analyser.describe() == "kiwipiepy 0.0.0-test, model cong"
+
+
+@pytest.mark.parametrize(
+    "text, protected",
+    [
+        ("- 항목\n  ```\n  국군\n  ```\n국군", ["  ```\n  국군\n  ```"]),  # fence inside a list item
+        ("````\n국군\n`````\n국군", ["````\n국군\n`````"]),  # closing fence longer than the opening one
+        ("```\n국군\n``` x\n국군", ["```\n국군\n``` x\n국군"]),  # a closing fence carries no info string: still open
+        ("~~~\n국군\n~~~\n국군", ["~~~\n국군\n~~~"]),
+        ("국군\n```\n국군\n국군", ["```\n국군\n국군"]),  # unclosed fence protects to the end
+        ("``a`국군`` 국군", ["``a`국군``"]),  # double-backtick inline code containing a backtick
+        ("```국군``` 국군", ["```국군```"]),  # inline, not a fence
+        ("국군 [국군](문서/국군.md) ![국군](국군.png)", ["(문서/국군.md)", "(국군.png)"]),
+        ("연락처는국군@example.com 국군", []),  # non-ASCII before @ is not an address
+        ("연락처 a.b@example.co.kr 국군", ["a.b@example.co.kr"]),
+    ],
+)
+def test_segment_protection(text, protected):
+    got = [text[s.start : s.end] for s in segment(text) if s.protected]
+    assert got == protected
+
+
+def test_indented_fence_is_not_converted():
+    c = Converter(LEX, None, ListAnalyser([("국군", "NNG")] * 3))
+    text = "국군\n  ```\n  국군\n  ```\n국군"
+    assert c.convert(text).text == "國軍\n  ```\n  국군\n  ```\n國軍"
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["", "가", "가나다라 마바사\n아자차\n\n카타파하 " * 7, "한 줄 " * 50, "붙여쓴글자" * 40, "끝났다. 시작 " * 30],
+)
+@pytest.mark.parametrize("limit", [1, 5, 17, 60])
+def test_chunk_bounds_cover_text(text, limit):
+    from gukhan.convert import chunk_bounds
+
+    bounds = chunk_bounds(text, limit)
+    assert "".join(text[a:b] for a, b in bounds) == text
+    assert all(0 < b - a <= limit for a, b in bounds)
+    assert all(b == c for (_, b), (c, _) in zip(bounds, bounds[1:], strict=False))
+
+
+def test_chunk_bounds_prefer_line_then_sentence_then_space():
+    from gukhan.convert import chunk_bounds
+
+    text = "aaaa bbbb\ncccc dddd. eeee ffff gggg"
+    assert chunk_bounds(text, 12) == [(0, 10), (10, 21), (21, 31), (31, 35)]  # newline, sentence end, then space
+
+
+@pytest.mark.kiwi
+def test_long_text_chunked_equals_unchunked(monkeypatch):
+    import gukhan.convert as cv
+
+    line = "대한민국 헌법 제1조. 국군은 작전 계획을 수립하였다.\n"
+    text = line * 60 + "대한민국 헌법 " * 400
+    c = Converter()
+    whole = (monkeypatch.setattr(cv, "CHUNK_CHARS", 10**9), c.convert(text))[1]
+    monkeypatch.setattr(cv, "CHUNK_CHARS", 300)
+    pieces = c.convert(text)
+    assert pieces.text == whole.text
+    assert [(d.start, d.end, d.kind) for d in pieces.decisions] == [(d.start, d.end, d.kind) for d in whole.decisions]

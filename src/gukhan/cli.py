@@ -18,6 +18,34 @@ def _err(msg: str) -> int:
     return 2
 
 
+def _read(path: Path) -> str:
+    """The file's text exactly as written: UTF-8, line endings untouched (no CRLF → LF rewrite)."""
+    with path.open(encoding="utf-8", newline="") as fh:
+        return fh.read()
+
+
+def _write(path: Path, text: str) -> None:
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        fh.write(text)
+
+
+def _read_error(path: Path, e: Exception) -> str:
+    if isinstance(e, UnicodeDecodeError):
+        return f"{path}: UTF-8이 아닙니다 / not UTF-8 text; save it as UTF-8 (for CP949: iconv -f cp949 -t utf-8)"
+    return f"{path}: {e.strerror or e}"
+
+
+def _utf8_streams() -> None:
+    """Redirected output is UTF-8 on every platform (Windows would use cp949 and fail on rare Hanja)."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            try:
+                reconfigure(encoding="utf-8", errors="replace", newline="" if stream is sys.stdout else None)
+            except (ValueError, OSError):  # a stream that has already been read from or is closed
+                pass
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         prog="gukhan",
@@ -69,7 +97,10 @@ def review_main(argv: list[str]) -> int:
 
     if not args.input.is_file():
         return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
-    text = args.input.read_text(encoding="utf-8")
+    try:
+        text = _read(args.input)
+    except (OSError, UnicodeDecodeError) as e:
+        return _err(_read_error(args.input, e))
     try:
         lexicon = Lexicon.load(args.lexicon) if args.lexicon else (Lexicon.installed() or Lexicon.sample())
         overrides = Overrides.load(args.overrides) if args.overrides.exists() else Overrides()
@@ -82,17 +113,21 @@ def review_main(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    _utf8_streams()
     if argv and argv[0] == "review":
         return review_main(argv[1:])
     args = build_parser().parse_args(argv)
     if args.stdin == (args.input is not None):
         return _err("入力 file 하나 또는 --stdin 을 指定하세요 / give one input file or --stdin")
-    if args.stdin:
-        text = sys.stdin.read()
-    else:
-        if not args.input.is_file():
-            return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
-        text = args.input.read_text(encoding="utf-8")
+    try:
+        if args.stdin:
+            text = sys.stdin.buffer.read().decode("utf-8") if hasattr(sys.stdin, "buffer") else sys.stdin.read()
+        else:
+            if not args.input.is_file():
+                return _err(f"file을 찾을 수 없습니다 / file not found: {args.input}")
+            text = _read(args.input)
+    except (OSError, UnicodeDecodeError) as e:
+        return _err(_read_error(args.input or Path("<stdin>"), e))
 
     try:
         lexicon = Lexicon.load(args.lexicon) if args.lexicon else Lexicon.installed()
@@ -125,14 +160,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     result = conv.convert(text, mark=args.mark)
 
-    if args.output:
-        args.output.write_text(result.text, encoding="utf-8")
-    else:
-        sys.stdout.write(result.text)
-
-    if args.report:
-        body = report.to_markdown(text, result) if args.report.suffix.lower() == ".md" else report.to_tsv(text, result)
-        args.report.write_text(body, encoding="utf-8")
+    try:
+        if args.output:
+            _write(args.output, result.text)
+        else:
+            sys.stdout.write(result.text)
+        if args.report:
+            body = (
+                report.to_markdown(text, result) if args.report.suffix.lower() == ".md" else report.to_tsv(text, result)
+            )
+            _write(args.report, body)
+    except OSError as e:
+        return _err(f"쓸 수 없습니다 / cannot write: {e.filename or ''} {e.strerror or e}".replace("  ", " "))
     s = report.summary(result)
     print(
         f"變換 {s['converted']} · flag {s['flagged']} · 檢討 {s['review']} · 維持 {s['kept']}"

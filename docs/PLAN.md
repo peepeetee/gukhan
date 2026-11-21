@@ -210,8 +210,19 @@ gukhan --stdin                       # read from stdin
 ```
 
 Exit status 0 on success, 2 on a usage or file error. Messages in Korean and
-English on one line each. Markdown handling in this milestone: fenced code,
-inline code and URLs are left alone; everything else is treated as text.
+English on one line each. Markdown handling: fenced code (also indented, as in a
+list item, and closed by a longer fence), inline code of any backtick length, URLs,
+e-mail addresses, HTML tags and the destination of a Markdown link or image
+(`[text](path/문서.md)`; the visible text is converted) are left alone; everything
+else is treated as text.
+
+Input and output are UTF-8 and byte-exact apart from the conversion: line endings
+(LF or CRLF) and a leading byte-order mark are kept, on every platform, and
+redirected output is UTF-8 even where the console code page is CP949. A file that is
+not UTF-8 stops with exit status 2 and a message. Long texts are analysed in pieces
+of about 2000 characters (cut at a line break, else a sentence end, else a space)
+because Kiwi's running time grows faster than linearly with the length of one call;
+a phrase never spans a line break, so the result does not depend on the cut.
 
 Flagged-word report columns: `line  col  hangul  candidates  context`. The
 review list (names and unknown words) follows with the same columns and
