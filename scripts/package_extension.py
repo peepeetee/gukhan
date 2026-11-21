@@ -29,7 +29,10 @@ SKIP = ("engine.test.mjs", "browser-smoke.cjs", "firefox-smoke.cjs", "bundled-sm
 def strip_definitions(text: str) -> str:
     """Blank columns 3-5 (pos, source, sense); keep hangul, hanja and the ranking columns."""
     out = []
-    for line in text.splitlines():
+    lines = text.split("\n")  # not splitlines(): a U+2028 or U+0085 inside a gloss is not a row break
+    if lines and lines[-1] == "":
+        lines.pop()
+    for line in lines:
         if line.startswith("#") or not line:
             out.append(line)
             continue

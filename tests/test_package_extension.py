@@ -63,3 +63,8 @@ def test_firefox_target_keeps_gecko_keys(tmp_path):
     assert pkg.main([str(out)]) == 0
     with zipfile.ZipFile(out) as z:
         assert "browser_specific_settings" in json.loads(z.read("manifest.json"))
+
+
+def test_strip_definitions_does_not_split_rows_at_unicode_line_separators():
+    text = "연구\t研究\t명사\ts\ta b\u0085c\t3\n"
+    assert pkg.strip_definitions(text) == "연구\t研究\t\t\t\t3\n"
