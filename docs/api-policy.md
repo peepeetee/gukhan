@@ -4,7 +4,7 @@
 
 The public API is exactly the names in `gukhan.__all__`, plus the names in the `__all__` of these modules:
 `gukhan.convert`, `gukhan.lexicon`, `gukhan.overrides`, `gukhan.analyser`, `gukhan.report`, `gukhan.review`,
-`gukhan.suggest` and `gukhan.formats`. The command lines (`gukhan`, `gukhan review`, `gukhan-lexicon-build`, `gukhan-regress`),
+`gukhan.suggest`, `gukhan.formats` and `gukhan.styles`. The command lines (`gukhan`, `gukhan review`, `gukhan-lexicon-build`, `gukhan-regress`),
 their options and exit codes, the override-file syntax and the lexicon TSV columns are public too.
 Everything else (names starting with `_`, `gukhan.rules`, `gukhan.segments`, `gukhan.console`, the
 `gukhan.lexicon_build` and `gukhan.regress` modules as Python imports) is internal and may change in any release.

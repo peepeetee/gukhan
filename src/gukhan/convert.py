@@ -17,6 +17,7 @@ from .analyser import CANDIDATE_TAGS, NATIVE_STOP, TAG_TO_POS, VERB_SUFFIXES, An
 from .lexicon import Entry, Lexicon
 from .overrides import Overrides
 from .segments import segment
+from .styles import DEFAULT_STYLE, char_outputs, check_style
 
 MAX_PHRASE_TOKENS = 6
 # Measured on the 1948 constitution: a cutoff of 12 cut wrong from 1.4% to 0.5% but right
@@ -236,7 +237,8 @@ class Converter:
     Ambiguous words are flagged and left in Hangul, never guessed. With no arguments it uses the tiny bundled
     sample lexicon and Kiwi (loaded on first use). ``review_all`` also reports names and words with no entry;
     ``min_weight`` drops rare readings; ``use_rules`` is ``True`` (the default rules), ``False`` or a set of
-    rule names. 辭典·사용자 지정·形態素 分析器로 한글을 國漢混用으로 바꿉니다.
+    rule names; ``style`` is ``mixed`` (default), ``gloss``, ``ruby`` or ``hanja-gloss`` (:mod:`gukhan.styles`).
+    辭典·사용자 지정·形態素 分析器로 한글을 國漢混用으로 바꿉니다.
     """
 
     def __init__(
@@ -249,11 +251,13 @@ class Converter:
         min_weight: int | None = None,
         use_rules: bool | frozenset[str] = True,
         field_evidence: Counter[str] | None = None,
+        style: str = DEFAULT_STYLE,
     ) -> None:
         self.lexicon = lexicon if lexicon is not None else Lexicon.sample()
         self.overrides = overrides
         self.analyser = analyser if analyser is not None else KiwiAnalyser()
         self.review_all = review_all
+        self.style = check_style(style)  # how a converted word is written: see gukhan.styles
         self.rules = rules.DEFAULT if use_rules is True else frozenset(use_rules or ())
         if min_weight is None:
             min_weight = DEFAULT_MIN_WEIGHT if self.lexicon.weighted else 0
@@ -538,6 +542,26 @@ class Converter:
         """Take the ``field`` rule's evidence from all of ``texts`` (one document), not from each call."""
         self.field_evidence = self.measure_fields(texts, markdown=markdown) if "field" in self.rules else None
 
+    def decision_chars(self, d: Decision, text: str, mark: bool = False) -> list[str]:
+        """What to write for each character of a decided word: its Hanja (in the converter's style), a ``{…}``
+        mark after a flagged word when ``mark`` is set, or the Hangul unchanged. ``text`` is what the decision
+        was made on; a word already followed by its own ``(漢字)`` is not glossed twice."""
+        if d.kind == Kind.CONVERTED and d.hanja:
+            again = (  # a word that already carries its gloss or ruby reading from an earlier run is left alone
+                text.startswith(f"({d.hanja})", d.end)
+                if self.style == "gloss"
+                else text.endswith(f"{d.hanja}(", 0, d.start) or text.endswith("<rt>", 0, d.start)
+                if self.style in ("hanja-gloss", "ruby")
+                else False
+            )
+            if again:
+                return list(d.hangul)
+            return char_outputs(d.hangul, d.hanja, self.style)
+        out = list(d.hangul)
+        if d.kind == Kind.FLAGGED and mark:
+            out[-1] += "{" + "|".join(c.hanja for c in d.candidates) + "}"
+        return out
+
     def convert(self, text: str, *, mark: bool = False, markdown: bool = True) -> Result:
         """Convert ``text``. ``markdown=False`` says it is plain prose (no code spans or link syntax to protect)."""
         if "field" in self.rules and self.field_evidence is None:
@@ -551,12 +575,7 @@ class Converter:
         out, pos = [], 0
         for d in decisions:
             out.append(text[pos : d.start])
-            if d.kind == Kind.CONVERTED:
-                out.append(d.hanja or d.hangul)
-            elif d.kind == Kind.FLAGGED and mark:
-                out.append(d.hangul + "{" + "|".join(c.hanja for c in d.candidates) + "}")
-            else:
-                out.append(d.hangul)
+            out.append("".join(self.decision_chars(d, text, mark)))
             pos = d.end
         out.append(text[pos:])
         return Result("".join(out), decisions)

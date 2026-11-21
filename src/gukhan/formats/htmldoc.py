@@ -89,4 +89,4 @@ def parse_html(src: str) -> SpanDocument:
     parser.feed(src)
     parser.close()
     parser._break()
-    return SpanDocument(src, parser.spans, parser.flows)
+    return SpanDocument(src, parser.spans, parser.flows, markup=True)

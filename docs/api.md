@@ -46,6 +46,12 @@ See [Input formats](formats.md) for what each format converts and keeps.
 
 ::: gukhan.formats
 
+## Output styles / 出力 形式
+
+See [Output styles](styles.md).
+
+::: gukhan.styles
+
 ## Reports / 報告
 
 ::: gukhan.report

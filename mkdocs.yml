@@ -12,6 +12,7 @@ nav:
   - Home: index.md
   - Overrides and review: overrides-and-review.md
   - Input formats: formats.md
+  - Output styles: styles.md
   - API reference: api.md
   - API policy: api-policy.md
   - Local model: local-model.md

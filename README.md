@@ -59,6 +59,12 @@ gukhan page.html -o page.hanja.html
 gukhan thesis.docx --in-place      # the original is kept as thesis.docx.bak
 ```
 
+For learners / 學習者用: `--style gloss` writes 국군(國軍), `--style hanja-gloss` 國軍(국군) and `--style ruby`
+HTML `<ruby>` with the reading above each Hanja (default `mixed`: 國軍): `docs/styles.md`.
+
+For learners / 學習者用: `--style gloss` writes 국군(國軍), `--style hanja-gloss` 國軍(국군) and `--style ruby`
+HTML `<ruby>` with the reading above each Hanja (default `mixed`: 國軍): `docs/styles.md`.
+
 Speed: about 0.36 MB/s on 4 cores (`--workers N` sets Kiwi's threads, `--jobs N` splits several files over
 processes; the output never changes); numbers and method in `docs/performance.md` (處理 速度).
 
