@@ -142,7 +142,7 @@ class Lexicon:
         """Load ``path`` (a TSV file, or a directory containing lexicon.tsv)."""
         if path.is_dir():
             path = path / "lexicon.tsv"
-        with path.open(encoding="utf-8") as fh:
+        with path.open(encoding="utf-8-sig") as fh:
             lex = cls.from_lines(fh)
         lex.path = path
         return lex
