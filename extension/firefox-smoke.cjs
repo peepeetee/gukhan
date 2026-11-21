@@ -81,6 +81,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // Scripts run in the page's own global (sandbox: null) so extension pages see their `chrome` object.
   const run = async script => (await send('WebDriver:ExecuteScript', {script: `return (${script});`, args: [], sandbox: null})).value;
   const runAsync = async script => (await send('WebDriver:ExecuteAsyncScript', {script: `const done = arguments[arguments.length - 1]; (${script}).then(() => done(true));`, args: [], sandbox: null})).value;
+  const runAsyncValue = async script => (await send('WebDriver:ExecuteAsyncScript', {script: `const done = arguments[arguments.length - 1]; (${script}).then(v => done(v), e => done({error: String(e)}));`, args: [], sandbox: null})).value;
   async function until(expression, what, timeout = 30000) {
     const end = Date.now() + timeout; let last;
     while (Date.now() < end) { try { if (await run(expression) === true) return; } catch (e) { last = e; } await sleep(150); }
@@ -126,7 +127,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await sleep(1000);
     assert.equal(await run("document.querySelectorAll('[data-gukhan]').length"), 0);
     await focus(options);
-    await runAsync(`(async () => { const [t] = await chrome.tabs.query({url: '${siteUrl}*'}); const r = await chrome.runtime.sendMessage({type: 'site', host: '${siteHost}', on: true, tabId: t && t.id}); if (!r || !r.ok) throw new Error(JSON.stringify(r)); })()`);
+    // (Match patterns have no port, so the tab is found by comparing addresses rather than with a url query.)
+    const enabledSite = await runAsyncValue(`(async () => {
+      const tabs = (await chrome.tabs.query({})).filter(t => (t.url || '').startsWith('${siteUrl}'));
+      const r = await chrome.runtime.sendMessage({type: 'site', host: '${siteHost}', on: true, tabId: tabs[0] && tabs[0].id});
+      return {r, tabs: tabs.length};
+    })()`);
+    assert.deepEqual(enabledSite, {r: {ok: true}, tabs: 1}, 'turning the site on: ' + JSON.stringify(enabledSite));
     await focus(page);
     await until("!!document.querySelector('[data-gukhan=\"word\"]')", 'underlined words');
     assert.equal(await run("document.querySelector('pre').textContent"), '전기 연구');
