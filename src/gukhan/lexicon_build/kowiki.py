@@ -59,7 +59,8 @@ def _open(path: Path) -> io.BufferedIOBase:
 
 
 def _template(match: re.Match[str]) -> str:
-    parts = [p.strip() for p in match.group(1).split("|")]
+    inner: str = match.group(1)
+    parts = [p.strip() for p in inner.split("|")]
     if parts[0].lower() not in HANJA_TEMPLATES:
         return ""
     for arg in reversed(parts[1:]):
