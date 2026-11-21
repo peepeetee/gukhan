@@ -95,7 +95,7 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Reports and review contexts stay on one line with CRLF and tabs; pipes in candidates are escaped (#39).
 - Windows consoles: UTF-8 output on all three command lines even under a legacy code page (#65).
 - `gukhan-regress prepare`: a counter after a Hanja numeral keeps its reading (三十里 → 삼십리, not 삼십이); the
-  initial-sound rule no longer applies there, as it does not after Arabic digits (#83).
+  initial-sound rule no longer applies there, as it does not after Arabic digits (#86).
 
 ### Security / 보안
 - The CLI never writes through a symlink or over its own input: exclusive creates for backups and new files,
