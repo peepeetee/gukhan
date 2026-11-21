@@ -1,0 +1,15 @@
+name: Idea / 提案
+description: A feature or a change in behaviour.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do / 하려는 일
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like gukhan to do / 바라는 동작
+      description: gukhan never guesses an ambiguous word; ideas that keep to that are easiest to accept.
