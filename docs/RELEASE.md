@@ -1,14 +1,48 @@
 # Release checklist / 配布 點檢表
 
-State as of 2026-11-05 (updated after the owner's answers). Nothing has been published, tagged or uploaded. Items marked **you** need
+## Owner steps, in order (about an hour in total)
+
+Everything the repository can do is done or listed below; these steps need your accounts. The only cost is the Chrome Web Store's one-time
+registration fee, charged by Google.
+
+1. **GitHub settings (5 min).** Repository → Settings → Environments → *New environment*: `pypi` and `pypi-lexicon`; in
+   each, tick *Required reviewers* and add yourself.
+2. **PyPI (10 min).** Sign in at <https://pypi.org>, enable two-factor authentication. Account settings → *Publishing* →
+   *Add a new pending publisher*, twice: project `gukhan-lexicon`, owner `peepeetee`, repository `gukhan`, workflow
+   `release-lexicon.yml`, environment `pypi-lexicon`; and project `gukhan`, workflow `release-code.yml`, environment `pypi`.
+   No token is created.
+3. **Lexicon data release (10 min, or ask the laptop session).** On GitHub → Releases → *Draft a new release*, tag
+   `lexicon-data-20261101`, tick *pre-release*, attach `lexicon.tsv`, `chars.tsv`, `manifest.json` from
+   `gukhan-data\build\lexicon-20261101`, and `kaikki.org-dictionary-Korean.jsonl`. Also attach `char-info.tsv` if the build has
+   one (a build made after #71 does); the workflow ignores it, the extension's bundled build uses it.
+4. **Publish the lexicon.** Actions → *release-lexicon* → *Run workflow*: tag above, version `0.1.0`; when it waits,
+   open it and *Approve*. Check <https://pypi.org/project/gukhan-lexicon/>.
+5. **Release PR for the code.** Ask for it ("open the 0.1.0 release PR": sets `version = "0.1.0"`, dates the changelog,
+   copies `docs/release-notes-0.1.0.md`). After it merges, push the tag `v0.1.0` (GitHub → Releases → new release with
+   tag `v0.1.0`, target main); Actions → *release-code* waits for your approval; approve. Do step 4 first.
+6. **Chrome Web Store (20 min).** <https://chrome.google.com/webstore/devconsole>: register (one-time fee, two-factor on).
+   Search the store for `gukhan` and `국한 國漢` first (the name could not be searched from the cloud). *New item* →
+   upload `gukhan-chrome-0.1.1.zip` (`python scripts/package_extension.py gukhan-chrome-0.1.1.zip --target chrome`).
+   Paste texts, permission answers and the privacy URL from `docs/store-listings.md`; take screenshots by its steps.
+   Submit for review.
+7. **Firefox Add-ons (15 min).** <https://addons.mozilla.org/developers/>: sign in, *Submit a new add-on*, *On this
+   site*, upload the `.xpi` from `python scripts/package_extension.py gukhan-0.1.1.xpi` (no `--target`), listed.
+   Choose "no data collection", paste the texts and the reviewer notes from `docs/store-listings.md`. Every upload needs
+   a new version number.
+8. **Wiktionary copyright page.** Open <https://en.wiktionary.org/wiki/Wiktionary:Copyrights> in a browser, save as PDF
+   into the project folder, and tell the laptop session so the notice can cite it.
+9. **Last look.** In a normal browser profile, try the extension by hand on three real pages (a news article, a law page,
+   a blog) before pressing *Submit*; the smoke tests cannot judge how a page looks.
+
+State as of 2026-11-21. Nothing has been published, tagged or uploaded. Items marked **you** below need
 the project owner (accounts, tokens, decisions); the rest is done in the repository.
 
 ## 1. Names
 
 | Where | Status |
 | --- | --- |
-| PyPI `gukhan` | free (HTTP 404 on 2026-11-05; also 404 on 2026-10-28) |
-| PyPI `gukhan-lexicon` | free (HTTP 404 on 2026-11-05) |
+| PyPI `gukhan` | free (HTTP 404 on 2026-11-21; also 2026-11-05 and 2026-10-28) |
+| PyPI `gukhan-lexicon` | free (HTTP 404 on 2026-11-21; also 2026-11-05) |
 | Chrome Web Store, store listing name | not checked here (the extension work covers it) |
 | Trademark | not cleared. GitHub has other repos named `gukhan`; `dahlia/gukhanmun` is a distinct reverse-direction project |
 
@@ -17,23 +51,23 @@ as the same name.
 
 ## 2. Before tagging (blockers and decisions)
 
-1. **Over-conversion of native words: decided, ship as a known problem** (owner, 2026-11-05).
-   On 님의 沈黙 the tool wrote Hanja where the author wrote Hangul 126 times in 585 words, among
-   them 사랑 ("love") → 舍廊 ("men's quarters") at least 30 times. The README states it; repeat it
-   in the release notes.
+1. **Over-conversion of native words: ship as a known problem** (owner, 2026-11-05; reduced since). On 님의 沈黙 the tool
+   wrote Hanja where the author wrote Hangul 126 times in 585 words on 2026-11-05, among them 사랑 → 舍廊. Since native
+   headwords are kept per part of speech (#58) it is `over` 84 in 943 words (2026-11-21), 사랑 is no longer converted, and the
+   README table is the only source of figures. `docs/release-notes-0.1.0.md` repeats the problem and links the table.
 2. **en.wiktionary copyright page (open).** The Wiktionary row rests on the Wikimedia Terms of Use
    and the Korean Wiktionary page. The English page is blocked from both the cloud container and
    the laptop shell (HTTP 403 from the proxy) and the browser extension is not connected. Someone
    with a browser opens <https://en.wiktionary.org/wiki/Wiktionary:Copyrights>, saves it as PDF
    and drops it in the project folder; then the notice row can cite the page itself.
 3. **Regression excerpts provenance.** STATUS.md still lists the original-edition check for
-   李光洙, 玄鎭健 and 蔡萬植 as pending. These are test excerpts, not shipped data, but the
-   release notes should not claim them as verified gold.
+   李光洙, 玄鎭健 and 蔡萬植 as pending. These are test excerpts, not shipped data; the release notes
+   draft says they are not verified gold.
 4. **Start-up time.** Loading the 704,912-entry lexicon took about 23 s for `gukhan t.md` in the
    cloud container (including Kiwi). Not measured on the laptop. If it feels slow for first users,
    consider a binary cache of the parsed lexicon after release; it does not block 0.1.0.
-5. **Version number.** `pyproject.toml` still says `0.0.0`. Set `0.1.0` in the release PR; the
-   extension is at 0.1.1 on its own track.
+5. **Version number.** `pyproject.toml` still says `0.0.0` on purpose: it is set to `0.1.0` in the release PR (owner
+   step 5), after the lexicon is on PyPI. The extension is at 0.1.1 on its own track.
 6. **Where the lexicon ships: this repository, as a second package.** `packaging/gukhan-lexicon/`
    is the template; the data is never committed, only attached to a GitHub release of this
    repository (the 118 MB `lexicon.tsv` is far below the 2 GiB asset limit) and turned into the
@@ -97,7 +131,7 @@ lexicon by default. TestPyPI was not used; it needs its own account and publishe
 
 ## 5. Stores
 
-- Chrome Web Store: needs a developer account (one-time fee, charged by Google), the privacy
-  policy `docs/privacy.md` hosted at a public URL (GitHub's rendered page works), and screenshots.
-  The extension is in a separate thread.
-- Firefox Add-ons: builds exist (0.1.1); a new version number is needed for every upload.
+- Chrome Web Store and Firefox Add-ons: the listing texts (Korean and English), permission answers, reviewer notes and
+  screenshot steps are in `docs/store-listings.md`; the owner does the accounts, fee, screenshots and upload (owner steps
+  6 and 7). The privacy policy `docs/privacy.md` is served by GitHub's rendered page.
+- The extension builds are 0.1.1 for both stores; a new version number is needed for every upload.
