@@ -310,3 +310,26 @@ def test_readme_library_example_runs():
     result = conv.convert("국군은 작전 계획을 수립하였다.")
     assert isinstance(result.text, str) and result.text.endswith("하였다.")
     assert all(isinstance(d.hangul, str) for d in result.of(Kind.FLAGGED))
+
+
+@pytest.mark.kiwi
+def test_decomposed_hangul_and_zero_width_characters():
+    import unicodedata
+
+    c = Converter()
+    assert c.convert("대한민국 헌법").text == "大韓民國 憲法"
+    nfd = unicodedata.normalize("NFD", "대한민국 헌법을")
+    r = c.convert(nfd)
+    assert r.text == "大韓民國 憲法" + unicodedata.normalize("NFD", "을")  # the ending keeps its original form
+    for text in ("대한민국​헌법", "대한​민국 헌법", "﻿대한민국"):
+        out = c.convert(text).text
+        assert "大韓民國" in out.replace("​", "")
+    assert c.convert("대한민국​헌법").text.startswith("大韓民國")
+
+
+def test_normalise_maps_offsets_back():
+    from gukhan.convert import _normalise
+
+    assert _normalise("plain") is None
+    plain, starts, ends = _normalise("가​" + "한")  # 가, ZWSP, 한 as jamo
+    assert plain == "가한" and starts == [0, 2] and ends == [1, 5]
