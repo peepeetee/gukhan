@@ -51,6 +51,29 @@ That annotation is the lawmaker's own Hanja for the word, so it is gold.
 - Rebuild: `python scripts/collect_law_glosses.py --out build/laws` then
   `--from build/laws --items tests/regression/modern-law`.
 
+## Old statutes / 舊 法律 (2026-11-21)
+
+`old-law-tuning.tsv` (5223 items) and `old-law-heldout.tsv` (5246) hold real 國漢文混用 written by
+legislators. There is no full mixed-script statute in the mirror: law.go.kr keeps statutes of
+1970–1999 in Hangul and leaves the drafter's Hanja only inside parentheses, such as
+`(有料道路에 連結되는 通路를 포함한다)` or `(第251條 및 第252條의 未遂犯을 제외한다)`. Each such passage is
+gold, taken once with the earliest year it appears in the history.
+
+- Source: the git history of `legalize-kr/legalize-kr` (full clone; lines each commit added), as
+  of commit `8df03e4`. Statutes are free of copyright (저작권법 제7조); the mirror's own structure
+  and metadata are MIT. Built by `scripts/collect_old_law_fragments.py`.
+- A passage needs at least 3 Hanja and some Hangul. The Hangul form is derived like
+  `gukhan-regress prepare` does, with readings from a lexicon (stdict + opendict, no Unihan in the
+  cloud); a passage whose Hanja reading the lexicon does not settle is dropped, never guessed
+  (3872 of 14341 dropped). The drafters keep particles and some words in Hangul, so
+  `partial` is common; `over` counts words they left in Hangul and is only a rough signal.
+- **Split** by a hash of the passage's longest Hanja word, so one word is never in both halves.
+  Fit and inspect rules on tuning only; quote held-out figures.
+- Not circular: gold comes from the statutes' own Hanja, the lexicon from the dictionaries. Do not
+  score with a lexicon built with `--law-glosses` from the same statutes.
+- Measured 2026-11-21 (cloud lexicon, default rules): tuning right 36.3% / wrong 1.0% / flagged
+  48.2% of 13319 words; held-out right 35.8% / wrong 0.9% / flagged 48.1% of 13250.
+
 ## How to add a text
 
 ```
