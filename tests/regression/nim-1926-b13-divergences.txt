@@ -1,0 +1,33 @@
+# 님의 沈黙 1926 batch 13: scan vs ko.wikisource divergences (PDF pp.137-142)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p137: DIFFERS
+  scan : 우리들은 님에대하야 맛날ᄯᅢ에 리별을념녀하고 리별할ᄯᅢ에 맛남을긔약함니다
+  wiki : 우리들은 님에대하야 맛날ᄯᅢ에 리별을염녀하고 리별할ᄯᅢ에 맛남을 긔약함니다
+  chars: '념'->'염'
+## p138: DIFFERS
+  scan : 님은 맛날ᄯᅢ에 우슴을주고 ᄯᅥ날ᄯᅢ에 눈물을줌니다
+  wiki : 님은 맛날ᄯᅢ에 우슴을주고 ᄯᅥ날ᄯᅦ에 눈물을줌니다
+  chars: 'ᅢ'->'ᅦ'
+## p139: DIFFERS
+  scan : 리별한恨이나 너ᄲᅮᆫ이랴마는
+  wiki : 리별한恨이냐 너ᄲᅮᆫ이랴마는
+  chars: '나'->'냐'
+## p141: DIFFERS
+  scan : 당신이 고요한가을밤에 그윽히안저서 글을볼ᄯᅢ에 나의ᄭᅮᆷ은 귀ᄯᅡ람이가되야서 책상밋헤서「귀뚤々々」울것슴니다
+  wiki : 당신이 고요한가을밤에 그윽히안저서 글을볼ᄯᅢ에 나의ᄭᅮᆷ은 귀ᄯᅡ람이가되야서 책상밋헤서 「귀ᄯᅩᆯ々々」울것슴니다
+  chars: '뚤'->'ᄯᅩᆯ'
+## p142: DIFFERS
+  scan : ᄭᅩᆺ핀아츰 달밝은저녁 비오는밤 그ᄯᅢ가 가장님긔루은ᄯᅢ라고 남들은말함니다
+  scan : 나도 가튼고요한ᄯᅢ로는 그ᄯᅢ에 만히우렷슴니다
+  wiki : ᄭᅩᆺ픤아츰 달밝은저녁 비오는밤 그ᄯᅢ가 가장님긔루은ᄯᅢ라고 남들은 말함니다
+  wiki : 나도 가튼고요한ᄯᅢ로는 그ᄯᅢ에 만히우럿슴니다
+  chars: '핀'->'픤'
+  chars: '렷'->'럿'
+  scan : 님잇는 여러사람들은 나를위로하야 조흔말을함니다마는 나는 그들의위로하는말을 조소로듯슴니
+  scan : 그ᄯᅢ에는 우름을삼켜서 눈물을 속으로 창자를향하야 흘님니다
+  wiki : 님잇는 여러사람들은 나를위로하야 조흔말을함니다마는 나는 그들의 위로하는말을 조소로듯슴니다
+  wiki : 그ᄯᅢ에는 우름을삼켜서 눈물을 속으로 창자를향하여 흘님니다
+  chars: ''->'다'
+  chars: '야'->'여'
