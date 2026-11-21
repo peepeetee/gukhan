@@ -71,7 +71,7 @@ def test_cli_builds_deterministic_outputs(tmp_path):
     info = (out1 / "char-info.tsv").read_text(encoding="utf-8").splitlines()
     assert info[0].startswith("# hanja")
     rows = {line.split("\t")[0]: line.split("\t")[1:] for line in info[1:]}
-    assert rows["電"] == ["전", "electricity, electric; lightning", ""]  # two senses kept, the third dropped; no 訓 without --wiktextract
+    assert rows["電"] == ["전", "electricity, electric; lightning", ""]  # two senses kept; no 訓 without --wiktextract
     assert rows["氣"] == ["기", "air, gas, vapor; breath", ""] and rows["記"] == ["기", "", ""]
     assert m["outputs"]["char_info"]["sha256"]
     assert (out1 / "char-info.tsv").read_bytes() == (out2 / "char-info.tsv").read_bytes()
@@ -534,8 +534,8 @@ def test_hun_table_from_wiktextract(tmp_path):
         ]
     )
     assert rc == 0
-    rows = {l.split("	")[0]: l.split("	")[1:] for l in (out / "char-info.tsv").read_text(encoding="utf-8").splitlines()[1:]}
+    lines = (out / "char-info.tsv").read_text(encoding="utf-8").splitlines()[1:]
+    rows = {ln.split("	")[0]: ln.split("	")[1:] for ln in lines}
     assert rows["電"][-1] == "번개" and rows["氣"][-1] == "기운/기" and rows["記"][-1] == ""
     m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
     assert m["counts"]["char_hun"] == 2 and "Wiktionary" in m["notice"]
-

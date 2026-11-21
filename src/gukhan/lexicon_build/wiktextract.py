@@ -254,4 +254,3 @@ def read_hun(path: Path) -> dict[str, str]:
                     out[word] = hun
                 break
     return out
-

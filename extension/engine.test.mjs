@@ -75,7 +75,7 @@ test('output styles', () => {
 });
 test('character list', () => {
   const chars = parseChars('# char\treadings\tmeaning\n國\t국\tcountry, nation\n行\t행,항\tgo, walk\n');
-  assert.deepEqual(chars.get('國'), {readings: ['국'], meaning: 'country, nation'});
+  assert.deepEqual(chars.get('國'), {readings: ['국'], meaning: 'country, nation', hun: ''});
   assert.deepEqual(chars.get('行').readings, ['행', '항']);
   assert.throws(() => parseChars('國家\t국가\tx'));
 });
