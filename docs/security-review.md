@@ -19,11 +19,9 @@ a hostile page or a hostile dictionary file can make it do. 敵對的 頁面(적
 
 Left on purpose / 意圖的으로 둠:
 
-- `host_permissions` is all `http(s)` sites because the reader picks sites in the popup; conversion happens
-  only on a site the reader turned on. Asking for each site at the time it is turned on
-  (`optional_host_permissions`) would narrow this but changes the install flow; noted for later.
-- `activeTab` is redundant in Chrome next to the host permissions; Firefox does not grant host permissions at
-  install, so it stays.
+- ~~Host access to every `http(s)` site~~ — done afterwards: no site is requested at install; the popup asks the browser
+  for one host at a time (`optional_host_permissions`) and the content script is registered for that host only.
+- `activeTab` stays: it lets the popup read the address of the tab it was opened on.
 - A page with hundreds of thousands of Hangul text nodes makes the background worker work for a long time;
   it cannot read or change anything because of that, so there is no limit yet.
 - The import in Settings trusts the dictionary the reader selects: the manifest hash shows that the two files

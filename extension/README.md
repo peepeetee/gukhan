@@ -36,10 +36,14 @@ CLI 정확도 수치를 브라우저에 적용할 수 없습니다. 동적 페�
 
 No network requests, telemetry, remote code, or sync. `storage` saves local settings;
 `unlimitedStorage` holds the separately imported dictionary; `activeTab` identifies the
-current site for the popup. Content scripts cover HTTP(S) pages but return immediately
-unless both switches are enabled. The imported manifest's attribution is shown in settings.
+current site for the popup; `scripting` registers the content script. The extension asks for
+no site at install: turning a site on in the popup makes the browser ask about that one host
+(`optional_host_permissions`), and the content script exists only for the hosts that are on.
+Turning a site off, or removing it in settings, unregisters the script and gives the access
+back. The imported manifest's attribution is shown in settings.
 
 한국어: 네트워크 전송·분석·동기화가 없습니다. 사전과 설정은 기기에 저장됩니다.
+설치할 때 어떤 사이트도 요청하지 않으며, 팝업에서 사이트를 켜면 그 사이트 하나만 브라우저가 허용을 묻습니다.
 별도 사전의 저작권 표시는 설정에 표시됩니다. 코드와 사전은 별도 패키지입니다.
 
 Firefox: the manifest carries `browser_specific_settings.gecko` (id, minimum version 140,

@@ -9,6 +9,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
+const {copyWithHosts} = require('./smoke-helpers.cjs');
 
 const GECKO_ID = JSON.parse(fs.readFileSync(path.resolve('extension/manifest.json'), 'utf8')).browser_specific_settings.gecko.id;
 const UUID = '3f8f1c9e-1d2a-4c55-9c7a-6b2f0a1d9e11';
@@ -108,7 +109,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await connect();
     await new Promise(r => setTimeout(r, 500));
     await send('WebDriver:NewSession', {capabilities: {}});
-    const added = await send('Addon:Install', {path: path.resolve('extension'), temporary: true});
+    // A copy that declares the hosts as granted (see smoke-helpers); the permission prompt cannot be pressed here.
+    const added = await send('Addon:Install', {path: copyWithHosts(path.resolve('extension'), path.resolve('build/firefox-ext')), temporary: true});
     assert.equal(added.value, GECKO_ID);
 
     const options = await tab(`moz-extension://${UUID}/options.html`);
@@ -117,9 +119,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await send('WebDriver:ElementSendKeys', {id: elementId, text: [path.join(fixtureDir, 'lexicon.tsv'), path.join(fixtureDir, 'manifest.json')].join('\n')});
     await run("document.querySelector('#import').click() || true");
     await until("document.querySelector('#status').textContent.includes('headwords imported')", 'dictionary import');
-    await runAsync(`chrome.storage.local.set({enabled: true, sites: {'${siteHost}': true}})`);
+    await runAsync(`chrome.storage.local.set({enabled: true})`);
 
     const page = await tab(siteUrl);
+    // The site is off: nothing was injected. Turn it on the way the popup does; the open page gets the script.
+    await sleep(1000);
+    assert.equal(await run("document.querySelectorAll('[data-gukhan]').length"), 0);
+    await focus(options);
+    await runAsync(`(async () => { const [t] = await chrome.tabs.query({url: '${siteUrl}*'}); const r = await chrome.runtime.sendMessage({type: 'site', host: '${siteHost}', on: true, tabId: t && t.id}); if (!r || !r.ok) throw new Error(JSON.stringify(r)); })()`);
+    await focus(page);
     await until("!!document.querySelector('[data-gukhan=\"word\"]')", 'underlined words');
     assert.equal(await run("document.querySelector('pre').textContent"), '전기 연구');
     assert.equal(await run("document.querySelector('input').value"), '전기 연구');

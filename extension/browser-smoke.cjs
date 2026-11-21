@@ -7,13 +7,15 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
 (async () => {
   const fixture = path.resolve('build/browser-fixture');
   fs.mkdirSync(fixture, {recursive:true});
   const lexicon = '연구\t研究\n전기\t電氣\n전기\t傳記\n공학\t工學\n';
   fs.writeFileSync(path.join(fixture,'lexicon.tsv'), lexicon);
   fs.writeFileSync(path.join(fixture,'manifest.json'), JSON.stringify({notice:'Hand-written test fixture',outputs:{lexicon:{sha256:crypto.createHash('sha256').update(lexicon).digest('hex')}}}));
-  const extension = path.resolve(process.env.GUKHAN_EXT || 'extension'); // GUKHAN_EXT: an unpacked store build
+  // GUKHAN_EXT: an unpacked store build. Tested through a copy that declares the hosts as granted (see smoke-helpers).
+  const extension = copyWithHosts(path.resolve(process.env.GUKHAN_EXT || 'extension'), path.resolve('build/browser-ext'));
   fs.rmSync(path.resolve('build/browser-profile'), {recursive: true, force: true}); // a stale profile keeps the previous extension copy
   const context = await chromium.launchPersistentContext(path.resolve('build/browser-profile'), {
     channel:'chromium', headless:true,
@@ -27,10 +29,17 @@ const crypto = require('node:crypto');
     await options.locator('#files').setInputFiles([path.join(fixture,'lexicon.tsv'),path.join(fixture,'manifest.json')]);
     await options.locator('#import').click();
     await options.locator('#status').filter({hasText:'headwords imported'}).waitFor({timeout:60000});
-    await worker.evaluate(() => chrome.storage.local.set({enabled:true,sites:{'fixture.test':true}}));
+    await worker.evaluate(() => chrome.storage.local.set({enabled:true}));
     const page = await context.newPage();
     await page.route('http://fixture.test/**', r => r.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><p id="text">전기 연구</p><p id="more">연구가 전기 공학이</p><p id="tick"></p><script>var n=0;setInterval(function(){document.getElementById("tick").textContent="초 "+(++n)},400);window.flashes=0;new MutationObserver(function(){var t=document.getElementById("text").textContent;if(t==="전기 연구"&&window.converted)window.flashes++;if(t.indexOf("研究")>=0)window.converted=true}).observe(document.getElementById("text"),{childList:true,subtree:true,characterData:true})</script><pre>전기 연구</pre><kbd>전기 연구</kbd><samp>전기 연구</samp><div role="textbox">전기 연구</div><input value="전기 연구">'}));
     await page.goto('http://fixture.test/');
+    // Nothing is injected until the site is turned on: no script is registered and the page is untouched.
+    await page.waitForTimeout(800);
+    assert.equal(await page.locator('[data-gukhan]').count(), 0, 'a site that is off was converted');
+    assert.equal(await options.evaluate(async () => (await chrome.scripting.getRegisteredContentScripts()).length), 0);
+    // Turning the site on, as the popup does after the reader allows it, reaches the page that is already open.
+    assert.deepEqual(await options.evaluate(siteMessage('fixture.test', true)), {ok: true});
+    assert.deepEqual(await options.evaluate(async () => (await chrome.scripting.getRegisteredContentScripts()).map(s => s.matches[0])), ['*://fixture.test/*']);
     await page.locator('[data-gukhan="word"]').first().waitFor();
     // A page that keeps changing elsewhere (the ticker) must not make converted words flash back to Hangul.
     await page.waitForTimeout(2500);
@@ -85,9 +94,15 @@ const crypto = require('node:crypto');
     await page.waitForFunction(() => document.querySelector('#more').textContent === '研究가 傳記 工學이');
     await worker.evaluate(() => chrome.storage.local.set({enabled:false}));
     await page.waitForFunction(() => document.querySelector('#text').textContent === '전기 연구' && !document.querySelector('[data-gukhan="word"]'));
-    await worker.evaluate(() => chrome.storage.local.set({enabled:true,sites:{}}));
+    await worker.evaluate(() => chrome.storage.local.set({enabled:true}));
+    // Turning the site off unregisters its script; the next load is untouched.
+    assert.deepEqual(await options.evaluate(siteMessage('fixture.test', false)), {ok: true});
+    assert.equal(await options.evaluate(async () => (await chrome.scripting.getRegisteredContentScripts()).length), 0);
+    assert.deepEqual(await worker.evaluate(() => chrome.storage.local.get('sites')), {sites: {}});
     await page.reload();
+    await page.waitForTimeout(800);
     assert.equal(await page.locator('#text').textContent(),'전기 연구');
+    assert.equal(await page.locator('[data-gukhan]').count(), 0);
     console.log('PASS: real dictionary import, candidates, saved override, protected text, toggle restore, site disable');
   } finally { await context.close(); }
 })().catch(e => {console.error(e);process.exitCode=1});

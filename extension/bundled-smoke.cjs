@@ -7,6 +7,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const {execFileSync} = require('node:child_process');
+const {grantHosts, siteMessage} = require('./smoke-helpers.cjs');
 (async () => {
   const work = path.resolve('build/bundled-smoke'), dict = path.join(work, 'dict'), ext = path.join(work, 'ext');
   fs.rmSync(work, {recursive: true, force: true}); fs.mkdirSync(dict, {recursive: true});
@@ -15,6 +16,7 @@ const {execFileSync} = require('node:child_process');
   const xpi = path.join(work, 'bundled.xpi');
   execFileSync('python3', ['scripts/package_extension.py', xpi, '--dictionary', dict, '--no-definitions'], {stdio: 'inherit'});
   fs.mkdirSync(ext); execFileSync('unzip', ['-q', xpi, '-d', ext]);
+  grantHosts(ext);  // see smoke-helpers: the permission bubble cannot be pressed by automation
   assert.equal(fs.readFileSync(path.join(ext, 'dictionary/lexicon.tsv'), 'utf8').split('\n')[0], '연구\t研究\t\t\t\t0\t0\t0');
   const context = await chromium.launchPersistentContext(path.join(work, 'profile'), {
     channel: 'chromium', headless: true, args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`]});
@@ -29,10 +31,11 @@ const {execFileSync} = require('node:child_process');
     }
     assert.ok(options, 'first install should open the settings page');
     await options.locator('#status').filter({hasText: 'headwords imported'}).waitFor({timeout: 60000});
-    await worker.evaluate(() => chrome.storage.local.set({enabled: true, sites: {'fixture.test': true}}));
+    await worker.evaluate(() => chrome.storage.local.set({enabled: true}));
     const page = await context.newPage();
     await page.route('http://fixture.test/**', r => r.fulfill({contentType: 'text/html', body: '<meta charset="utf-8"><p id="text">연구가 전기를</p>'}));
     await page.goto('http://fixture.test/');
+    assert.deepEqual(await options.evaluate(siteMessage('fixture.test', true)), {ok: true});
     await page.waitForFunction(() => document.querySelector('#text').textContent === '研究가 電氣를');
     console.log('PASS: bundled dictionary loaded on first install, no definitions column, conversion works');
   } finally { await context.close(); }

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 (() => {
+  if (globalThis.__gukhanLoaded) return;  // injected again into an open page after a registered load
+  globalThis.__gukhanLoaded = true;
   const wrappers = new Set();
   const groups = [];  // {original, nodes}: the text node a conversion replaced, and the nodes standing in for it
   let generation = 0, timer, panel;
