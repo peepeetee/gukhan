@@ -33,7 +33,9 @@ is stored in the browser and changes nothing about which words are converted. �
 Hanja readings and meanings on the candidate card / 候補 카드의 漢字 풀이: if you also import `char-info.tsv`
 (written next to `lexicon.tsv` by `gukhan-lexicon-build --unihan …`), the card shows the reading and the English
 meaning of each Hanja of the candidate under the pointer, e.g. `電 전 · electricity`. It comes from Unicode's Unihan
-(`kHangul`, `kDefinition`); Unihan has no Korean 訓 (meaning-reading such as 나라 국), so the meaning is English.
+(`kHangul`, `kDefinition`); Unihan has no Korean 訓 (meaning-reading such as 나라 국), so the meaning is English,
+except for characters that have a 訓 in the file's fourth column (built with `--wiktextract` from Wiktionary's
+`ko-hanja` entries, CC BY-SA 4.0): the card then shows `水 물 수` instead of the English meaning.
 Without the file the card is as before. `char-info.tsv` is checked against `manifest.json` like the lexicon,
 and `--dictionary` bundles it when it is in the folder.
 

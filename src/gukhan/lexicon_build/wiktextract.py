@@ -224,3 +224,34 @@ def parse(
                 entries.append(Entry(hangul, mixed, pos, source, _gloss(obj), _weight(obj, from_hangul_page)))
                 stats.entries += 1
     return entries, rejects, stats
+
+
+def read_hun(path: Path) -> dict[str, str]:
+    """Return ``{hanja_char: 訓}`` from the ``ko-hanja`` head template of Hanja character entries.
+
+    ``{{ko-hanja|물|수}}`` on 水 gives ``물`` (the 訓 of the 訓音 ``물 수``); alternatives are kept as written
+    (``메/뫼``). Entries with only a reading (no 訓), or whose 訓 is not Hangul, are skipped; the first entry wins.
+    Wiktionary 기여자 (CC BY-SA 4.0). 한자의 訓 (뜻풀이)만 읽습니다.
+    """
+    out: dict[str, str] = {}
+    with _open(path) as fh:
+        for line in fh:
+            if '"ko-hanja"' not in line:
+                continue
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            word = obj.get("word", "")
+            if obj.get("pos") != "character" or len(word) != 1 or not is_cjk(word) or word in out:
+                continue
+            for tmpl in obj.get("head_templates") or []:
+                args = tmpl.get("args") or {}
+                if tmpl.get("name") != "ko-hanja":
+                    continue
+                hun, eum = str(args.get("1", "")).strip(), str(args.get("2", "")).strip()
+                if hun and eum and all(is_syllable(c) or c in "/ " for c in hun):
+                    out[word] = hun
+                break
+    return out
+

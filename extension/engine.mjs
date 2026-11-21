@@ -137,7 +137,7 @@ export function parseChars(text) {
     if (!line || line.startsWith('#')) continue;
     const [char, readings = '', meaning = ''] = line.split('\t');
     if ([...char].length !== 1) throw new Error('Invalid character list / 한자 목록 형식 오류');
-    chars.set(char, {readings: readings ? readings.split(',') : [], meaning});
+    chars.set(char, {readings: readings ? readings.split(',') : [], meaning, hun});
   }
   return chars;
 }

@@ -52,4 +52,7 @@ Besides the styles, the card can show each Hanja's reading and English meaning (
 `char-info.tsv` is imported. See `extension/README.md`. 확장 프로그램의 팝업에도 같은 네 가지 形式이 있습니다.
 
 Unihan has no Korean 訓 (meaning-reading like 나라 국), so the character list gives the reading (音) and the English
-meaning only; a source for 訓 would need its own licence check first. Unihan에는 한국어 訓이 없어 英語 뜻을 보입니다.
+meaning from Unihan. When the dictionary is built with `--wiktextract`, `char-info.tsv` gets a fourth column with the
+訓 from Wiktionary's `ko-hanja` entries (물 for 水, 3,000 characters in the 2026-10-01 extract; contributors of
+CC BY-SA 4.0, already credited in the build's notice), and the extension card shows `水 물 수` instead of the English
+meaning for those characters. Unihan에는 한국어 訓이 없어 Wiktionary의 `ko-hanja` 項目에서 訓을 읽습니다.

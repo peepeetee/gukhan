@@ -42,6 +42,8 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Browser extension: the four output styles in the popup (live, per reader) and, with an imported `char-info.tsv`
   (new builder output from Unihan, also bundled by `package_extension.py`), the reading and English meaning of each
   Hanja on the candidate card.
+- `char-info.tsv` gets a fourth column, the Korean 訓 (물 for 水), read from the `ko-hanja` entries of a
+  `--wiktextract` file (Wiktionary, CC BY-SA 4.0); the extension card shows `水 물 수` for those characters.
 - Full type annotations, a `py.typed` marker, `mypy --strict` in CI, a public API defined by `__all__`
   (`docs/api-policy.md`) and an API reference; a static documentation site built from `docs/` in CI (not deployed).
 

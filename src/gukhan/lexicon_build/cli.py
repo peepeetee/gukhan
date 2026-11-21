@@ -397,15 +397,27 @@ def _build(argv: list[str] | None) -> int:
 
     if readings:
         # What the browser extension's candidate card shows for each Hanja of the lexicon: the usual reading
-        # first (the education-set one), then others, and Unihan's English meaning (no Korean 訓 is available).
+        # first (the education-set one), then others, Unihan's English meaning and, if --wiktextract is given,
+        # the Korean 訓 (물 for 水) from Wiktionary's ko-hanja entries; the card prefers the 訓.
         definitions = unihan_mod.read_definitions(args.unihan)
+        hun: dict[str, str] = {}
+        for p in args.wiktextract:
+            for ch, value in wikt_mod.read_hun(p).items():
+                hun.setdefault(ch, value)
         info_path = args.out / "char-info.tsv"
         used = sorted({ch for ent in merged for ch in ent.hanja if is_cjk(ch) and ch in tagged})
         with info_path.open("w", encoding="utf-8", newline="\n") as fh:
-            fh.write("# hanja\treadings (usual first, comma separated)\tmeaning (English, Unihan kDefinition)\n")
+            fh.write(
+                "# hanja\treadings (usual first, comma separated)\tmeaning (English, Unihan kDefinition)"
+                "\thun (Korean 訓, Wiktionary ko-hanja, CC BY-SA 4.0)\n"
+            )
             for ch in used:
                 ordered = sorted(tagged[ch], key=lambda r: "E" not in r.partition(":")[2])  # stable: Unihan order
-                fh.write(f"{ch}\t{','.join(r.partition(':')[0] for r in ordered)}\t{definitions.get(ch, '')}\n")
+                fh.write(
+                    f"{ch}\t{','.join(r.partition(':')[0] for r in ordered)}\t{definitions.get(ch, '')}"
+                    f"\t{hun.get(ch, '')}\n"
+                )
+        counts["char_hun"] = sum(1 for ch in used if ch in hun)
         outputs["char_info"] = info_path
 
     write_manifest(
