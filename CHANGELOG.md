@@ -33,6 +33,12 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
   EPUB (chapters and table of contents) and SRT/WebVTT subtitles (cue text only, timing untouched), chosen by
   extension or `--format`, with `gukhan.formats` for Python and round-trip tests that check nothing but the
   converted words changes (`docs/formats.md`).
+- Output styles for Hanja learners: `--style mixed|gloss|hanja-gloss|ruby` and `gukhan.styles` (`docs/styles.md`);
+  it works with every input format, and `ruby` (HTML `<ruby>`, one pair per Hanja) is refused for Word and
+  subtitles.
+- Output styles for Hanja learners: `--style mixed|gloss|hanja-gloss|ruby` and `gukhan.styles` (`docs/styles.md`);
+  it works with every input format, and `ruby` (HTML `<ruby>`, one pair per Hanja) is refused for Word and
+  subtitles.
 - Full type annotations, a `py.typed` marker, `mypy --strict` in CI, a public API defined by `__all__`
   (`docs/api-policy.md`) and an API reference; a static documentation site built from `docs/` in CI (not deployed).
 

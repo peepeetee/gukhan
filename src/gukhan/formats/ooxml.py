@@ -55,6 +55,9 @@ class ZipDocument(Document):
         self.entries, self.parts, self.original = entries, parts, original
         super().__init__([flow for _, part in sorted(parts.items()) for flow in part.flows])
 
+    def markup_flags(self) -> list[bool]:
+        return [flag for _, part in sorted(self.parts.items()) for flag in part.markup_flags()]
+
     def rebuild(self, edited: list[str]) -> bytes:
         replaced: dict[int, bytes] = {}
         at = 0

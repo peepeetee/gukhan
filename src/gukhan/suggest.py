@@ -30,6 +30,7 @@ from typing import Protocol
 
 from .convert import Kind, Result, _apply_spacing
 from .lexicon import Entry
+from .styles import render
 
 SENTENCE_END = re.compile(r"[.!?。！？\n]")
 MAX_SENTENCE = 300
@@ -138,7 +139,9 @@ def collect_suggestions(
     return out
 
 
-def apply_suggestions(text: str, result: Result, suggestions: Mapping[tuple[int, int], Suggestion]) -> str:
+def apply_suggestions(
+    text: str, result: Result, suggestions: Mapping[tuple[int, int], Suggestion], style: str = "mixed"
+) -> str:
     """The converted text with each suggested flagged word written in the suggested Hanja.
 
     Only for the explicit ``--llm-apply``; a suggestion for a native-word candidate keeps the Hangul.
@@ -148,11 +151,11 @@ def apply_suggestions(text: str, result: Result, suggestions: Mapping[tuple[int,
         out.append(text[pos : d.start])
         s = suggestions.get((d.start, d.end))
         if d.kind == Kind.CONVERTED and d.hanja:
-            out.append(d.hanja)
+            out.append(render(d.hangul, d.hanja, style))
         elif (
             d.kind == Kind.FLAGGED and s is not None and len(s.hanja.replace(" ", "")) == len(d.hangul.replace(" ", ""))
         ):
-            out.append(_apply_spacing(d.hangul, s.hanja.replace(" ", "")))
+            out.append(render(d.hangul, _apply_spacing(d.hangul, s.hanja.replace(" ", "")), style))
         else:
             out.append(d.hangul)
         pos = d.end

@@ -21,7 +21,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from gukhan.convert import Converter, Decision, Kind, Result
+from gukhan.convert import Converter, Decision, Result
 
 FORMATS = ("text", "html", "docx", "epub", "srt", "vtt")
 BINARY = frozenset({"docx", "epub"})
@@ -99,6 +99,10 @@ class Document:
         """The file with its editable pieces (all flows, in order) replaced by ``edited``."""
         raise NotImplementedError
 
+    def markup_flags(self) -> list[bool]:
+        """For each flow, whether markup (``<ruby>``) may be written into it: HTML text, not Word, subtitles or NCX."""
+        return [False] * len(self.flows)
+
     @property
     def slots(self) -> int:
         """How many editable pieces the document has."""
@@ -108,9 +112,12 @@ class Document:
 class SpanDocument(Document):
     """A text file whose editable pieces are character ranges of the source; the rest is copied untouched."""
 
-    def __init__(self, src: str, spans: list[tuple[int, int]], flows: list[Flow]) -> None:
+    def __init__(self, src: str, spans: list[tuple[int, int]], flows: list[Flow], *, markup: bool = False) -> None:
         super().__init__([f for f in flows if any(isinstance(i, str) for i in f)])
-        self.src, self.spans = src, spans
+        self.src, self.spans, self.markup = src, spans, markup
+
+    def markup_flags(self) -> list[bool]:
+        return [self.markup] * len(self.flows)
 
     def rebuild(self, edited: list[str]) -> str:
         if len(edited) != len(self.spans):
@@ -139,21 +146,18 @@ def _join(flow: Flow) -> str:
     return "".join(item.char if isinstance(item, Gap) else item for item in flow)
 
 
-def _pieces(flow: Flow, text: str, decisions: list[Decision], mark: bool) -> list[str] | None:
+def _pieces(conv: Converter, flow: Flow, text: str, decisions: list[Decision], mark: bool) -> list[str] | None:
     """Cut the conversion of one flow back into its editable pieces, character by character.
 
     A converted word's Hanja replace its Hangul one for one, wherever the piece boundaries fall; a flagged
     word's ``{…}`` mark (``mark=True``) goes after its last character. None when that cannot be done exactly
-    (a Hanja reading of another length, or a change at a placeholder).
+    (a changed placeholder).
     """
     out = list(text)
     for d in decisions:
-        if d.kind == Kind.CONVERTED:
-            if d.hanja is None or len(d.hanja) != d.end - d.start:
-                return None
-            out[d.start : d.end] = list(d.hanja)
-        elif d.kind == Kind.FLAGGED and mark:
-            out[d.end - 1] += "{" + "|".join(c.hanja for c in d.candidates) + "}"
+        if d.hangul != text[d.start : d.end]:
+            return None
+        out[d.start : d.end] = conv.decision_chars(d, text, mark)
     pieces: list[str] = []
     pos = 0
     for item in flow:
@@ -170,6 +174,13 @@ def _pieces(flow: Flow, text: str, decisions: list[Decision], mark: bool) -> lis
 def convert_document(doc: Document, conv: Converter, *, mark: bool = False) -> Converted:
     """Convert every flow of ``doc`` and rebuild the file; only the converted words differ from the input."""
     joined = [_join(flow) for flow in doc.flows]
+    flags = doc.markup_flags()
+    ruby = conv.style == "ruby"
+    if ruby and not any(flags):
+        raise FormatError(
+            "ruby 形式은 HTML 계열 出力에서만 쓸 수 있습니다 / the ruby style writes HTML <ruby> tags, so it works "
+            "with HTML, EPUB, Markdown and text, not with Word or subtitle files"
+        )
     own_evidence = "field" in conv.rules
     if own_evidence:
         conv.set_document(joined, markdown=False)
@@ -177,10 +188,12 @@ def convert_document(doc: Document, conv: Converter, *, mark: bool = False) -> C
     decisions: list[Decision] = []
     converted_text: list[str] = []
     base = 0
+    style = conv.style
     try:
-        for flow, text in zip(doc.flows, joined, strict=True):
+        for flow, text, markup in zip(doc.flows, joined, flags, strict=True):
+            conv.style = "hanja-gloss" if ruby and not markup else style  # an EPUB's table of contents is plain text
             res = conv.convert(text, mark=mark, markdown=False)
-            pieces = _pieces(flow, text, res.decisions, mark)
+            pieces = _pieces(conv, flow, text, res.decisions, mark)
             if pieces is None:  # cannot be cut exactly: convert piece by piece
                 pieces = [conv.convert(item, mark=mark, markdown=False).text for item in flow if isinstance(item, str)]
             edited.extend(pieces)
@@ -191,6 +204,7 @@ def convert_document(doc: Document, conv: Converter, *, mark: bool = False) -> C
             )
             base += len(text) + 1
     finally:
+        conv.style = style
         if own_evidence:
             conv.field_evidence = None
     return Converted(doc.rebuild(edited), "\n".join(joined), Result("\n".join(converted_text), decisions))

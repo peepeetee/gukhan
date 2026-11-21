@@ -18,6 +18,7 @@ from .analyser import KiwiAnalyser, default_workers
 from .convert import Converter, Result
 from .lexicon import Lexicon
 from .overrides import Overrides
+from .styles import STYLES
 
 
 def _err(msg: str) -> int:
@@ -194,6 +195,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ap.add_argument("--mark", action="store_true", help="show flagged words inline as 전기{電氣|傳記}")
     ap.add_argument(
+        "--style",
+        choices=STYLES,
+        default="mixed",
+        help="變換한 낱말을 적는 方式: mixed 國軍 (기본), gloss 국군(國軍), hanja-gloss 國軍(국군), "
+        "ruby = HTML <ruby> (漢字 위에 한글 讀音; HTML·EPUB·Markdown·平文에서만) / how a converted word is written: "
+        "mixed (default), gloss, hanja-gloss, or ruby (HTML <ruby> with the Hangul reading above; HTML, EPUB, "
+        "Markdown and text only); see docs/styles.md",
+    )
+    ap.add_argument(
         "--review-all",
         action="store_true",
         help="辭典에 없는 普通名詞도 모두 나열 / also list every common noun with no entry",
@@ -353,6 +363,11 @@ def main(argv: list[str] | None = None) -> int:
         backend = _make_backend(args)
     except ValueError as e:
         return _err(str(e))
+    if args.style == "ruby" and any(f in ("docx", "srt", "vtt") for f in fmts.values()):
+        return _err(
+            "ruby 形式은 HTML 계열 出力에서만 쓸 수 있습니다 / the ruby style writes HTML <ruby> tags, so it works "
+            "with HTML, EPUB, Markdown and text, not with Word or subtitle files; use gloss or hanja-gloss"
+        )
     if backend is not None and any(f != "text" for f in fmts.values()):
         return _err(
             "局所 모델 提案은 平文·Markdown에서만 쓸 수 있습니다 / local-model suggestions work on plain text "
@@ -377,11 +392,14 @@ def main(argv: list[str] | None = None) -> int:
         review_all=args.review_all,
         min_weight=args.min_weight,
         use_rules=use_rules,
+        style=args.style,
     )
 
     status = 0
     plan: list[tuple[Path | None, Path | None]] = [(None, args.output)] if args.stdin else list(jobs)
-    spec = _WorkerSpec(args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers)
+    spec = _WorkerSpec(
+        args.lexicon, list(args.overrides), args.review_all, args.min_weight, use_rules, args.workers, args.style
+    )
     for path, target, out_text, s, result, text in _convert_stream(conv, plan, texts, fmts, args.mark, n_jobs, spec):
         suggestions = None
         if backend is not None and result is not None and isinstance(out_text, str):  # one process: result exists
@@ -395,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             if args.llm_apply and suggestions:
                 suggestions = {k: replace(v, applied=True) for k, v in suggestions.items()}
-                result = Result(suggest.apply_suggestions(text, result, suggestions), result.decisions)
+                result = Result(suggest.apply_suggestions(text, result, suggestions, args.style), result.decisions)
                 out_text, s = result.text, report.summary(result)
         try:
             if args.in_place and path is not None:
@@ -447,6 +465,7 @@ class _WorkerSpec:
     min_weight: int | None
     use_rules: frozenset[str]
     kiwi_workers: int | None
+    style: str = "mixed"
 
 
 _WORKER: dict[str, Converter] = {}
@@ -465,6 +484,7 @@ def _init_worker(spec: _WorkerSpec, jobs: int) -> None:
         review_all=spec.review_all,
         min_weight=spec.min_weight,
         use_rules=spec.use_rules,
+        style=spec.style,
     )
 
 

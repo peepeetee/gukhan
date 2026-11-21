@@ -5,6 +5,7 @@ Gukhan never guesses: an ambiguous word is flagged and left in Hangul. 모호한
 
 - Install and command line: see the project [README](https://github.com/peepeetee/gukhan#readme).
 - Settling flagged words: [Overrides and review](overrides-and-review.md).
+- Writing Hanja as a gloss or ruby for learners: [Output styles](styles.md).
 - HTML, Word, EPUB and subtitles: [Input formats](formats.md).
 - Using it from Python: [API reference](api.md) and the [API policy](api-policy.md) (what is stable).
 - What changed: [Changelog](changelog.md).
