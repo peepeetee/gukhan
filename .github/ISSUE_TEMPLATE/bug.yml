@@ -1,0 +1,20 @@
+name: Bug / 오류
+description: A crash, a wrong file, or behaviour that contradicts the docs.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected / 무슨 일이 있었나
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Command or steps, with a minimal input / 再現 方法
+      render: shell
+  - type: input
+    id: env
+    attributes:
+      label: Environment / 環境
+      description: OS, Python (or browser) version, `gukhan --version`.

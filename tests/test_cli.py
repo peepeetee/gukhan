@@ -193,3 +193,12 @@ def test_one_bad_file_stops_before_any_write(tmp_path):
     bad.write_bytes("대한민국".encode("cp949"))
     assert main([str(a), str(bad), "--in-place", "--lexicon", MINI]) == 2
     assert a.read_bytes() == "대한민국\r\n".encode() and not a.with_name("f0.md.bak").exists()
+
+
+def test_version_names_the_analyser_and_lexicon(capsys):
+    with pytest.raises(SystemExit) as stop:
+        main(["--version"])
+    assert stop.value.code == 0
+    out = capsys.readouterr().out.splitlines()
+    assert out[0].startswith("gukhan ") and out[1].startswith("kiwipiepy ") and "model cong" in out[1]
+    assert out[2].startswith("gukhan-lexicon ")

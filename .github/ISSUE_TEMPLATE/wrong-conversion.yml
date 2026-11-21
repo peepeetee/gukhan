@@ -1,0 +1,29 @@
+name: Wrong conversion / 誤變換
+description: gukhan wrote the wrong Hanja, or left a word that should convert.
+labels: ["conversion"]
+body:
+  - type: textarea
+    id: sentence
+    attributes:
+      label: Sentence (Hangul) / 文章
+      description: Only text you may share.
+    validations:
+      required: true
+  - type: textarea
+    id: got
+    attributes:
+      label: What gukhan wrote / 變換 結果
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should be, and the source / 期待 結果과 出處
+      description: A dictionary entry or a printed edition (title, year, page) is best.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and lexicon / 版本
+      description: Output of `gukhan --version`, and the gukhan-lexicon version or the --lexicon you used.
