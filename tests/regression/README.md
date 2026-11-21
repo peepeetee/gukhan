@@ -25,6 +25,24 @@ the legal basis. Add a row there before adding items.
   note marks readings `gukhan-regress prepare` had to guess; remove the note
   once a person has confirmed or corrected the Hangul.
 
+## Modern statutes / 現行 法律 (2026-11-21)
+
+`modern-law.tsv` (1218 items) tests homograph choice on current statutes. Current
+法律 are written in Hangul, but the plain-language rewrites of the 2000s–2020s put
+the Hanja after a legal term on first use: `분사무소(分事務所)`, `의사(意思)`. That
+annotation is the lawmaker's own Hanja for the word, so it is gold.
+
+- Source: `legalize-kr/legalize-kr` on GitHub, a mirror of law.go.kr; 40 statutes,
+  listed with 公布日 / 施行日 / 法令MST in `modern-law-laws.tsv`. Statutes are free
+  of copyright (저작권법 제7조); the mirror's own structure and metadata are MIT.
+- Only annotated words are Hanja in the gold text; every other word stays Hangul.
+  So read `right`, `flagged` and `wrong`; `over` counts every un-annotated word
+  the converter writes in Hanja and means nothing here.
+- At most two sentences per distinct (word, Hanja) pair, so `자(子)` does not
+  dominate. Readings were checked by eye, not against Unihan.
+- Rebuild: `python scripts/collect_law_glosses.py --out build/laws` then
+  `--from build/laws --items tests/regression/modern-law.tsv`.
+
 ## How to add a text
 
 ```
