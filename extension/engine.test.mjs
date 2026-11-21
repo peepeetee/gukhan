@@ -31,6 +31,10 @@ test('saved choices and keep overrides', () => {
 test('Hanja outside the BMP count as one character', () => {
   assert.equal(parseLexicon('간증\t䵟𪒟').get('간증')[0].form, '䵟𪒟');
 });
+test('a byte-order mark and Windows line endings do not spoil the first headword', () => {
+  const l = parseLexicon('\uFEFF연구\t研究\r\n전기\t電氣\r\n');
+  assert.deepEqual([...l.keys()], ['연구', '전기']);
+});
 test('malformed data rejected', () => assert.throws(() => parseLexicon('연구\t研')));
 test('one manifest serves Chrome and Firefox', async () => {
   const {readFileSync} = await import('node:fs');

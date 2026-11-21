@@ -406,3 +406,27 @@ def test_wiktextract_skips_lines_that_are_not_objects(tmp_path):
     path.write_text('["not", "an", "object"]\n"text"\n{"word": "x", "lang_code": "en"}\n{broken\n', encoding="utf-8")
     entries, _, stats = wiktextract.parse(path)
     assert entries == [] and stats.items == 1 and stats.rejected == 3
+
+
+def test_truncated_xml_names_the_file_and_exits_2(tmp_path, capsys):
+    from gukhan.lexicon_build.cli import main as build
+
+    dump = tmp_path / "dump"
+    dump.mkdir()
+    sample = (FIX / "stdict_sample.xml").read_text(encoding="utf-8")
+    (dump / "0001.XML").write_text(sample[: len(sample) // 2], encoding="utf-8")  # upper-case suffix, cut in half
+    assert build(["--stdict", str(dump), "-o", str(tmp_path / "out")]) == 2
+    err = capsys.readouterr().err
+    assert "0001.XML" in err and "not well-formed" in err
+
+
+def test_truncated_bz2_dump_exits_2(tmp_path, capsys):
+    import bz2
+
+    from gukhan.lexicon_build.cli import main as build
+
+    blob = bz2.compress(b"<mediawiki>" + b"x" * 5000)
+    path = tmp_path / "kowiki.xml.bz2"
+    path.write_bytes(blob[: len(blob) // 2])
+    assert build(["--kowiki", str(path), "-o", str(tmp_path / "out")]) == 2
+    assert "error" in capsys.readouterr().err

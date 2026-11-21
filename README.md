@@ -30,6 +30,19 @@ words) with line and column; `--mark` shows flagged words inline as
 이순신 = 李舜臣      # add a word
 ```
 
+As a library (the model loads on first use; pass a `Lexicon` for real work):
+
+```python
+from gukhan.convert import Converter, Kind
+from gukhan.lexicon import Lexicon
+
+conv = Converter(Lexicon.installed() or Lexicon.sample())
+result = conv.convert("국군은 작전 계획을 수립하였다.")
+print(result.text)  # converted text, endings untouched
+for d in result.of(Kind.FLAGGED):  # homographs left in Hangul, with candidates
+    print(d.hangul, [c.hanja for c in d.candidates])
+```
+
 Flagged words that no rule can settle (國家 or 國歌?) need a reader. `gukhan review`
 shows each one in context with its numbered candidates and appends your choice to the
 override file, so the next run reuses it. Nothing is preselected and Enter does nothing:

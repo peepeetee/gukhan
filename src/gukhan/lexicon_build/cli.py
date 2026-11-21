@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import zipfile
 from pathlib import Path
 
 from . import kowiki as kowiki_mod
@@ -83,6 +84,19 @@ def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_m
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        return _build(argv)
+    except (
+        stdict_mod.InputError,
+        EOFError,
+        OSError,
+        zipfile.BadZipFile,
+    ) as e:  # a corrupt or truncated input, a full disk
+        print(f"入力 또는 出力 誤謬 / input or output error: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+def _build(argv: list[str] | None) -> int:
     ap = argparse.ArgumentParser(
         prog="gukhan-lexicon-build",
         description=(

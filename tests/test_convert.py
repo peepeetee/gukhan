@@ -302,3 +302,11 @@ def test_long_text_chunked_equals_unchunked(monkeypatch):
     pieces = c.convert(text)
     assert pieces.text == whole.text
     assert [(d.start, d.end, d.kind) for d in pieces.decisions] == [(d.start, d.end, d.kind) for d in whole.decisions]
+
+
+@pytest.mark.kiwi
+def test_readme_library_example_runs():
+    conv = Converter(Lexicon.sample())
+    result = conv.convert("국군은 작전 계획을 수립하였다.")
+    assert isinstance(result.text, str) and result.text.endswith("하였다.")
+    assert all(isinstance(d.hangul, str) for d in result.of(Kind.FLAGGED))
