@@ -282,3 +282,16 @@ def test_displayed_context_cannot_carry_terminal_escapes():
     shown = one_line(hostile)
     assert not any(ord(c) < 32 or 0x7F <= ord(c) <= 0x9F or c in "‮ " for c in shown)
     assert "앞" in shown and "뒤" in shown and "끝" in shown
+
+
+@pytest.mark.parametrize("module", ["gukhan.cli", "gukhan.lexicon_build.cli", "gukhan.regress.cli"])
+def test_help_prints_in_every_command_on_a_narrow_console(module):
+    """--help carries Korean; with a Windows code page (cp1252) and a pipe it used to die with UnicodeEncodeError."""
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    p = subprocess.run([sys.executable, "-m", module, "--help"], capture_output=True, env=env)
+    assert p.returncode == 0, p.stderr.decode("utf-8", "replace")
+    assert "한" in p.stdout.decode("utf-8", "replace") or "國" in p.stdout.decode("utf-8", "replace")

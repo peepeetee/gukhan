@@ -8,6 +8,7 @@ import sys
 import zipfile
 from pathlib import Path
 
+from .. import console
 from . import kowiki as kowiki_mod
 from . import lawgloss as law_mod
 from . import opendict as opendict_mod
@@ -96,6 +97,7 @@ def drop_nonstandard_spellings(entries: list[stdict_mod.Entry]) -> list[stdict_m
 
 
 def main(argv: list[str] | None = None) -> int:
+    console.utf8_streams()  # --help carries Korean; a Windows console would fail on it
     try:
         return _build(argv)
     except (

@@ -11,7 +11,7 @@ import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-from . import __version__, report, rules, suggest
+from . import __version__, console, report, rules, suggest
 from .analyser import KiwiAnalyser, default_workers
 from .convert import Converter, Result
 from .lexicon import Lexicon
@@ -41,15 +41,7 @@ def _read_error(path: Path, e: Exception) -> str:
     return f"{path}: {e.strerror or e}"
 
 
-def _utf8_streams() -> None:
-    """Redirected output is UTF-8 on every platform (Windows would use cp949 and fail on rare Hanja)."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if reconfigure:
-            try:
-                reconfigure(encoding="utf-8", errors="replace", newline="" if stream is sys.stdout else None)
-            except (ValueError, OSError):  # a stream that has already been read from or is closed
-                pass
+_utf8_streams = console.utf8_streams
 
 
 def _dist_version(name: str) -> str:
