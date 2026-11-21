@@ -100,8 +100,9 @@ extension processes text locally and sends nothing anywhere.
 tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
-Scores, 2026-11-01, on the lexicon built that day (標準國語大辭典 88 chunks + 우리말샘 +
-Wiktionary (kaikki.org) + 韓國語基礎辭典 + learner list + Unihan 18.0.0; 704,912 entries),
+Scores, 2026-11-21, on the lexicon built that day from main (標準國語大辭典 88 chunks + 우리말샘 +
+Wiktionary (kaikki.org) + 韓國語基礎辭典 + learner list + Unihan 18.0.0; 706,550 entries,
+with the domain column and the native-word headwords),
 Kiwi 0.24.1, default settings (evidence rules `default`, docs/PLAN.md §5a). A word is one
 run of Hanja in the published text. "flagged or partial" counts words the tool left in Hangul
 (abstained) or converted only in part; those are not errors. `wrong` is Hanja that differs from
@@ -109,34 +110,37 @@ the published text; `over` is Hanja written where the published text has Hangul.
 
 | source | items | words | right | wrong | over | flagged or partial |
 | --- | --- | --- | --- | --- | --- | --- |
-| 大韓民國憲法 1948 | 321 | 1897 | 47.0% | 5 (0.3%) | 3 | 1000 (907 flagged) |
-| 憲法 1952 amendment | 352 | 2149 | 45.0% | 6 (0.3%) | 5 | 1176 |
-| 憲法 1954 amendment | 360 | 2244 | 45.5% | 5 (0.2%) | 7 | 1219 |
-| 大韓民國臨時憲章 1919 | 22 | 133 | 35.3% | 2 (1.5%) | 0 | 84 |
+| 大韓民國憲法 1948 | 321 | 1897 | 49.9% | 4 (0.2%) | 3 | 947 (862 flagged) |
+| 憲法 1952 amendment | 352 | 2149 | 48.0% | 5 (0.2%) | 5 | 1113 |
+| 憲法 1954 amendment | 360 | 2244 | 48.8% | 4 (0.2%) | 7 | 1144 |
+| 大韓民國臨時憲章 1919 | 22 | 133 | 36.1% | 2 (1.5%) | 0 | 83 |
 | 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 4 | 338 |
-| 님의 沈黙 1926, batches b1–b8 and preface (poetry) | 251 | 585 | 23.1% | 8 (1.4%) | 126 | 442 |
+| 님의 沈黙 1926, batches b1–b19 and preface (poetry) | 418 | 943 | 27.6% | 12 (1.3%) | 97 | 671 |
+| 現行 法令 (modern-law, held out; `over` not meaningful, only glossed words are Hanja) | 1218 | 1458 | 23.1% | 21 (1.4%) | n/a | 1100 (990 flagged) |
 
-On the 1948 text, 80.7% of the gold words are among the candidates the tool wrote or offered.
+On the 1948 text, 81.4% of the gold words are among the candidates the tool wrote or offered.
 Full tables, `over` lists and per-rule effects are in tests/regression/README.md.
 
 Reading the numbers:
 
-- The tool abstains rather than guesses: more than half of the words in the constitutions stay in
+- The tool abstains rather than guesses: about half of the words in the constitutions stay in
   Hangul. That is the intended trade, and a user override file turns repeated flags into
   conversions (`gukhan review`).
 - `over` is the weak spot on literary text. In 님의 沈黙 the author wrote many native words in
-  Hangul, and the tool sometimes reads them as Sino-Korean: 사랑 ("love") becomes 舍廊 ("men's
-  quarters") in at least 30 listed cases, 조→兆, 별→別, 거→炬. Wrong output on common words like
-  these is the main known problem. An override line (`사랑 = -`) keeps a word in Hangul.
-- These are pre-1970 legal and literary texts, written for a register the Kiwi analyser was not
-  trained on. They do not establish accuracy on modern text, which has not been measured.
+  Hangul, and the tool sometimes reads them as Sino-Korean: 별→別, 거→炬, 번→番, 조→兆. Since the
+  native-word headwords were added, 사랑 is no longer converted to 舍廊 (it was in at least 30 cases
+  before), and `over` on the poetry fell from 143 to 97 on a larger set (943 words). An override
+  line (`별 = -`) keeps a word in Hangul.
+- The constitutions and 님의 沈黙 are pre-1970 texts, written for a register the Kiwi analyser was
+  not trained on. The only modern-text check is `modern-law`, current statutes with the Hanja
+  glosses the legislature prints in parentheses: 23.1% right, 1.4% wrong, 990 flagged. That set
+  covers legal vocabulary only; accuracy on general modern prose has not been measured.
 
 한국어: 憲法 本文에서 誤變換은 0.2~0.3%이나 절반 이상은 變換하지 않고 남깁니다. 詩集에서는
-固有語를 漢字語로 읽는 誤變換(사랑→舍廊)이 가장 큰 約點입니다. 現代 文章의 正確度는 아직 測定하지 않았습니다.
+固有語를 漢字語로 읽는 誤變換(사랑→舍廊)이 가장 큰 約點입니다. 現行 法令에서는 正答 23.1%, 誤變換 1.4%이며, 一般 現代 文章의 正確度는 아직 測定하지 않았습니다.
 
-Per Hanja character on the 1948 text: 51.9% right, 0.2% wrong (7 of 4,038). The five wrong words
-there are 總綱→銃腔, 命→名, 總理令→摠理營, 國防上→國防相 and 秘密會→祕密會 (a variant
-form of the same character, counted as wrong because it differs from the published text).
+Per Hanja character on the 1948 text: 54.9% right, 0.1% wrong (6 of 4,038). The four wrong words
+there are 總綱→銃腔, 命→名, 總理令→摠理營 and 國防上→國防相.
 한국어: 1919년 옛말, 하야·안이·옛 자모와 인명은 현대 형태소 분석기의 한계로 수동 검토가 필요합니다.
 
 ## Licence
