@@ -45,3 +45,18 @@ test('one manifest serves Chrome and Firefox', async () => {
   assert.match(m.browser_specific_settings.gecko.id, /@/);
   assert.deepEqual(m.browser_specific_settings.gecko.data_collection_permissions.required, ['none']);
 });
+test('the domain column is read; older eight-column lexicons still load', () => {
+  const l = parseLexicon('작전\t作戰\t명사\tlaw:가법\t\t0\t0\t0\t법률\n연구\t研究\t명사\tstdict:1\t\t0\t0\t0\n전기\t電氣');
+  assert.equal(l.get('작전')[0].domain, '법률');
+  assert.equal(l.get('연구')[0].domain, '');
+  assert.equal(l.get('전기')[0].domain, '');
+  assert.deepEqual(convert('작전 연구', l).map(x => x.text), ['作戰', '研究']);
+});
+test('a native-word twin keeps the word in Hangul and stays a candidate', () => {
+  const l = parseLexicon('사랑\t舍廊\t명사\tstdict:1\t\t0\t0\t0\n사랑\t사랑\t명사\tstdict:2\t\t0\t0\t0\n연구\t研究\n');
+  const [d] = convert('사랑이 연구', l);
+  assert.equal(d.text, '사랑');
+  assert.deepEqual(d.candidates.map(c => c.form).sort(), ['舍廊', '사랑']);
+  assert.equal(convert('사랑에서', l)[0].text, '사랑'); // through a particle, too
+  assert.equal(convert('사랑', l, {사랑: '舍廊'})[0].text, '舍廊'); // a saved choice still wins
+});

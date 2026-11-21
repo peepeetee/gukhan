@@ -68,3 +68,23 @@ def test_firefox_target_keeps_gecko_keys(tmp_path):
 def test_strip_definitions_does_not_split_rows_at_unicode_line_separators():
     text = "연구\t研究\t명사\ts\ta b\u0085c\t3\n"
     assert pkg.strip_definitions(text) == "연구\t研究\t\t\t\t3\n"
+
+
+def test_strip_definitions_keeps_the_domain_column():
+    text = "작전\t作戰\t명사\tlaw:가법\t뜻\t0\t0\t0\t법률\n"
+    assert pkg.strip_definitions(text) == "작전\t作戰\t\t\t\t0\t0\t0\t법률\n"
+
+
+def test_extension_version_is_semver_and_documented():
+    import re
+
+    manifest = json.loads((pkg.EXT / "manifest.json").read_text(encoding="utf-8"))
+    version = manifest["version"]
+    assert re.fullmatch(r"\d+\.\d+\.\d+", version)
+    # The extension is on its own version track (docs/RELEASE.md), but every place that names a build must follow it,
+    # and once the code is released its major.minor may not be behind the code's.
+    assert f"gukhan-chrome-{version}.zip" in (pkg.ROOT / "docs" / "chrome-web-store.md").read_text(encoding="utf-8")
+    code = re.search(r'^version = "([\d.]+)"', (pkg.ROOT / "pyproject.toml").read_text(encoding="utf-8"), re.M)
+    assert code
+    if code.group(1) != "0.0.0":
+        assert tuple(map(int, version.split(".")[:2])) >= tuple(map(int, code.group(1).split(".")[:2]))

@@ -61,6 +61,16 @@ read the add-on's own files (`connect-src 'self'`); nothing is fetched from the 
 
 한국어: 사전을 같이 묶은 版은 처음 설치할 때 자동으로 불러옵니다. 사전은 별도의 라이선스(CC BY-SA 2.0 KR)를 따릅니다.
 
+Lexicon columns: the importer reads `hangul, hanja, pos, source, sense, weight, level, learner_rank, domain`
+and still accepts the older eight-column files. A line whose Hanja equals its headword is a native-word
+twin (사랑 / 사랑 next to 舍廊): it makes the word ambiguous, so the word stays Hangul, and the candidate card
+lists it once, as "Keep Hangul". The domain (`[법률]` for entries from the optional statute-gloss source)
+is shown on the card; the extension does not apply the CLI's field rule, so a word with two forms stays
+Hangul whatever their fields. Entries from `--law-glosses` need no special handling. The opt-in
+`law-overrides.txt` has the same syntax as the settings page's override box and can be pasted there.
+Version: the extension is on its own track (docs/RELEASE.md); a test keeps the manifest version, the
+docs that name a build, and the code's major.minor consistent.
+
 Validation: `node --test extension/engine.test.mjs` for the matching engine, and
 `node extension/browser-smoke.cjs` for a real Chromium run through Playwright
 (dictionary import with manifest check, candidate panel, saved override, protected
