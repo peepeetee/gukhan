@@ -5,7 +5,7 @@ Hangul → Hanja mixed-script converter. 한글 文章을 國漢文混用體로 
 
 Status: pre-release, not yet published to PyPI. Accuracy numbers come only from the public
 regression set (see [Regression set and accuracy](#regression-set-and-accuracy)), never from
-marketing. Plan: [docs/PLAN.md](docs/PLAN.md). Release steps: [docs/RELEASE.md](docs/RELEASE.md).
+marketing. Plan: [docs/PLAN.md](docs/PLAN.md). Release steps: [docs/RELEASE.md](docs/RELEASE.md). Optional local-model suggestions for flagged words: [docs/local-model.md](docs/local-model.md).
 
 ## Install and use
 

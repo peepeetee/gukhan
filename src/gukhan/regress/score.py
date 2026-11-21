@@ -28,8 +28,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gukhan.convert import Converter, Decision
+from gukhan.convert import Converter, Decision, Kind
 from gukhan.lexicon_build.hangul import is_cjk
+from gukhan.suggest import collect_suggestions
 
 
 @dataclass(frozen=True)
@@ -67,6 +68,12 @@ class Tally:
     chars_flagged: int = 0
     chars_wrong: int = 0
     misaligned: int = 0  # output length differs from gold; item skipped
+    # local-model suggestions (only with a backend): asked = flagged words with two or more candidates
+    sugg_asked: int = 0
+    sugg_right: int = 0  # suggested exactly the gold Hanja
+    sugg_wrong: int = 0  # suggested other Hanja where the gold has Hanja
+    sugg_over: int = 0  # suggested Hanja where the gold keeps Hangul
+    sugg_abstain: int = 0
     examples_wrong: list[tuple[str, str, str]] = field(default_factory=list)
     examples_over: list[tuple[str, str, str]] = field(default_factory=list)
     examples_partial: list[tuple[str, str, str]] = field(default_factory=list)
@@ -78,7 +85,19 @@ class Tally:
     def as_dict(self) -> dict[str, int | float]:
         w = self.words
         c = self.chars_right + self.chars_flagged + self.chars_wrong
+        extra = (
+            {
+                "suggest_asked": self.sugg_asked,
+                "suggest_right": self.sugg_right,
+                "suggest_wrong": self.sugg_wrong,
+                "suggest_over": self.sugg_over,
+                "suggest_abstain": self.sugg_abstain,
+            }
+            if self.sugg_asked
+            else {}
+        )
         return {
+            **extra,
             "words": w,
             "right": self.right,
             "partial": self.partial,
@@ -173,7 +192,28 @@ def score_item(item: Item, output: str, tally: Tally, decisions: Iterable[Decisi
                 tally.examples_over.append((item.id, gold[a:b], out[a:b]))
 
 
-def score(items: Iterable[Item], converter: Converter) -> Tally:
+def score_suggestions(item: Item, decisions: Iterable[Decision], suggestions, tally: Tally) -> None:
+    """Count what a backend suggested for each flagged word, against the gold text; nothing is applied."""
+    gold = fold_variants(item.mixed)
+    for d in decisions:
+        if d.kind != Kind.FLAGGED or len(d.candidates) < 2 or d.end > len(gold):
+            continue
+        tally.sugg_asked += 1
+        sug = suggestions.get((d.start, d.end))
+        if sug is None:
+            tally.sugg_abstain += 1
+            continue
+        want = gold[d.start : d.end]
+        got = fold_variants(sug.hanja.replace(" ", ""))
+        if got == want.replace(" ", ""):
+            tally.sugg_right += 1
+        elif any(is_cjk(c) for c in want):
+            tally.sugg_wrong += 1
+        else:
+            tally.sugg_over += 1
+
+
+def score(items: Iterable[Item], converter: Converter, backend=None, on_error=None) -> Tally:
     tally = Tally()
     by_source: dict[str, list[Item]] = {}
     for item in items:
@@ -184,5 +224,8 @@ def score(items: Iterable[Item], converter: Converter) -> Tally:
         for item in group:
             result = converter.convert(item.hangul)
             score_item(item, result.text, tally, result.decisions)
+            if backend is not None:
+                sugg = collect_suggestions(backend, item.hangul, result, on_error=on_error)
+                score_suggestions(item, result.decisions, sugg, tally)
     converter.field_evidence = None
     return tally

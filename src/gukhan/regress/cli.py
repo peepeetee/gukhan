@@ -8,7 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from gukhan import rules
+from gukhan import rules, suggest
 from gukhan.cli import _utf8_streams
 from gukhan.convert import Converter
 from gukhan.lexicon import Lexicon
@@ -68,7 +68,21 @@ def cmd_score(args: argparse.Namespace) -> int:
     for p in args.items:
         for it in sc.read_items(p):
             items.append(sc.Item(it.id, it.source, it.hangul, it.mixed.split(" # CHECK ")[0]))
-    tally = sc.score(items, conv)
+    backend = None
+    if args.llm_url:
+        try:
+            backend = suggest.OpenAIChatBackend(
+                args.llm_url, args.llm_model, timeout=args.llm_timeout, allow_remote=args.llm_allow_remote
+            )
+        except ValueError as e:
+            print(f"gukhan-regress: {e}", file=sys.stderr)
+            return 2
+    tally = sc.score(
+        items,
+        conv,
+        backend,
+        on_error=lambda m: print(f"gukhan-regress: 提案 中斷 / suggestions stopped: {m}", file=sys.stderr),
+    )
     result = {
         "items": len(items),
         "lexicon": str(args.lexicon or "sample"),
@@ -84,6 +98,11 @@ def cmd_score(args: argparse.Namespace) -> int:
             f"({result['wrong_pct']}%) over={result['over']} misaligned={result['misaligned_items']}"
         )
         print(f"in_candidates={result['in_candidates']} ({result['in_candidates_pct']}%): right or offered")
+        if tally.sugg_asked:
+            print(
+                f"suggest: asked={tally.sugg_asked} right={tally.sugg_right} wrong={tally.sugg_wrong} "
+                f"over={tally.sugg_over} abstained={tally.sugg_abstain} (not applied; model {backend.name})"
+            )
         print(
             f"chars={result['chars']} right={result['chars_right']} ({result['chars_right_pct']}%) "
             f"flagged={result['chars_flagged']} wrong={result['chars_wrong']} ({result['chars_wrong_pct']}%)"
@@ -123,6 +142,19 @@ def main(argv: list[str] | None = None) -> int:
     s = sub.add_parser("score", help="項目에 變換器를 돌려 報告 / run the converter on items and report")
     s.add_argument("items", type=Path, nargs="+", help="項目 TSV / items TSV file(s)")
     s.add_argument("--lexicon", type=Path, help="lexicon.tsv 또는 그 directory / lexicon.tsv or its directory")
+    s.add_argument(
+        "--llm-url",
+        metavar="URL",
+        help="局所 모델 提案의 正確度도 잼 (適用하지는 않음) / also score a local model's suggestions "
+        "for flagged words (never applied); see docs/local-model.md",
+    )
+    s.add_argument("--llm-model", default="", help="model 이름 / model name")
+    s.add_argument("--llm-timeout", type=float, default=60.0, help="要請當 秒 / seconds per request")
+    s.add_argument(
+        "--llm-allow-remote",
+        action="store_true",
+        help="localhost 아닌 주소 許容 / allow a non-localhost URL (sentences are sent there)",
+    )
     s.add_argument(
         "--overrides",
         type=Path,
