@@ -24,6 +24,7 @@ from pathlib import Path
 from .convert import Converter, Decision, Kind, Result
 from .lexicon import Entry, _strip_spaces
 from .overrides import KEEP, Overrides
+from .report import one_line
 
 SHOW_CONTEXTS = 3
 CONTEXT = 20
@@ -53,8 +54,8 @@ def collect(result: Result, include_review: bool = False) -> list[Group]:
 
 
 def _context(text: str, d: Decision) -> str:
-    left = text[max(0, d.start - CONTEXT) : d.start].replace("\n", " ")
-    right = text[d.end : d.end + CONTEXT].replace("\n", " ")
+    left = one_line(text[max(0, d.start - CONTEXT) : d.start])
+    right = one_line(text[d.end : d.end + CONTEXT])
     return f"…{left}[{d.hangul}]{right}…"
 
 

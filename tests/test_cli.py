@@ -72,3 +72,17 @@ def test_override_file_with_bom_and_no_final_newline(tmp_path):
     ov.write_bytes("﻿대한민국 = 大韓民國".encode())
     assert main([str(src), "-o", str(out), "--overrides", str(ov), "--lexicon", MINI]) == 0
     assert out.read_text(encoding="utf-8") == "大韓民國"
+
+
+def test_report_rows_stay_on_one_line_with_crlf_and_tabs():
+    from gukhan.analyser import ListAnalyser
+    from gukhan.convert import Converter
+    from gukhan.lexicon import Entry, Lexicon
+    from gukhan.report import to_markdown, to_tsv
+
+    lex = Lexicon([Entry("전기", "電氣", "명사", "t", "a|b"), Entry("전기", "傳記", "명사", "t", "line\nbreak")])
+    text = "앞\r\n줄\t전기\r\n뒤"
+    result = Converter(lex, None, ListAnalyser([("전기", "NNG")])).convert(text)
+    tsv = to_tsv(text, result)
+    assert "\r" not in tsv and all(len(row.split("\t")) == 6 for row in tsv.splitlines() if not row.startswith("#"))
+    assert "a\\|b" in to_markdown(text, result)

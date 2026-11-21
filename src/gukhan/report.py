@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import bisect
+import re
 
 from .convert import Decision, Kind, Result
 
@@ -23,14 +24,22 @@ def _line_col(starts: list[int], offset: int) -> tuple[int, int]:
     return line + 1, offset - starts[line] + 1
 
 
+_WHITESPACE = re.compile(r"\s")
+
+
+def one_line(s: str) -> str:
+    """Every line break and tab becomes a space, so a context never breaks a TSV row or a terminal line."""
+    return _WHITESPACE.sub(" ", s)
+
+
 def _context(text: str, d: Decision) -> str:
-    left = text[max(0, d.start - CONTEXT) : d.start].replace("\n", " ")
-    right = text[d.end : d.end + CONTEXT].replace("\n", " ")
+    left = one_line(text[max(0, d.start - CONTEXT) : d.start])
+    right = one_line(text[d.end : d.end + CONTEXT])
     return f"{left}[{d.hangul}]{right}"
 
 
 def _candidates(d: Decision) -> str:
-    return " | ".join(f"{c.hanja}" + (f" ({c.sense})" if c.sense else "") for c in d.candidates)
+    return " | ".join(f"{c.hanja}" + (f" ({one_line(c.sense)})" if c.sense else "") for c in d.candidates)
 
 
 def rows(source_text: str, result: Result) -> list[dict[str, str]]:
@@ -77,7 +86,7 @@ def to_markdown(source_text: str, result: Result) -> str:
         "| --- | --- | --- | --- | --- |",
     ]
     for r in rows(source_text, result):
-        cands = r["candidates"].replace(" | ", " · ")
+        cands = r["candidates"].replace(" | ", " · ").replace("|", "\\|")
         ctx = r["context"].replace("|", "\\|")
         lines.append(f"| {r['kind']} | {r['line']}:{r['col']} | {r['hangul']} | {cands} | {ctx} |")
     return "\n".join(lines) + "\n"
