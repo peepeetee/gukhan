@@ -1,0 +1,40 @@
+name: benchmark
+
+# Non-blocking: reports throughput on a 1 MB text; a slow or failed run never blocks a merge.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/**"
+      - "scripts/benchmark.py"
+      - ".github/workflows/benchmark.yml"
+
+jobs:
+  throughput:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: python -m pip install -e .
+      - name: Convert 1 MB
+        run: |
+          python scripts/benchmark.py --size-mb 1 --json | tee benchmark.json
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          r = json.load(open("benchmark.json", encoding="utf-8"))
+          print("### Throughput on 1 MB / 1 MB 處理 速度\n")
+          print("| MB/s | chars/s | seconds | lexicon entries | Kiwi load (s) |\n| --- | --- | --- | --- | --- |")
+          print(f"| {r['mb_per_s']} | {r['chars_per_s']} | {r['convert_s']} | {r['lexicon_entries']} | {r['model_load_s']} |")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark
+          path: benchmark.json

@@ -50,6 +50,9 @@ for d in result.of(Kind.FLAGGED):  # homographs left in Hangul, with candidates
     print(d.hangul, [c.hanja for c in d.candidates])
 ```
 
+A worked example of the override file and of `gukhan review`, with every command run by the tests:
+`docs/overrides-and-review.md` (使用者 安內 / user guide).
+
 Flagged words that no rule can settle (國家 or 國歌?) need a reader. `gukhan review`
 shows each one in context with its numbered candidates and appends your choice to the
 override file, so the next run reuses it. Nothing is preselected and Enter does nothing:
