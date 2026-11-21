@@ -18,6 +18,7 @@ nav:
   - Local model: local-model.md
   - Fonts: fonts.md
   - Performance: performance.md
+  - Accuracy check in CI: accuracy-ci.md
   - Privacy: privacy.md
   - Security review: security-review.md
   - Licensing and data: licensing.md

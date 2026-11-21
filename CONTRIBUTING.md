@@ -32,6 +32,7 @@ node --test extension/engine.test.mjs extension/a11y.test.mjs   # extension engi
 node extension/browser-smoke.cjs                    # optional: needs Playwright + Chromium
 python scripts/check_licences.py                    # what CI runs for licences
 python scripts/check_bilingual.py                   # every message needs Korean and English
+python scripts/accuracy.py compare base.json head.json      # CI's accuracy table against main (docs/accuracy-ci.md)
 python scripts/benchmark.py                         # throughput on 1 MB (CI runs it, non-blocking)
 python scripts/release_dryrun.py                     # build both packages, twine check, clean-venv smoke test (needs build, twine)
 ```
