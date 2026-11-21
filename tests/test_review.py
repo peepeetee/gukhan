@@ -119,3 +119,20 @@ def test_spaced_phrase_override_keeps_the_text_spacing():
     ov = Overrides.from_lines(["전기 공학 = 電氣 工學"])
     c = Converter(Lexicon([]), ov, ListAnalyser([("전기", "NNG"), ("공학", "NNG")]))
     assert c.convert("전기 공학").text == "電氣 工學"
+
+
+def test_append_to_override_file_without_final_newline(tmp_path):
+    path = tmp_path / "my.overrides"
+    path.write_text("안전 = 安全", encoding="utf-8")  # hand-edited, no trailing newline
+    r, path, _ = reviewer(tmp_path, ["1", "q"])
+    r.run()
+    assert lines(path)[:2] == ["안전 = 安全", "국가 = 國家"]
+
+
+def test_ctrl_c_saves_and_quits(tmp_path):
+    def ask(_p):
+        raise KeyboardInterrupt
+
+    r, path, _ = reviewer(tmp_path, [])
+    r.ask = ask
+    assert r.run() == 0

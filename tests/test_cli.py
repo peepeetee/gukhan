@@ -29,3 +29,60 @@ def test_cli_converts_and_reports(tmp_path, capsys):
     assert rc == 0
     assert "傳記를" in out.read_text(encoding="utf-8")
     assert "sample" not in capsys.readouterr().err
+
+
+MINI = str(FIX / "mini_lexicon.tsv")
+
+
+def test_crlf_and_bom_survive_a_round_trip(tmp_path):
+    src, out = tmp_path / "in.txt", tmp_path / "out.txt"
+    src.write_bytes("﻿대한민국\r\n헌법\r\n".encode())
+    assert main([str(src), "-o", str(out), "--lexicon", MINI]) == 0
+    assert out.read_bytes().decode("utf-8").replace("\r\n", "|") == "﻿大韓民國|憲法|"
+
+
+def test_not_utf8_input_is_an_error_not_a_traceback(tmp_path, capsys):
+    src = tmp_path / "cp949.txt"
+    src.write_bytes("대한민국 헌법".encode("cp949"))
+    assert main([str(src), "--lexicon", MINI]) == 2
+    assert "not UTF-8" in capsys.readouterr().err
+
+
+def test_unwritable_output_is_an_error(tmp_path, capsys):
+    src = tmp_path / "in.txt"
+    src.write_text("대한민국", encoding="utf-8")
+    assert main([str(src), "-o", str(tmp_path / "no-such-dir" / "out.txt"), "--lexicon", MINI]) == 2
+    assert "cannot write" in capsys.readouterr().err
+
+
+def test_stdin_is_read_as_utf8(monkeypatch, capsysbinary):
+    import io
+
+    class Stdin(io.TextIOWrapper):
+        pass
+
+    monkeypatch.setattr("sys.stdin", Stdin(io.BytesIO("대한민국\n".encode()), encoding="cp949", errors="replace"))
+    assert main(["--stdin", "--lexicon", MINI]) == 0
+    assert capsysbinary.readouterr().out.decode("utf-8") == "大韓民國\n"
+
+
+def test_override_file_with_bom_and_no_final_newline(tmp_path):
+    src, ov, out = tmp_path / "in.txt", tmp_path / "ov.txt", tmp_path / "out.txt"
+    src.write_text("대한민국", encoding="utf-8")
+    ov.write_bytes("﻿대한민국 = 大韓民國".encode())
+    assert main([str(src), "-o", str(out), "--overrides", str(ov), "--lexicon", MINI]) == 0
+    assert out.read_text(encoding="utf-8") == "大韓民國"
+
+
+def test_report_rows_stay_on_one_line_with_crlf_and_tabs():
+    from gukhan.analyser import ListAnalyser
+    from gukhan.convert import Converter
+    from gukhan.lexicon import Entry, Lexicon
+    from gukhan.report import to_markdown, to_tsv
+
+    lex = Lexicon([Entry("전기", "電氣", "명사", "t", "a|b"), Entry("전기", "傳記", "명사", "t", "line\nbreak")])
+    text = "앞\r\n줄\t전기\r\n뒤"
+    result = Converter(lex, None, ListAnalyser([("전기", "NNG")])).convert(text)
+    tsv = to_tsv(text, result)
+    assert "\r" not in tsv and all(len(row.split("\t")) == 6 for row in tsv.splitlines() if not row.startswith("#"))
+    assert "a\\|b" in to_markdown(text, result)
