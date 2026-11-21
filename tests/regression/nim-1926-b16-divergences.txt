@@ -1,0 +1,8 @@
+# 님의 沈黙 1926 batch 16: scan vs ko.wikisource divergences (PDF pp.153-157)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p153: DIFFERS
+  scan : 당신이가실ᄯᅢ에 나는 다른시골에 병드러누어서 리별의키쓰도 못하얏슴니다
+  wiki : 당신이가실ᄯᅢ에 나는 다른시골에 병드러누워서 리별의키쓰도 못하얏슴니다
+  chars: '어'->'워'
