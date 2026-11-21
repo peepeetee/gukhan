@@ -48,6 +48,26 @@ def _utf8_streams() -> None:
                 pass
 
 
+def _dist_version(name: str) -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version(name)
+    except PackageNotFoundError:
+        return "not installed"
+
+
+def version_text() -> str:
+    """What a bug report needs: gukhan, the analyser and its model type, and the installed lexicon."""
+    from .analyser import KIWI_MODEL_TYPE
+
+    return (
+        f"gukhan {__version__}\n"
+        f"kiwipiepy {_dist_version('kiwipiepy')}, model {KIWI_MODEL_TYPE}\n"
+        f"gukhan-lexicon {_dist_version('gukhan-lexicon')}"
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         prog="gukhan",
@@ -91,7 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="evidence rules that narrow a flag's candidates: default, all, none, or names "
         f"({', '.join(sorted(rules.ALL))}), comma separated; see docs/PLAN.md §5",
     )
-    ap.add_argument("--version", action="version", version=f"gukhan {__version__}")
+    ap.add_argument("--version", action="version", version=version_text())
     return ap
 
 
