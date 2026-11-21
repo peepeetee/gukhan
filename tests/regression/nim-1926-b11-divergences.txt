@@ -1,0 +1,27 @@
+# 님의 沈黙 1926 batch 11: scan vs ko.wikisource divergences (PDF pp.125-130)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p125: DIFFERS
+  scan : 桂月香이어 그대는 아릿다옵고 무서은 最後의微笑를 거두지아니한채로 大地의寢臺에 잠드럿슴니다
+  wiki : 桂月香이어 그대는 아릿다읍고 무서은 最後의微笑를 거두지아니한채로 大地의寢臺에 잠드럿슴니다
+  chars: '옵'->'읍'
+  scan : 大同江에 낙시질하는사람은 그대의노래를듯고 牧丹峯에 밤노리하는사람은 그대의얼골을봄니다
+  wiki : 大洞江에 낙시질하는사람은 그대의노래를듯고 牧丹峰에 밤노리하는사람은 그대의얼골을봄니다
+  chars: '同'->'洞' | '峯'->'峰'
+## p126: DIFFERS
+  scan : 나는 黃金의소반에 아츰볏을바치고 梅花가지에 새봄을결어서 그대의 잠자는겻해 가만히 노아드리것슴니다
+  wiki : 나는 黃金의소반에 아츰볏을바치고 梅花가지에 새봄을걸어서 그대의 잠자는겻헤 가만히 노아드리것슴니다
+  chars: '결'->'걸' | '해'->'헤'
+## p127: DIFFERS
+  scan : 세상에 滿足이 잇기는잇지마는 사람의압혜만잇다
+  wiki : 세상에 滿足이 잇기는잇지마는 사람의압헤만잇다
+  chars: '혜'->'헤'
+## p128: DIFFERS
+  scan : 아즈랑이가튼ᄭᅮᆷ과 金실가튼幻想이 님기신ᄭᅩᆺ동산에 둘닐ᄯᅢ에 아々 나는 滿足을어덧노라
+  wiki : 아즈량이가튼ᄭᅮᆷ과 金실가튼幻想이 님기신ᄭᅩᆺ동산에 둘닐ᄯᅢ에 아々 나는 滿足을어덧노라
+  chars: '랑'->'량'
+## p129: DIFFERS
+  scan : 당신이 노래를부르지 아니하는ᄯᅢ에 당신의노래가락은 녁々히들님니다 그려
+  wiki : 당신이 노래를부르지 아니하는ᄯᅢ에 당신의노래가락은 역역히들님니다 그려
+  chars: '녁々'->'역역'
