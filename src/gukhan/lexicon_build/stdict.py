@@ -81,7 +81,8 @@ class ParseStats:
     tags_seen: set[str] = field(default_factory=set)
     # Hangul headwords that also exist as native words (no Hanja form): word → (pos, gloss, weight)
     native: dict[str, tuple[str, str, int]] = field(default_factory=dict)
-    native_source: dict[str, str] = field(default_factory=dict)  # headword → source id, where it is not Wiktionary
+    # (headword, part of speech) → (gloss, source id) of 標準國語大辭典 native words; 조 is noun and determiner
+    native_pos: dict[tuple[str, str], tuple[str, str]] = field(default_factory=dict)
 
 
 def _local(tag: str) -> str:
@@ -254,10 +255,7 @@ def note_native(item: ET.Element, word: str, stats: ParseStats) -> None:
     if pos not in NATIVE_POS or not hangul or not all("가" <= c <= "힣" for c in hangul):
         return
     sense = re.sub(r"<[^>]+>", "", _find_text(item, "definition") or "").replace("\t", " ").replace("\n", " ")[:80]
-    native = stats.native
-    if hangul not in native or (native[hangul][0] != "명사" and pos == "명사"):
-        native[hangul] = (pos, sense, 0)
-        stats.native_source[hangul] = f"stdict:{_find_text(item, 'target_code') or hangul}"
+    stats.native_pos.setdefault((hangul, pos), (sense, f"stdict:{_find_text(item, 'target_code') or hangul}"))
 
 
 GENERAL_CAT = "없음"
