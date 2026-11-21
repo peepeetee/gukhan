@@ -126,8 +126,9 @@ tests/regression/*.tsv --lexicon build/lexicon` is the only source of any
 accuracy figure.
 
 Scores, 2026-11-21, on the lexicon built that day from main (標準國語大辭典 88 chunks + 우리말샘 +
-Wiktionary (kaikki.org) + 韓國語基礎辭典 + learner list + Unihan 18.0.0; 706,729 entries,
-with the domain column, native headwords kept per part of speech (#58) and no statute glosses),
+Wiktionary (kaikki.org) + Wikidata lexemes + 韓國語基礎辭典 + learner list + Unihan 18.0.0; 706,746 entries,
+with the domain column, native headwords kept per part of speech (#58), the 訓 column of `char-info.tsv`
+(2,049 characters) and no statute glosses; main at cf8d1a2),
 Kiwi 0.24.1, default settings (evidence rules `default`, docs/PLAN.md §5a). A word is one
 run of Hanja in the published text. "flagged or partial" counts words the tool left in Hangul
 (abstained) or converted only in part; those are not errors. `wrong` is Hanja that differs from
@@ -135,14 +136,16 @@ the published text; `over` is Hanja written where the published text has Hangul.
 
 | source | items | words | right | wrong | over | flagged or partial |
 | --- | --- | --- | --- | --- | --- | --- |
-| 大韓民國憲法 1948 | 321 | 1897 | 49.4% | 4 (0.2%) | 3 | 955 (870 flagged) |
-| 憲法 1952 amendment | 352 | 2149 | 47.4% | 5 (0.2%) | 5 | 1126 |
-| 憲法 1954 amendment | 360 | 2244 | 48.1% | 4 (0.2%) | 7 | 1161 |
+| 大韓民國憲法 1948 | 321 | 1897 | 49.5% | 4 (0.2%) | 3 | 954 |
+| 憲法 1952 amendment | 352 | 2149 | 47.4% | 5 (0.2%) | 5 | 1125 |
+| 憲法 1954 amendment | 360 | 2244 | 48.1% | 4 (0.2%) | 7 | 1160 |
 | 大韓民國臨時憲章 1919 | 22 | 133 | 36.1% | 2 (1.5%) | 0 | 83 |
 | 3·1獨立宣言書 1919 (hard set) | 35 | 497 | 30.2% | 9 (1.8%) | 4 | 338 |
 | 님의 沈黙 1926, batches b1–b19 and preface (poetry) | 418 | 943 | 27.6% | 11 (1.2%) | 84 | 672 |
 | 現行 法令 modern-law-heldout (held out; `over` not meaningful, only glossed words are Hanja) | 649 | 723 | 23.4% | 9 (1.2%) | n/a | 545 |
 | 現行 法令 modern-law-tuning (rules were fitted on it; `over` not meaningful) | 547 | 592 | 23.1% | 7 (1.2%) | n/a | 448 |
+| 舊 法令 old-law-heldout (drafters' own Hanja in 1970–1999 statutes; held out) | 5246 | 13250 | 35.6% | 109 (0.8%) | 782 | 8419 |
+| 舊 法令 old-law-tuning (rules were fitted on it) | 5223 | 13319 | 36.5% | 120 (0.9%) | 713 | 8342 |
 
 With statute glosses (`--law-glosses`, the 40 statutes of `modern-law-laws.tsv`, fetched 2026-11-21)
 added to the lexicon, and the held-out pairs excluded (`--law-glosses-exclude modern-law-heldout.tsv`):
