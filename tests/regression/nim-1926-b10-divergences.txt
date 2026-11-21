@@ -1,0 +1,22 @@
+# 님의 沈黙 1926 batch 10: scan vs ko.wikisource divergences (PDF pp.120-124)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p120: DIFFERS
+  scan : 당신은 옛盟誓을ᄭᅢ치고 가심니다
+  wiki : 당신은 옛盟誓를ᄭᅢ치고 가심니다
+  chars: '을'->'를'
+## p123: DIFFERS
+  scan : 나는 잠ㅅ결에 큰소리로 이러케 부르지젓다
+  scan : 아々 惑星가러빗나는 님의微笑는 黑闇의光線에서 채 사러지지아니하얏슴니다
+  scan : 잠의나라에서 몸부림치든 사랑의눈물은 어뇌덧 벼개를적셧슴니다
+  wiki : 나는 잠ㅅ결에 큰소리로 이렇게 부르지젓다
+  wiki : 아아 惑星가티빗나는 님의微笑는 黑闇의光線에서 채 사러지지아니하얏슴니다
+  wiki : 잠의나라에서 몸부림치든 사랑의눈물은 어늬덧 벼개를적섯슴니다
+  chars: '러케'->'렇게'
+  chars: '々'->'아' | '러'->'티'
+  chars: '뇌'->'늬' | '셧'->'섯'
+## p124: DIFFERS
+  scan : 容恕하서요 님이어 아모러 잠이지은허물이라도 님이 罰을주신다면 그罰을 잠을주기는 실슴니다
+  wiki : 容恕하서요 님이어 아모리 잠이지은허물이라도 님이 罰을주신다면 그罰을 잠을주기는 실슴니다
+  chars: '러'->'리'
