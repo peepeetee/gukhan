@@ -79,7 +79,7 @@ personal-name characters, 𠀀 U+20000 and beyond), are in almost no ordinary fo
 ## When a character is missing: what the extension does
 
 When it converts a word, the extension draws each Hanja once on a hidden canvas in the same font as the
-page text. If nothing is drawn, or the picture equals what a character that no font has (U+FFFF, U+10FFFF)
+page text. If nothing is drawn, or the picture equals what an unassigned code point (one that no font has)
 looks like, the character is counted as missing. Then:
 
 - the popup says how many Hanja the page's font cannot draw, shows up to eight, and suggests Noto Serif or

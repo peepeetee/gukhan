@@ -25,10 +25,13 @@
   }, {rootMargin: `${MARGIN}px 0px`}) : null;
   // --- Missing glyphs. A Hanja the page's font lacks shows as an empty space or a box (tofu). The check draws the
   // character on a canvas in the element's own font: no ink at all, or the same picture as a character that no
-  // font has (U+FFFF, U+10FFFF), means missing. Where the browser draws something else for a missing glyph (Firefox
+  // font has, means missing. Where the browser draws something else for a missing glyph (Firefox
   // puts its code point in the box) the check says nothing rather than guessing. If the canvas cannot be read
   // (a privacy setting that blanks it) it also says nothing.
   const HAN = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u{20000}-\u{3134F}]/u;
+  // Code points that are valid but unassigned, in the BMP and in planes 2 and 3. (Noncharacters such as U+FFFF are
+  // skipped by some browsers instead of drawn as a missing glyph, which made them useless as a reference.)
+  const SENTINELS = ['\u0378', '\u{2FFFD}', '\u{3FFFD}'];
   const glyphs = (() => {
     let ctx, usable, empties;
     const cache = new Map();
@@ -49,7 +52,7 @@
         const style = getComputedStyle(element), font = `${style.fontStyle} ${style.fontWeight} 32px ${style.fontFamily}`;
         const key = `${font}|${ch}`;
         if (!cache.has(key)) {
-          const sentinels = ['\uFFFF', '\u{10FFFF}'].map(c => draw(c, font));
+          const sentinels = SENTINELS.map(c => draw(c, font));
           const mine = draw(ch, font);
           cache.set(key, mine.n === 0 || sentinels.some(s => s.n > 0 && s.hash === mine.hash && s.n === mine.n));
         }

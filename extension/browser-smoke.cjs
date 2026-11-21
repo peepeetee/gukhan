@@ -113,7 +113,12 @@ const {copyWithHosts, siteMessage} = require('./smoke-helpers.cjs');
     const lacking = async () => worker.evaluate(async () => Object.entries(await chrome.storage.session.get(null)).filter(([k]) => k.startsWith('glyphs:')).map(([, v]) => v));
     for (let i = 0; i < 40 && !(await lacking()).length; i++) await glyph.waitForTimeout(100);
     const reported = await lacking();
-    assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported');
+    const pictures = reported.length ? '' : await glyph.evaluate(() => {  // what the page's own canvas draws, for the failure message
+      const ctx = document.createElement('canvas').getContext('2d', {willReadFrequently: true});
+      const ink = ch => { ctx.clearRect(0, 0, 64, 64); ctx.font = '32px serif'; ctx.fillText(ch, 8, 44); return ctx.getImageData(0, 0, 64, 64).data.filter((v, i) => i % 4 === 3 && v).length + 'px'; };
+      return ['H', '\u{30000}', '\u0378', '\u{2FFFD}', '\u{3FFFD}', '\uFFFF'].map(c => c.codePointAt(0).toString(16) + ':' + ink(c)).join(' ');
+    });
+    assert.ok(reported.length && reported[0].sample.includes('\u{30000}'), 'the missing Extension G character is reported; canvas ink: ' + pictures);
     await glyph.locator('[data-gukhan="word"]').first().click();
     await glyph.locator('[data-gukhan="panel"]').waitFor({state: 'attached'});
     assert.match(await glyph.evaluate(() => document.querySelector('[data-gukhan="panel"]').shadowRoot.textContent), /이 글꼴에 없는 글자/);
