@@ -1,0 +1,23 @@
+# 님의 沈黙 1926 batch 15: scan vs ko.wikisource divergences (PDF pp.147-152)
+# Gold follows the scan. Differences are old-orthography details (ᄯ/ᄶ/ᄲ ligatures, 러/려, 혜/헤, ᄲ/ᄭ), glyph variants and page-break joins;
+# where the printed form was unclear in the image the Wikisource reading was taken, otherwise the scan reading stands.
+
+## p147: DIFFERS
+  scan : 牧丹峯의키쓰를밧고 桂月香의無情을咀呪하면서 綾羅島를감도러흐르는 失戀者인大同江아
+  wiki : 牧丹峯의키쓰를밧고 桂月香의無情을咀呪하면서 綾羅島를감도러흐르는 失戀者인大洞江아
+  chars: '同'->'洞'
+  scan : 만일 그대네가 쓰리고압흔슯음으로 조리다가 爆發되는 가슴가온대
+  wiki : 만일 그대네가 쓰리고압흔슯음으로 조리다가 爆發되는 가슴가온대의불을
+  chars: ''->'의불을'
+## p148: DIFFERS
+  scan : 의불을 ᄭᅳᆯ수가잇다면 그대들이 님긔루은사람을위하야 노래를부를ᄯᅢ에 잇다감잇다감 목이메어 소리를이르지못함은 무슨ᄭᅡ닭인가
+  wiki : ᄭᅳᆯ수가잇다면 그대들이 님긔루은사람을위하여 노래를부를ᄯᅢ에 잇다감잇다감 목이메어 소리를이르지못함은 무슨ᄭᅡ닭인가
+  chars: '의불을'->'' | '야'->'여'
+## p149: DIFFERS
+  scan : 만일 아름다온마음만을 사랑한다면 웨 나의반지를 보석으로아니하고 옥으로만드러요
+  wiki : 만일 아름다은마음만을 사랑한다면 웨 나의반지를 보석으로아니하고 옥으로만드러요
+  chars: '온'->'은'
+## p151: DIFFERS
+  scan : 나는 책상압혜안저서 여러가지글을볼ᄯᅢ에 내가要求만하면 글은 조흔이야기도하고 맑은노래도부르고 嚴肅한敎訓도줌니다
+  wiki : 나는 책상압헤안저서 여러가지글을볼ᄯᅢ에 내가要求만하면 글은 조흔이야기도하고 맑은노래도부르고 嚴肅한敎訓도줌니다
+  chars: '혜'->'헤'
