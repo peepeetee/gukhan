@@ -39,6 +39,26 @@ except for characters that have a 訓 in the file's fourth column (built with `-
 Without the file the card is as before. `char-info.tsv` is checked against `manifest.json` like the lexicon,
 and `--dictionary` bundles it when it is in the folder.
 
+Accessibility / 接近性: every control has a name in Korean and English; the popup and settings follow the system's
+light or dark theme and show a 3 px focus ring; controls are at least 44 px high. A converted word is a focusable
+button whose accessible name starts with the Hangul reading, then the Hanja (`전기 · 電氣`), is marked `lang="ko"`,
+and says "후보 보기 / Show candidates"; Enter, Space or ArrowDown opens the card, ArrowUp/Down, Home and End move between
+candidates, Escape closes it and gives focus back to the word, and Tab closes it and moves on. Each candidate says
+whether it is the saved choice (`aria-pressed`), and the Hanja reading line is a status region that is read as focus
+moves. In `ruby` style the page text carries the Hangul reading in `<rt>`, but the word's accessible name is the button's,
+so the Hangul reading is always what a screen reader says. `extension/a11y.test.mjs` checks the colour contrast of
+every pair (4.5:1 for text, 3:1 for the focus ring) and that each field has a label; the browser smoke test checks the
+rest. A real screen reader (NVDA, VoiceOver, TalkBack) has not been tried here; please report what it says.
+접근성: 모든 조작에 韓英 이름이 있고, 팝업·설정은 시스템의 밝은/어두운 모양을 따르며 초점 테두리가 보입니다. 바뀐 낱말은
+초점을 받는 단추이며 이름이 한글 읽기로 시작합니다(`전기 · 電氣`). Enter·Space·↓로 카드를 열고, ↑↓·Home·End로 후보를 옮기고,
+Esc는 닫고 낱말로 초점을 돌려주며, Tab은 닫고 다음으로 넘어갑니다. 實際(실제) 화면 낭독기로는 아직 시험하지 못했습니다.
+
+Firefox for Android / 안드로이드 Firefox: the manifest declares `gecko_android` (Firefox 142 or newer, the minimum the manifest already carried for its data-collection declaration) and every page works with touch: a tap opens the card (no hover
+needed), candidates are 44 px high on a touch screen, and the popup and settings fit a phone width. It is not tested on a
+device (no Android here): the unknowns are whether Firefox for Android grants optional host access from the popup and how
+large a dictionary IndexedDB may hold there; try a code-only build with a small dictionary first.
+안드로이드 Firefox 142 이상을 宣言(선언)했고 터치로 쓸 수 있게 했지만, 實機(실기) 시험은 하지 못했습니다.
+
 Code, links, controls and editable regions are skipped. Cross-frame and shadow-root
 content is not supported. Dynamic pages may conflict with DOM rewriting; turn the
 site off if its layout or interaction changes.

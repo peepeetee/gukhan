@@ -72,6 +72,7 @@ so everything merged so far is listed under *Unreleased*, grouped by area; pull 
 - Lazy conversion near the viewport with a node cap, and a notice for characters the page's font cannot draw
   (#67); font note with measured coverage.
 - Reads the lexicon's domain column and native-twin candidates (#57).
+- Accessibility pass: Hangul-first accessible names, focus rings, `aria-pressed` on candidates, Tab and arrow keys on the card, dark popup and settings, 44 px touch targets, contrast test; Firefox for Android declared and touch-ready, not tested on a device (#75).
 
 #### Release and project / 公開 準備
 - Apache-2.0 licence, notices and licensing policy, CI licence check (#1); data distribution assessment (#11).
