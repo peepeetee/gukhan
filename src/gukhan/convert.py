@@ -207,6 +207,10 @@ def rank(entries: list[Entry]) -> list[Entry]:
     )
 
 
+def _forms_of(cands: list[Entry]) -> set[str]:
+    return {c.hanja.replace(" ", "") for c in cands}
+
+
 class Converter:
     def __init__(
         self,
@@ -289,6 +293,14 @@ class Converter:
             kept = rules.drop_unevidenced_fields(cands, self.field_evidence)
             if len(kept) < len(cands):
                 cands, note = kept, note or "everyday word, no sign of a specialist field"
+        if "sense" in active and tok.tag == "NNG" and len(_forms_of(cands)) > 1:
+            lo = max((t.idx for t in toks[: tok.idx] if t.tag == "SF"), default=-1) + 1
+            hi = min((t.idx for t in toks[tok.idx :] if t.tag == "SF"), default=len(toks))
+            nouns = {t.form for t in toks[lo:hi] if t.tag == "NNG" and len(t.form) >= 2 and t.idx != tok.idx}
+            nouns.discard(tok.form)
+            kept = rules.by_context_words(cands, nouns)
+            if len(kept) < len(cands):
+                cands, note = kept, "definition shares words with the sentence"
         if "ordinal" in active and tok.tag == "XPN" and after is not None and after.tag == "SN":
             kept = rules.by_sense(cands, rules.ORDINAL_SENSE)
             if kept and len(kept) < len(cands):

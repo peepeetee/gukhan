@@ -130,6 +130,23 @@ e.g. 임자 (壬子 「민속」, 妊子 「한의」, 荏子 vs 任者). Which 
 sets, by measuring each label alone (without 음악, 동물, 의학, 법률, 경제, 공업: they added wrong), so the
 figure is tuned to the sets and not an independent estimate.
 
+## `sense` rule / 뜻풀이 規則 (2026-11-21)
+
+Same lexicon and settings as the `field` table above, regression sets as of main at #46 (more
+님의 沈黙 batches). Columns: words, right, partial, flagged, wrong, over.
+
+| id | default without `sense` | default (with `sense`) |
+| --- | --- | --- |
+| constitution-1948 | 1897 · 938 · 101 · 851 · 7 · 3 | 1897 · **957** · 104 · 829 · 7 · 3 |
+| constitution-1952 | 2149 · 1019 · 126 · 996 · 8 · 5 | 2149 · **1040** · 133 · 968 · 8 · 5 |
+| constitution-1954 | 2244 · 1073 · 129 · 1035 · 7 · 7 | 2244 · **1095** · 137 · 1005 · 7 · 7 |
+| declaration-1919, provisional-charter-1919, nim-1926 | unchanged | unchanged |
+
+All sets: right 3448 → 3510 (+62), wrong 48 → 48. Every gain is in the three constitutions, which
+repeat each other, so the distinct-word gain is about a third of that. The thresholds (two nouns,
+margin two, same sentence) were chosen on these sets: with a threshold of one noun the rule picked
+442 right and 74 wrong words. Nothing has been measured on modern prose.
+
 ## Combined dictionary measurement / 통합 사전 측정
 
 2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.

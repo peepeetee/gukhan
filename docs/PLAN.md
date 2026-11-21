@@ -274,6 +274,7 @@ Implementation: `src/gukhan/rules.py`, wiring in `convert.py`.
 | `counter` | a counter whose every reading is defined as a 「… 단위」 (日 「날을 세는 단위」) is converted only after a number; alone, 일 and 시 are native words | on |
 | `compound` | a compact run of two or more tokens, at least four syllables, that is not a headword but occurs inside longer headwords with exactly one Hanja form (國務委員 inside 國務委員會 and 國務委員長) | on |
 | `field` | a reading whose every sense the dictionary labels as terminology of one narrow field (역사, 불교, 민속, 한의, 식물, 생명, 인명, 지명) is dropped when fewer than two words that the converter settled elsewhere in the same text carry that label, the token is not glued to a word before it, and a reading with an everyday sense survives (菩薩 「불교」 goes in a text with no Buddhist words, 壬子 and 妊子 go from 임자 in a legal text) | on |
+| `sense` | one reading's stored definition (first 80 characters) contains at least two different common nouns of the same sentence and at least two more than any other reading's does (議決 「…의안이나 안건을 토의하여 결정함」, not 疑結 「…번뇌」) | on |
 | `verb` | the noun is followed by 하/되 …, and only some readings exist as that dictionary verb with the matching part of speech (重要하다 형용사, not 中夭하다). One-syllable words stay flagged | off |
 
 Two further changes work together with these. The builder now keeps one lexicon
