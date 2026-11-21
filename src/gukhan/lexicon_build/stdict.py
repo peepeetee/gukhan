@@ -34,6 +34,10 @@ WANTED_TAGS = ("word", "original_language", "origin", "pos", "word_type", "targe
 SINO_WORD_TYPES = {"한자어", "혼종어"}
 
 
+class InputError(ValueError):
+    """An input file that cannot be read as what it claims to be (truncated, corrupt)."""
+
+
 @dataclass
 class Entry:
     hangul: str
@@ -252,16 +256,19 @@ def validate_readings(hangul: str, mixed: str, readings: dict[str, list[str]]) -
 
 def iter_items(path: Path) -> Iterator[ET.Element]:
     """Yield every ``<item>`` element from a zip, a directory of XML, or one file."""
-    for _name, fh in _open_all(path):
-        for _, el in ET.iterparse(fh, events=("end",)):
-            if _local(el.tag) == "item":
-                yield el
-                el.clear()
+    for name, fh in _open_all(path):
+        try:
+            for _, el in ET.iterparse(fh, events=("end",)):
+                if _local(el.tag) == "item":
+                    yield el
+                    el.clear()
+        except ET.ParseError as e:  # a truncated or corrupt chunk: say which one
+            raise InputError(f"{name}: XML이 온전하지 않습니다 / not well-formed XML ({e})") from e
 
 
 def _open_all(path: Path) -> Iterable[tuple[str, object]]:
     if path.is_dir():
-        for p in sorted(path.rglob("*.xml")):
+        for p in sorted(q for q in path.rglob("*") if q.suffix.lower() == ".xml"):
             with p.open("rb") as fh:
                 yield str(p), fh
     elif zipfile.is_zipfile(path):
