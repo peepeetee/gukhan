@@ -147,6 +147,29 @@ repeat each other, so the distinct-word gain is about a third of that. The thres
 margin two, same sentence) were chosen on these sets: with a threshold of one noun the rule picked
 442 right and 74 wrong words. Nothing has been measured on modern prose.
 
+## Native homographs from 標準國語大辭典 / 고유어 同音語 (2026-11-21)
+
+`gukhan-lexicon-build --stdict` now also records the dictionary's native (고유어) headwords
+that have the same sound as a Sino-Korean entry, as candidates whose Hanja column repeats the
+Hangul (the mechanism Wiktionary natives already used). 사랑 had one Sino-Korean entry (舍廊
+「바깥채」) and was written 舍廊 in 77 places in 님의 沈黙; now it is flagged between 舍廊 and
+the native 사랑. 2,337 native headwords. Same lexicon otherwise (標準國語大辭典 + 우리말샘), same
+rules; columns: words, right, partial, flagged, wrong, over.
+
+| id | before | after |
+| --- | --- | --- |
+| constitution-1948 | 1897 · 957 · 104 · 829 · 7 · 3 | 1897 · 949 · 104 · 837 · 7 · 3 |
+| constitution-1952 | 2149 · 1040 · 133 · 968 · 8 · 5 | 2149 · 1027 · 132 · 982 · 8 · 5 |
+| constitution-1954 | 2244 · 1095 · 137 · 1005 · 7 · 7 | 2244 · 1078 · 137 · 1022 · 7 · 7 |
+| declaration-1919 | 497 · 151 · 25 · 311 · 10 · 4 | 497 · 149 · 24 · 314 · 10 · 4 |
+| provisional-charter-1919 | 133 · 51 · 6 · 74 · 2 · 0 | 133 · 50 · 6 · 75 · 2 · 0 |
+| nim-1926 (b1–b14) | 931 · 290 · 15 · 610 · 16 · 201 | 931 · 286 · 13 · 616 · 16 · 103 |
+| nim-preface-1926 | 12 · 2 · 0 · 10 · 0 · 3 | 12 · 2 · 0 · 10 · 0 · 1 |
+
+All sets: `over` 223 → 123, wrong 50 → 50, right 3586 → 3541 (−45). The tool now abstains on
+words that have a native twin (e.g. 시내, 생각, 도막) instead of writing the Sino-Korean one;
+that costs 45 right words and removes 100 words written in Hanja where the author kept Hangul.
+
 ## Combined dictionary measurement / 통합 사전 측정
 
 2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.

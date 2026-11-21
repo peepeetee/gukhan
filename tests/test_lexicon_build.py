@@ -459,3 +459,26 @@ def test_truncated_bz2_dump_exits_2(tmp_path, capsys):
     path.write_bytes(blob[: len(blob) // 2])
     assert build(["--kowiki", str(path), "-o", str(tmp_path / "out")]) == 2
     assert "error" in capsys.readouterr().err
+
+
+def test_stdict_native_headwords_are_recorded_for_homograph_flags(tmp_path):
+    xml = (
+        "<channel>"
+        "<item><target_code>1</target_code><word_info><word>사랑01</word><word_unit>단어</word_unit>"
+        "<word_type>고유어</word_type><pos_info><pos>명사</pos><comm_pattern_info><sense_info>"
+        "<definition>어떤 사람을 아끼는 마음.</definition></sense_info></comm_pattern_info></pos_info>"
+        "</word_info></item>"
+        "<item><target_code>2</target_code><word_info><word>사랑02</word><word_unit>단어</word_unit>"
+        "<word_type>한자어</word_type><original_language_info><original_language>舍廊</original_language>"
+        "<language_type>한자</language_type></original_language_info><pos_info><pos>명사</pos></pos_info>"
+        "</word_info></item>"
+        "</channel>"
+    )
+    f = tmp_path / "s.xml"
+    f.write_text(xml, encoding="utf-8")
+    out = tmp_path / "out"
+    assert main(["--stdict", str(f), "-o", str(out)]) == 0
+    lines = [ln.split("\t") for ln in (out / "lexicon.tsv").read_text(encoding="utf-8").splitlines() if ln[0] != "#"]
+    rows = {(ln[0], ln[1]): ln[3] for ln in lines}
+    assert rows[("사랑", "舍廊")] == "stdict:2"
+    assert rows[("사랑", "사랑")] == "stdict:1"  # the native word of the same sound is a candidate
