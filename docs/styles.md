@@ -53,3 +53,16 @@ Besides the styles, the card can show each Hanja's reading and English meaning (
 
 Unihan has no Korean 訓 (meaning-reading like 나라 국), so the character list gives the reading (音) and the English
 meaning only; a source for 訓 would need its own licence check first. Unihan에는 한국어 訓이 없어 英語 뜻을 보입니다.
+
+### Korean 訓 sources checked (2026-11-21) / 訓 出處 調査
+
+The NIKL dumps (標準國語大辭典, 우리말샘, 韓國語基礎辭典; CC BY-SA 2.0 KR) carry **no 訓音 field**. 標準國語大辭典 has
+24 and 우리말샘 about 4,400 single-syllable headwords with a single Hanja, but these are word senses (e.g. 귤 橘 "귤나무의 열매"),
+not 訓 (귤 귤). Turning definitions into 訓 would be a guess, so it is not done. Unihan `kHangul` gives 音 only.
+標準國語大辭典·우리말샘·韓國語基礎辭典에는 訓音 欄이 없고, 漢字 한 글자 標題語는 낱말 뜻풀이일 뿐 訓이 아닙니다.
+
+Not usable yet: the en.wiktionary Hanja entries (`ko-hanja` template carries 訓 and 音; CC BY-SA 4.0, same licence as the
+Wiktionary-including build) are the one candidate with a clear licence, but the kaikki.org extract is not reachable from the
+cloud build environment, so its shape could not be checked there. A builder input for it is a follow-up once someone has
+inspected a real extract. 國漢混用은 확인하지 못한 資料를 추측으로 넣지 않습니다.
+
