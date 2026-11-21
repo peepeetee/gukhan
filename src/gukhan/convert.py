@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field, replace
 from enum import Enum
 
@@ -182,6 +183,7 @@ class Converter:
         review_all: bool = False,
         min_weight: int | None = None,
         use_rules: bool | frozenset[str] = True,
+        field_evidence: Counter[str] | None = None,
     ) -> None:
         self.lexicon = lexicon if lexicon is not None else Lexicon.sample()
         self.overrides = overrides
@@ -191,6 +193,8 @@ class Converter:
         if min_weight is None:
             min_weight = DEFAULT_MIN_WEIGHT if self.lexicon.weighted else 0
         self.min_weight = min_weight
+        # Words per dictionary field that the text settled without the ``field`` rule; None = not computed yet.
+        self.field_evidence = field_evidence
 
     # -- lookup helpers -------------------------------------------------
     def _max_key_len(self) -> int:
@@ -246,6 +250,11 @@ class Converter:
             kept = rules.drop_proper_names(cands)
             if len(kept) < len(cands):
                 cands, note = kept, "common noun, not a name"
+        glued = before is not None and before.end == tok.start and before.tag in ("NNG", "NNB", "NR", "XPN", "MM")
+        if "field" in active and tok.tag in ("NNG", "XR") and self.field_evidence is not None and not glued:
+            kept = rules.drop_unevidenced_fields(cands, self.field_evidence)
+            if len(kept) < len(cands):
+                cands, note = kept, note or "everyday word, no sign of a specialist field"
         if "ordinal" in active and tok.tag == "XPN" and after is not None and after.tag == "SN":
             kept = rules.by_sense(cands, rules.ORDINAL_SENSE)
             if kept and len(kept) < len(cands):
@@ -359,7 +368,39 @@ class Converter:
                 i += 1
         return decisions
 
+    def measure_fields(self, texts: list[str]) -> Counter[str]:
+        """Count, per dictionary field, the words of ``texts`` that settle on one reading of that field.
+
+        This is the evidence of the ``field`` rule; it runs the converter with that rule off, so a
+        reading chosen *because* of the rule never counts as evidence for itself.
+        """
+        saved = self.field_evidence
+        self.field_evidence = None
+        counts: Counter[str] = Counter()
+        try:
+            for text in texts:
+                for seg in segment(text):
+                    if seg.protected:
+                        continue
+                    for d in self.convert_span(text[seg.start : seg.end], seg.start):
+                        if d.kind == Kind.CONVERTED and d.candidates and d.reason != "override":
+                            fields = rules.entry_fields(list(d.candidates), d.hanja.replace(" ", ""))
+                            counts.update(fields)
+        finally:
+            self.field_evidence = saved
+        return counts
+
+    def set_document(self, texts: list[str]) -> None:
+        """Take the ``field`` rule's evidence from all of ``texts`` (one document), not from each call."""
+        self.field_evidence = self.measure_fields(texts) if "field" in self.rules else None
+
     def convert(self, text: str, *, mark: bool = False) -> Result:
+        if "field" in self.rules and self.field_evidence is None:
+            self.field_evidence = self.measure_fields([text])
+            try:
+                return self.convert(text, mark=mark)
+            finally:
+                self.field_evidence = None
         decisions: list[Decision] = []
         for seg in segment(text):
             if seg.protected:

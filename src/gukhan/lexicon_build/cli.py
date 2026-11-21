@@ -19,7 +19,7 @@ from .ranking import krdict_levels, learner_ranks
 
 HEADER = (
     "# gukhan lexicon\tlicence={licence}\tmanifest=manifest.json\n"
-    "# hangul\thanja\tpos\tsource\tsense\tweight\tlevel\tlearner_rank\n"
+    "# hangul\thanja\tpos\tsource\tsense\tweight\tlevel\tlearner_rank\tdomain\n"
 )
 
 
@@ -49,14 +49,25 @@ def merge_entries(entries: list[stdict_mod.Entry]) -> list[stdict_mod.Entry]:
     """One line per (hangul, hanja, part-of-speech group): prefer a gloss, then a common noun, then source rank."""
     best: dict[tuple[str, str, str], stdict_mod.Entry] = {}
     weight: dict[tuple[str, str, str], int] = {}
+    cats: dict[tuple[str, str, str], set[str] | None] = {}  # None = some entry is general or unlabelled
     for e in entries:
         key = (e.hangul, e.hanja, pos_group(e))
         weight[key] = max(weight.get(key, 0), e.weight)
+        if key not in cats:
+            cats[key] = set()
+        if cats[key] is not None:
+            if e.domain:
+                cats[key].update(e.domain.split(","))
+            else:
+                cats[key] = None
         rank = (not e.sense, POS_PREFERENCE.get(e.pos, 2), source_rank(e.source), e.source)
         cur = best.get(key)
         if cur is None or rank < (not cur.sense, POS_PREFERENCE.get(cur.pos, 2), source_rank(cur.source), cur.source):
             best[key] = e
-    out = [stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k]) for k, e in best.items()]
+    out = [
+        stdict_mod.Entry(e.hangul, e.hanja, e.pos, e.source, e.sense, weight[k], ",".join(sorted(cats[k] or ())))
+        for k, e in best.items()
+    ]
     return sorted(drop_nonstandard_spellings(out), key=lambda e: (e.hangul, e.hanja, e.pos))
 
 
@@ -261,7 +272,7 @@ def _build(argv: list[str] | None) -> int:
         fh.write(HEADER.format(licence=licence))
         for e in merged:
             key = e.hangul, e.hanja
-            fh.write(e.tsv() + f"\t{levels.get(key, 0)}\t{ranks.get(key, 0)}\n")
+            fh.write(e.tsv() + f"\t{levels.get(key, 0)}\t{ranks.get(key, 0)}\t{e.domain}\n")
     outputs = {"lexicon": lex_path}
     seen = merged
 

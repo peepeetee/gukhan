@@ -106,6 +106,30 @@ Reading the table:
 - Chars: wrong characters 7 → 7, 9 → 9, 7 → 7, 10 → 11, 2 → 2 (declaration-1919 gains one
   wrong character in a word that was a plain flag before).
 
+## `field` rule / 分野 規則 (2026-11-21)
+
+Lexicon built in the cloud container from 標準國語大辭典 (88 chunks) + 우리말샘 (25 chunks), no
+Wiktionary, 韓國語基礎辭典 or learner list: 705,758 entries, 484,686 of them with a `domain`.
+Kiwi 0.24.1 `cong`. Columns: words, right, partial, flagged, wrong, over. The scorer folds 祕/秘
+since this run (秘密 was counted wrong for a variant glyph).
+
+| id | default rules without `field` | default rules (with `field`) |
+| --- | --- | --- |
+| constitution-1948 | 1897 · 896 · 106 · 888 · 7 · 3 | 1897 · **938** · 101 · 851 · 7 · 3 |
+| constitution-1952 | 2149 · 973 · 131 · 1037 · 8 · 5 | 2149 · **1019** · 126 · 996 · 8 · 5 |
+| constitution-1954 | 2244 · 1016 · 136 · 1085 · 7 · 7 | 2244 · **1073** · 129 · 1035 · 7 · 7 |
+| declaration-1919 | 497 · 148 · 25 · 314 · 10 · 4 | 497 · **151** · 25 · 311 · 10 · 4 |
+| provisional-charter-1919 | 133 · 49 · 5 · 77 · 2 · 0 | 133 · **51** · 6 · 74 · 2 · 0 |
+| nim-1926 (b1–b8) | 573 · 147 · 5 · 412 · 9 · 140 | 573 · **176** · 5 · 382 · 10 · 140 |
+| nim-preface-1926 | 12 · 2 · 0 · 10 · 0 · 3 | 12 · 2 · 0 · 10 · 0 · 3 |
+
+Over all sets: right 3231 → 3410 (+179), flagged 3823 → 3659, wrong 43 → 44. The one new wrong
+word is 菩薩 → 補殺 in 님의 沈黙 (one Buddhist word in the text is not evidence of the field).
+The gain is mostly 불교, 민속 and 역사 words that the dictionary lists next to an everyday reading,
+e.g. 임자 (壬子 「민속」, 妊子 「한의」, 荏子 vs 任者). Which fields count was settled on these same
+sets, by measuring each label alone (without 음악, 동물, 의학, 법률, 경제, 공업: they added wrong), so the
+figure is tuned to the sets and not an independent estimate.
+
 ## Combined dictionary measurement / 통합 사전 측정
 
 2026-10-28, Kiwi 0.24.1, stdict + Wiktionary + Unihan 18.0.0, `--min-weight 0`.
