@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+name: release-extension
+
+# Builds the Chrome zip and the Firefox xpi from the checked-out commit and attaches them to a
+# GitHub release. Runs only when started by hand (Actions -> release-extension -> Run workflow).
+# The builds are code-only: no dictionary data is bundled, so everything in them is Apache-2.0.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create, e.g. extension-v0.1.1 (the number must match extension/manifest.json)"
+        required: true
+        default: "extension-v0.1.1"
+      prerelease:
+        description: "Mark as pre-release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check tag against manifest version
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          version=$(python -c "import json;print(json.load(open('extension/manifest.json'))['version'])")
+          case "$TAG" in
+            *"$version") echo "version $version";;
+            *) echo "tag $TAG does not end in manifest version $version" >&2; exit 1;;
+          esac
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Build
+        run: |
+          mkdir -p dist
+          python scripts/package_extension.py "dist/gukhan-chrome-${VERSION}.zip" --target chrome
+          python scripts/package_extension.py "dist/gukhan-firefox-${VERSION}.xpi"
+          (cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          flag=""
+          if [ "$PRERELEASE" = "true" ]; then flag="--prerelease"; fi
+          gh release create "$TAG" dist/* $flag --target "$GITHUB_SHA" \
+            --title "gukhan extension ${VERSION}" --notes-file .github/extension-release-notes.md
